@@ -1,4 +1,4 @@
-const title = 'Dipak Parmar ↠ Open Source Developer.';
+const title = 'Dipak Parmar';
 const description = 'Open Source Developer from Kamloops, BC 🇨🇦';
 
 const SEO = {
