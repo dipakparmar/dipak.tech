@@ -39,7 +39,7 @@ export default function Home({ color }) {
           marginBlock="0.83em"
           marginInline="0"
         >
-          I'm Dipak Parmar, a Open Source developer 🧑🏻‍💻 currently working at
+          I&apos;m Dipak Parmar, a Open Source developer 🧑🏻‍💻 currently working at
           local IT company Adroit Technologies from Kamloops, BC. 🇨🇦
         </Heading>
         <Heading as="h3" fontSize="1.25rem" color={color} fontWeight="400">
