@@ -1,12 +1,28 @@
 import { ChakraProvider } from '@chakra-ui/react';
 import { DefaultSeo } from 'next-seo';
 import Head from 'next/head';
-
+import Script from 'next/script'
 import SEO from '../next-seo.config';
 import '@/styles/globals.css';
 
 export default function App({ Component, pageProps }) {
   return (
+    <>
+			<Script
+				strategy="lazyOnload"
+				src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_TAG_ID}`}
+			/>
+
+			<Script id="google-analytics" strategy="lazyOnload">
+				{`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${process.env.NEXT_PUBLIC_GA_TAG_ID}', {
+              page_path: window.location.pathname,
+            });
+                `}
+			</Script>
     <ChakraProvider attribute="class">
       <Head>
         <meta content="width=device-width, initial-scale=1" name="viewport" />
@@ -15,5 +31,6 @@ export default function App({ Component, pageProps }) {
       <DefaultSeo {...SEO} />
       <Component {...pageProps} />
     </ChakraProvider>
+    </>
   );
 }
