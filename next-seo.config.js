@@ -21,8 +21,8 @@ const SEO = {
     ]
   },
   twitter: {
-    handle: '@dipakparmar65',
-    site: '@dipakparmar65',
+    handle: '@iamdipakparmar',
+    site: '@iamdipakparmar',
     cardType: 'summary_large_image'
   }
 };
