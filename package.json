@@ -16,7 +16,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postbuild": "next-sitemap"
+    "postbuild": "next-sitemap",
+    "autoclean": "yarn autoclean --force"
   },
   "dependencies": {
     "@chakra-ui/react": "^1.1.1",
