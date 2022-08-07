@@ -34,7 +34,7 @@
     "eslint": "8.15.0",
     "eslint-config-next": "12.1.6",
     "next-sitemap": "^2.5.20",
-    "prettier": "^2.2.1"
+    "prettier": "^2.7.1"
   },
   "prettier": {
     "arrowParens": "always",
