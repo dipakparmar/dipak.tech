@@ -33,7 +33,7 @@
   "devDependencies": {
     "eslint": "8.15.0",
     "eslint-config-next": "12.1.6",
-    "next-sitemap": "^2.5.20",
+    "next-sitemap": "2.5.28",
     "prettier": "^2.7.1"
   },
   "prettier": {
