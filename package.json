@@ -25,9 +25,9 @@
     "next": "12",
     "next-seo": "^4.17.0",
     "postcss": "^8.2.2",
-    "preact": "^10.5.9",
-    "react": "^18.1.0",
-    "react-dom": "^18.1.0",
+    "preact": "10.10.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
     "tailwindcss": "^2.0.2"
   },
   "devDependencies": {
