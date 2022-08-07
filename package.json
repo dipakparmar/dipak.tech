@@ -20,12 +20,8 @@
     "autoclean": "yarn autoclean --force"
   },
   "dependencies": {
-    "@chakra-ui/react": "^1.1.1",
-    "@emotion/react": "^11.1.4",
-    "@emotion/styled": "^11.0.0",
     "@tailwindcss/typography": "^0.3.1",
     "autoprefixer": "^10.1.0",
-    "framer-motion": "^3.1.1",
     "next": "12",
     "next-seo": "^4.17.0",
     "postcss": "^8.2.2",

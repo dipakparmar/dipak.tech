@@ -1,54 +1,16 @@
-import Head from 'next/head';
-import { Box, Heading, Text, Flex } from '@chakra-ui/react';
-import Container from '@/components/container';
+import Link from "next/link";
 
-export default function Home({ color }) {
+export default function Home() {
   return (
-    <Container>
-      <Box
-        as="div"
-        display="flex"
-        height="100vh"
-        flexDirection="column"
-        justifyContent="space-around"
-        mx="0"
-        my="auto"
-        py="120px"
-        px="100px"
-        maxW="1440px"
-      >
-        <Heading
-          as="h1"
-          color={color}
-          fontWeight="300"
-          fontSize="2.5rem"
-          display="block"
-          marginBlock="0.67em"
-          marginInline="0"
-        >
-          Hello 👋
-        </Heading>
-        <Heading
-          as="h2"
-          lineHeight="1.5"
-          color={color}
-          fontWeight="300"
-          maxWidth="700px"
-          fontSize="2.5rem"
-          display="block"
-          marginBlock="0.83em"
-          marginInline="0"
-        >
-          I&apos;m Dipak Parmar, a Open Source developer 🧑🏻‍💻 currently working at
-          local IT company Adroit Technologies from Kamloops, BC. 🇨🇦
-        </Heading>
-        <Heading as="h3" fontSize="1.25rem" color={color} fontWeight="400">
-          Drop a letter at 📧{' '}
-          <Box as="a" href="mailto:hello@dipak.tech">
-            hello@dipak.tech
-          </Box>
-        </Heading>
-      </Box>
-    </Container>
+
+    <div className="flex flex-col p-0 m-0 min-h-screen leading-6">
+      <div className="px-10 pt-40 pb-8 my-0 mx-auto w-150 ">
+        <h2 className="block sm:text-lg md:text-2xl lg:text-2xl p-0 mx-0 mt-0 mb-2 text-2xl">Hello <span>👋</span> </h2>
+        <h2 className="sm:text-lg md:text-2xl lg:text-2xl mt-10 text-2xl">I&apos;m Dipak Parmar, a Open Source developer 🧑🏻‍💻 currently working at local IT company <Link target={'_blank'} href="https://atws.ca?utm_source=dipak.tech&utm_medium=website">Adroit Technologies</Link> from Kamloops, BC. 🇨🇦</h2>
+        <h2 className="sm:text-lg md:text-2xl lg:text-2xl mt-10 bottom-5 text-2xl">Drop a letter at <Link href="mailto:hello@dipak.tech"> 📧 hello@dipak.tech</Link></h2>
+      </div>
+      
+    </div>
+
   );
 }
