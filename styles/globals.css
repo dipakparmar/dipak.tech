@@ -1,7 +1,7 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
-
+@import './prism.css';
 body {
     background: #91d2ee;
     transition-duration: 0.6s;
