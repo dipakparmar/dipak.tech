@@ -36,12 +36,6 @@
     "next-sitemap": "2.5.28",
     "prettier": "^2.7.1"
   },
-  "prettier": {
-    "arrowParens": "always",
-    "singleQuote": true,
-    "tabWidth": 2,
-    "trailingComma": "none"
-  },
   "engines": {
     "node": ">=16.0.0"
   }
