@@ -16,25 +16,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "postbuild": "next-sitemap",
-    "autoclean": "yarn autoclean --force"
+    "postbuild": "next-sitemap"
   },
   "dependencies": {
-    "@tailwindcss/typography": "^0.3.1",
-    "autoprefixer": "10.4.8",
-    "next": "12.2.4",
-    "next-seo": "^4.17.0",
-    "postcss": "8.4.16",
-    "preact": "10.10.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "tailwindcss": "^2.0.2"
+    "next": "14.2.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "eslint": "8.15.0",
-    "eslint-config-next": "12.1.6",
+    "@types/node": "^20",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.4",
     "next-sitemap": "2.5.28",
-    "prettier": "^2.7.1"
+    "postcss": "^8",
+    "prettier": "^2.7.1",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   },
   "prettier": {
     "arrowParens": "always",
@@ -43,6 +42,6 @@
     "trailingComma": "none"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=20.0.0"
   }
 }
