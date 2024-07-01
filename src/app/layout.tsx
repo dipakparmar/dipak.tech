@@ -19,6 +19,16 @@ const description = 'Open Source Developer from Kamloops, BC 🇨🇦';
 export const metadata: Metadata = {
   title: title,
   description: description,
+  icons: [
+    {
+      rel: 'icon',
+      url: 'https://github.com/dipakparmar.png?size=96'
+    },
+    {
+      rel: 'apple-touch-icon',
+      url: 'https://github.com/dipakparmar.png?size=180'
+    }
+  ],
   openGraph: {
     type: 'website',
     locale: 'en_CA',
