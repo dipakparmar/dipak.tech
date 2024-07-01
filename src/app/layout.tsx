@@ -13,8 +13,9 @@ const fontSans = FontSans({
   variable: '--font-sans'
 });
 
-const title = 'Dipak Parmar';
-const description = 'Open Source Developer from Kamloops, BC 🇨🇦';
+const title = 'Dipak Parmar | ☁️ DevSecOps Engineer | @iamdipakparmar';
+const description =
+  'DevSecOps Engineer and Open Source Developer with 4+ years of experience in Cloud Automation, Kubernetes, and Monitoring from Kamloops, BC 🇨🇦';
 
 export const metadata: Metadata = {
   title: title,
