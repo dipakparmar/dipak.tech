@@ -30,6 +30,21 @@ export const metadata: Metadata = {
       url: 'https://github.com/dipakparmar.png?size=180'
     }
   ],
+  keywords: [
+    'Dipak Parmar',
+    'Dipak Parmar, DevOps Engineer',
+    'Dipak Parmar Canada',
+    'Dipak Parmar DevOps Engineer',
+    'Dipak Parmar DevSecOps Engineer',
+    'Dipak Parmar DevOps Engineer Kamloops',
+    'Dipak Parmar DevSecOps Engineer Kamloops',
+    'Dipak Parmar Vancouver',
+    'Dipak Parmar DevOps',
+    'Dipak Parmar DevSecOps',
+    'Dipak Parmar AWS',
+    'Kamloops',
+    'British Columbia'
+  ],
   openGraph: {
     type: 'website',
     locale: 'en_CA',
