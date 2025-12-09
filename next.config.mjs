@@ -4,10 +4,10 @@ const ContentSecurityPolicy = `
 	style-src 'self' 'unsafe-inline';
 	child-src ;
 	frame-src ;
-	connect-src 'self';
+	connect-src 'self' https://www.cloudflare.com/cdn-cgi/trace https://graph.dipak.io;
 	img-src 'self' https://github.com https://avatars.githubusercontent.com data:;
 	media-src 'self';
-	font-src 'self';
+	font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
 `;
 
 const securityHeaders = [
@@ -48,6 +48,15 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+		remotePatterns: [{
+			protocol: 'https',
+			hostname: 'github.com',
+		},{
+			protocol: 'https',
+			hostname: 'avatars.githubusercontent.com',
+		}],
+	},
 
   async headers() {
     return [

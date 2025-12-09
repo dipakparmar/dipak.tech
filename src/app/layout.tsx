@@ -1,16 +1,20 @@
 import './globals.css';
 
-import { Inter as FontSans } from 'next/font/google';
+import { Inter as FontSans, Karla } from 'next/font/google';
 import type { Metadata } from 'next';
-import Navbar from '@/components/navbar';
 import Script from 'next/script';
-import { ThemeProvider } from '@/components/theme-provider';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { ConditionalLayout } from '@/components/conditional-layout';
 
 const fontSans = FontSans({
   subsets: ['latin'],
   variable: '--font-sans'
+});
+
+const fontKarla = Karla({
+  subsets: ['latin'],
+  variable: '--font-karla',
+  weight: ['200', '300', '400', '500', '600', '700', '800']
 });
 
 const title = 'Dipak Parmar | ☁️ DevSecOps Engineer | @iamdipakparmar';
@@ -75,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <Script
         strategy="lazyOnload"
         src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_TAG_ID}`}
@@ -93,15 +97,12 @@ export default function RootLayout({
       </Script>
       <body
         className={cn(
-          'min-h-screen bg-background font-sans antialiased max-w-2xl mx-auto py-12 sm:py-24 px-6',
-          fontSans.variable
+          'min-h-screen bg-background antialiased',
+          fontSans.variable,
+          fontKarla.variable
         )}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <TooltipProvider delayDuration={0}>
-            {children} <Navbar />
-          </TooltipProvider>
-        </ThemeProvider>
+        <ConditionalLayout>{children}</ConditionalLayout>
       </body>
     </html>
   );
