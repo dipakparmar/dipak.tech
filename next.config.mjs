@@ -49,14 +49,36 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   images: {
-		remotePatterns: [{
-			protocol: 'https',
-			hostname: 'github.com',
-		},{
-			protocol: 'https',
-			hostname: 'avatars.githubusercontent.com',
-		}],
-	},
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'github.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com'
+      }
+    ]
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: '/',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.bio'
+          }
+        ],
+        destination: '/links'
+      },
+      {
+        source: '/',
+        destination: '/home'
+      }
+    ];
+  },
 
   async headers() {
     return [
