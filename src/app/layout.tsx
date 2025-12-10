@@ -4,7 +4,6 @@ import { Inter as FontSans, Karla } from 'next/font/google';
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import { cn } from '@/lib/utils';
-import { ConditionalLayout } from '@/components/conditional-layout';
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -102,7 +101,7 @@ export default function RootLayout({
           fontKarla.variable
         )}
       >
-        <ConditionalLayout>{children}</ConditionalLayout>
+        {children}
       </body>
     </html>
   );
