@@ -1,13 +1,18 @@
 const ContentSecurityPolicy = `
 	default-src 'self';
-	script-src 'self' https://www.googletagmanager.com 'unsafe-inline' 'unsafe-eval';
+	script-src 'self' https://www.googletagmanager.com 'unsafe-inline';
 	style-src 'self' 'unsafe-inline';
-	child-src ;
-	frame-src ;
+	child-src 'none';
+	frame-src 'none';
 	connect-src 'self' https://www.cloudflare.com/cdn-cgi/trace https://graph.dipak.io;
 	img-src 'self' https://github.com https://avatars.githubusercontent.com data:;
 	media-src 'self';
 	font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
+	object-src 'none';
+	base-uri 'self';
+	form-action 'self';
+	frame-ancestors 'none';
+	upgrade-insecure-requests;
 `;
 
 const securityHeaders = [
@@ -48,6 +53,7 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {
