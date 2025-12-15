@@ -1,11 +1,11 @@
 const ContentSecurityPolicy = `
 	default-src 'self';
-	script-src 'self' https://www.googletagmanager.com 'unsafe-inline';
+	script-src 'self' https://www.googletagmanager.com https://static.cloudflareinsights.com 'unsafe-inline';
 	style-src 'self' 'unsafe-inline';
 	child-src 'none';
 	frame-src 'none';
-	connect-src 'self' https://www.cloudflare.com/cdn-cgi/trace https://graph.dipak.io;
-	img-src 'self' https://github.com https://avatars.githubusercontent.com data:;
+	connect-src 'self' https://www.cloudflare.com https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://graph.dipak.io;
+	img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com data:;
 	media-src 'self';
 	font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
 	object-src 'none';
