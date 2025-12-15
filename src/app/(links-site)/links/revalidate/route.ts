@@ -7,12 +7,16 @@ async function handleRevalidation(request: NextRequest) {
 
 	console.log(`[Next.js] Validating webhook...`);
 	
-	// Get secret from query parameters
+	// Get secret from query parameters or x-api-key header
 	const searchParams = request.nextUrl.searchParams;
-	const secret = searchParams.get('secret');
+	const secretFromQuery = searchParams.get('secret');
+	const secretFromHeader = request.headers.get('x-api-key');
+	
+	const secret = secretFromHeader || secretFromQuery;
+	const webhookSecret = process.env.WEBHOOK_SECRET;
 	
 	// Check for secret to confirm this is a valid request
-	if (secret && secret === process.env.WEBHOOK_SECRET) {
+	if (secret && webhookSecret && secret === webhookSecret) {
 		console.log(`[Next.js] Webhook secret validated`);
 		
 		try {
