@@ -62,12 +62,20 @@ async function fetchGraphQL(
       headers: {
         'User-Agent': 'dipak.bio/1.0.0'
       },
-      next: { revalidate: 3600 }
+      // Use ISR with 1 hour revalidation - generates static at build, revalidates on server
+      next: { revalidate: 3600 },
+      // Ensure we can generate static pages at build time
+      cache: 'force-cache'
     }
   );
 
   return await result.json();
 }
+
+// Force static generation at build time for SEO
+export const dynamic = 'force-static';
+// Enable ISR - revalidate every hour
+export const revalidate = 3600;
 
 const operationsDoc = `
   query getLinks {
