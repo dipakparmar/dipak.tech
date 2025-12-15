@@ -1,9 +1,16 @@
 import './globals.css';
 
 import { Inter as FontSans, Karla } from 'next/font/google';
+
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import type { Viewport } from 'next';
 import { cn } from '@/lib/utils';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1
+};
 
 const fontSans = FontSans({
   subsets: ['latin'],
@@ -79,13 +86,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <Script
-        strategy="lazyOnload"
-        src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_TAG_ID}`}
-      />
-
-      <Script id="google-analytics" strategy="lazyOnload">
-        {`
+      {process.env.NEXT_PUBLIC_GA_TAG_ID &&
+      process.env.NODE_ENV === 'production' ? (
+        <>
+          <Script
+            strategy="lazyOnload"
+            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_TAG_ID}`}
+          />
+          <Script id="google-analytics" strategy="lazyOnload">
+            {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
@@ -93,7 +102,9 @@ export default function RootLayout({
               page_path: window.location.pathname,
             });
                 `}
-      </Script>
+          </Script>{' '}
+        </>
+      ) : null}
       <body
         className={cn(
           'min-h-screen bg-background antialiased',
