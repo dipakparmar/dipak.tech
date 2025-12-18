@@ -5,8 +5,15 @@ import BlurFadeText from '@/components/magicui/blur-fade-text';
 import { DATA } from '@/data/data';
 import Link from 'next/link';
 import Markdown from 'react-markdown';
+import { Metadata } from 'next';
 
 const BLUR_FADE_DELAY = 0.04;
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://dipak.tech/'
+  }
+};
 
 export default function Home() {
   return (
