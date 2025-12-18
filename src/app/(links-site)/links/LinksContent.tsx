@@ -1,35 +1,8 @@
-import { Metadata } from 'next';
-import LinksContent from './LinksContent';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Dipak Parmar | ☁️ DevOps Engineer | @iamdipakparmar',
-  description: '☁️ DevSecOps Engineer',
-  openGraph: {
-    title: 'Dipak Parmar | DevSecOps Engineer',
-    description: '☁️ DevSecOps Engineer',
-    url: 'https://dipak.bio/links',
-    images: [
-      {
-        url: 'https://github.com/dipakparmar.png',
-        width: 600,
-        height: 600,
-        type: 'image/jpg'
-      }
-    ],
-    locale: 'en_US',
-    siteName: 'DipakBio',
-    type: 'profile'
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: '@iamdipakparmar | Dipak Parmar | ☁️ DevSecOps Engineer',
-    description: '☁️ DevSecOps Engineer',
-    images: ['https://github.com/dipakparmar.png']
-  },
-  alternates: {
-    canonical: 'https://dipak.bio/links'
-  }
-};
+import { useEffect, useState } from 'react';
+
+import Image from 'next/image';
 
 interface Link {
   position: number;
@@ -44,6 +17,11 @@ interface SocialLink {
   url: string;
 }
 
+interface LinksContentProps {
+  initialLinks: Link[];
+  initialSocialLinks: SocialLink[];
+}
+
 async function fetchGraphQL(
   operationsDoc: string,
   operationName: string,
@@ -52,14 +30,6 @@ async function fetchGraphQL(
   const endpoint =
     process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT ||
     'http://localhost:8080/v1/graphql';
-
-  // Validate endpoint is HTTPS in production
-  if (
-    process.env.NODE_ENV === 'production' &&
-    !endpoint.startsWith('https://')
-  ) {
-    throw new Error('GraphQL endpoint must use HTTPS in production');
-  }
 
   const result = await fetch(endpoint, {
     method: 'POST',
@@ -72,10 +42,8 @@ async function fetchGraphQL(
       'Content-Type': 'application/json',
       'User-Agent': 'dipak.bio/1.0.0'
     },
-    // Use ISR with 1 hour revalidation - generates static at build, revalidates on server
-    next: { revalidate: 3600 },
-    // Ensure we can generate static pages at build time
-    cache: 'force-cache'
+    // Client-side fetch with no cache for fresh data
+    cache: 'no-store'
   });
 
   if (!result.ok) {
@@ -84,11 +52,6 @@ async function fetchGraphQL(
 
   return await result.json();
 }
-
-// Force static generation at build time for SEO
-export const dynamic = 'force-static';
-// Enable ISR - revalidate every hour
-export const revalidate = 3600;
 
 const operationsDoc = `
   query getLinks {
@@ -106,24 +69,6 @@ const operationsDoc = `
   }
 `;
 
-function getLinks() {
-  return fetchGraphQL(operationsDoc, 'getLinks', {});
-}
-
-export default async function LinksPage() {
-  const { errors, data } = await getLinks();
-
-  if (errors) {
-    console.error(errors);
-  }
-
-  const links: Link[] = data?.links || [];
-  const social_links: SocialLink[] = data?.social_links || [];
-
-  return <LinksContent initialLinks={links} initialSocialLinks={social_links} />;
-}
-
-/*
 function SocialIcon({ type, url }: { type: string; url: string }) {
   const iconPaths: Record<string, string> = {
     FACEBOOK:
@@ -182,4 +127,157 @@ function SocialIcon({ type, url }: { type: string; url: string }) {
     </a>
   );
 }
-*/
+
+export default function LinksContent({
+  initialLinks,
+  initialSocialLinks
+}: LinksContentProps) {
+  const [links, setLinks] = useState<Link[]>(initialLinks);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(
+    initialSocialLinks
+  );
+
+  useEffect(() => {
+    // Attempt to fetch fresh data on client-side
+    async function fetchFreshData() {
+      try {
+        const { data, errors } = await fetchGraphQL(
+          operationsDoc,
+          'getLinks',
+          {}
+        );
+
+        if (errors) {
+          console.warn('Failed to fetch fresh data, using static data:', errors);
+          return;
+        }
+
+        // Update with fresh data only if successful
+        if (data?.links) {
+          setLinks(data.links);
+        }
+        if (data?.social_links) {
+          setSocialLinks(data.social_links);
+        }
+      } catch (error) {
+        // Silently fail and keep using static data
+        console.warn('Failed to fetch fresh data, using static data:', error);
+      }
+    }
+
+    fetchFreshData();
+  }, []);
+
+  return (
+    <div className="relative flex flex-col w-full h-full min-h-screen p-0 m-0 overflow-x-hidden font-bold leading-4 text-black align-baseline border-0 font-[family-name:var(--font-karla)]">
+      <main className="flex flex-col justify-between flex-1 w-full h-full px-3 py-6 m-0 leading-4 align-baseline border-0">
+        <div
+          className="w-full h-full px-0 pt-0 pb-20 mx-auto my-0 text-black align-baseline border-0"
+          style={{ maxWidth: '680px' }}
+        >
+          <div
+            className="fixed p-0 m-0 align-baseline bg-white bg-no-repeat bg-cover border-0"
+            style={{
+              inset: '0px',
+              zIndex: -1,
+              backgroundPosition: 'center center'
+            }}
+          />
+          <div className="p-0 mx-0 mt-0 mb-4 align-baseline border-0">
+            <div className="flex flex-col items-center w-full h-full p-0 mx-0 mt-3 mb-8 align-baseline border-0">
+              <div className="p-0 mx-0 mt-0 mb-4 align-baseline border-0">
+                <Image
+                  src="https://github.com/dipakparmar.png"
+                  priority={true}
+                  width={100}
+                  height={100}
+                  alt="@iamdipakparmar Profile Image"
+                  data-testid="ProfileImage"
+                  className="block object-contain w-24 h-24 p-0 m-0 align-baseline border-0 rounded-[50%]"
+                  style={{ objectPosition: 'initial' }}
+                />
+              </div>
+              <div
+                className="grid items-center max-w-full p-0 mx-3 my-0 align-baseline border-0"
+                style={{ gridTemplateColumns: '1fr auto 1fr' }}
+              >
+                <h1
+                  id="profile-iamdipakparmar"
+                  className="max-w-full col-start-2 p-0 m-0 text-base leading-normal truncate align-baseline border-0"
+                >
+                  @iamdipakparmar
+                </h1>
+              </div>
+              <div className="px-10 py-0 m-0 align-baseline border-0">
+                <h2 className="p-0 m-0 text-sm leading-normal text-center align-baseline border-0">
+                  ☁️ DevOps Engineer
+                </h2>
+              </div>
+            </div>
+          </div>
+
+          {links?.map((link, index) => {
+            switch (link?.type) {
+              case 'VANILA':
+                return (
+                  <div
+                    key={index}
+                    className="relative p-0 m-0 align-baseline border-0"
+                  >
+                    <div className="relative z-0 h-auto p-0 mx-0 mt-0 mb-4 overflow-hidden text-white align-baseline bg-blue-500 border-2 border-blue-500 border-solid rounded-none hover:border-blue-500 hover:bg-transparent hover:text-blue-500 transition-all duration-[0.25s] ease-[cubic-bezier(0.08,0.59,0.29,0.99)]">
+                      <a
+                        href={link?.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid="LinkButton"
+                        aria-describedby="profile-iamdipakparmar"
+                        className="box-border relative flex items-center justify-center w-full h-auto px-5 py-4 m-0 text-center break-words whitespace-normal align-middle appearance-none cursor-pointer bg-none no-underline transition-all duration-[0.25s] ease-[cubic-bezier(0.08,0.59,0.29,0.99)]"
+                        style={{
+                          wordBreak: 'break-word',
+                          hyphens: 'auto'
+                        }}
+                      >
+                        <p
+                          className="relative w-full p-0 m-0 leading-normal align-baseline border-0"
+                          style={{
+                            hyphens: 'none',
+                            wordBreak: 'break-word'
+                          }}
+                        >
+                          {link?.title}
+                        </p>
+                      </a>
+                    </div>
+                  </div>
+                );
+              case 'HEADER':
+                return (
+                  <div
+                    key={index}
+                    className="px-0 pt-6 pb-4 m-0 align-baseline border-0"
+                  >
+                    <h3
+                      id={`header-${index}`}
+                      className="p-0 m-0 text-base leading-normal text-center align-baseline border-0"
+                    >
+                      {link?.title}
+                    </h3>
+                  </div>
+                );
+              default:
+                return null;
+            }
+          })}
+
+          <div className="px-0 py-4 m-0 align-baseline border-0">
+            <div className="flex flex-wrap items-center justify-center w-full h-full p-0 m-0 align-baseline border-0">
+              {socialLinks?.map((link, index) => (
+                <SocialIcon key={index} type={link.type} url={link.url} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
