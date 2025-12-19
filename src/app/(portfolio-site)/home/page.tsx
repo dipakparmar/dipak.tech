@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-import BlurFade from '@/components/magicui/blur-fade';
+import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
 import { DATA } from '@/data/data';
 import Link from 'next/link';
@@ -48,9 +48,9 @@ export default function Home() {
           <h2 className="text-xl font-bold">About</h2>
         </BlurFade>
         <BlurFade delay={BLUR_FADE_DELAY * 4}>
-          <Markdown className="prose max-w-full text-pretty font-sans text-sm text-muted-foreground dark:prose-invert">
-            {DATA.summary}
-          </Markdown>
+          <div className="prose max-w-full text-pretty font-sans text-sm text-muted-foreground dark:prose-invert">
+            <Markdown>{DATA.summary}</Markdown>
+          </div>
         </BlurFade>
       </section>
       <section id="contact">
@@ -65,7 +65,7 @@ export default function Home() {
               </h2>
               <p className="mx-auto max-w-[600px] text-muted-foreground md:text-sm/relaxed lg:text-sm/relaxed xl:text-sm/relaxed">
                 Interested in connecting? Feel free to reach out with a direct
-                question via {' '}
+                question via{' '}
                 <Link
                   href={DATA.contact.social.X.url}
                   className="text-blue-500 hover:underline"
