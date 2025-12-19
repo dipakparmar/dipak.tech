@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "format": "prettier --write ./src",
     "postbuild": "next-sitemap",
-    "upgrade": "bunx @next/codemod@canary upgrade latest"
+    "upgrade": "bunx @next/codemod@canary upgrade latest",
+    "analyze": "next experimental-analyze"
   },
   "dependencies": {
     "@apollo/client": "^4.0.11",
