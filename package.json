@@ -18,7 +18,8 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --write ./src",
-    "postbuild": "next-sitemap"
+    "postbuild": "next-sitemap",
+    "upgrade": "bunx @next/codemod@canary upgrade latest"
   },
   "dependencies": {
     "@apollo/client": "^3.10.8",
