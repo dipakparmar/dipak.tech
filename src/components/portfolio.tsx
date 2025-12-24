@@ -171,7 +171,7 @@ export function Portfolio() {
                     href={item.link}
                     className="flex items-center space-x-1 text-sm text-foreground"
                   >
-                    <span className="hover:underline hover:underline-offset-[3px] hover:decoration-[1px] transition duration-300">
+                    <span className="hover:underline hover:underline-offset-[3px] hover:decoration-1 transition duration-300">
                       {item.username}
                     </span>
                     <ArrowTopRightIcon className="w-4 h-4" />
@@ -207,7 +207,7 @@ const Item = ({
             href={titlelink}
             className="flex items-center space-x-1 text-base font-normal text-foreground dark:text-white"
           >
-            <div className="hover:underline hover:underline-offset-[3px] hover:decoration-[1px] transition duration-300 inline">
+            <div className="hover:underline hover:underline-offset-[3px] hover:decoration-1 transition duration-300 inline">
               <Markdown>{`${title} ${organization ? `at ${organization}` : ''}`}</Markdown>
             </div>
             <ArrowTopRightIcon className="w-4 h-4 font-bold" />
@@ -237,7 +237,7 @@ const Item = ({
             {images.map((src, index) => (
               <Card
                 key={index}
-                className="w-24 h-16 overflow-hidden flex-shrink-0"
+                className="w-24 h-16 overflow-hidden shrink-0"
               >
                 <CardContent className="p-0">
                   <Image
