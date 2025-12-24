@@ -29,7 +29,7 @@ export default function Home() {
                 text={`Hi, I'm ${DATA.name.split(' ')[0]} 👋`}
               />
               <BlurFadeText
-                className="max-w-[600px] md:text-xl"
+                className="max-w-150 md:text-xl"
                 delay={BLUR_FADE_DELAY}
                 text={DATA.description}
               />
@@ -63,7 +63,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
                 Get in Touch
               </h2>
-              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-sm/relaxed lg:text-sm/relaxed xl:text-sm/relaxed">
+              <p className="mx-auto max-w-150 text-muted-foreground md:text-sm/relaxed lg:text-sm/relaxed xl:text-sm/relaxed">
                 Interested in connecting? Feel free to reach out with a direct
                 question via{' '}
                 <Link
