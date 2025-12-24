@@ -169,7 +169,7 @@ export default function LinksContent({
   }, []);
 
   return (
-    <div className="relative flex flex-col w-full h-full min-h-screen p-0 m-0 overflow-x-hidden font-bold leading-4 text-black align-baseline border-0 font-[family-name:var(--font-karla)]">
+    <div className="relative flex flex-col w-full h-full min-h-screen p-0 m-0 overflow-x-hidden font-bold leading-4 text-black align-baseline border-0 font-(family-name:--font-karla)">
       <main className="flex flex-col justify-between flex-1 w-full h-full px-3 py-6 m-0 leading-4 align-baseline border-0">
         <div
           className="w-full h-full px-0 pt-0 pb-20 mx-auto my-0 text-black align-baseline border-0"
@@ -231,7 +231,7 @@ export default function LinksContent({
                         rel="noopener noreferrer"
                         data-testid="LinkButton"
                         aria-describedby="profile-iamdipakparmar"
-                        className="box-border relative flex items-center justify-center w-full h-auto px-5 py-4 m-0 text-center break-words whitespace-normal align-middle appearance-none cursor-pointer bg-none no-underline transition-all duration-[0.25s] ease-[cubic-bezier(0.08,0.59,0.29,0.99)]"
+                        className="box-border relative flex items-center justify-center w-full h-auto px-5 py-4 m-0 text-center wrap-break-word whitespace-normal align-middle appearance-none cursor-pointer bg-none no-underline transition-all duration-[0.25s] ease-[cubic-bezier(0.08,0.59,0.29,0.99)]"
                         style={{
                           wordBreak: 'break-word',
                           hyphens: 'auto'
