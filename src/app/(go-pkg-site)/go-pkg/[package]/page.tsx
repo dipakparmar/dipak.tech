@@ -1,10 +1,14 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { buildGoImportMeta, getGitHubUrl } from '@/lib/github';
+import { notFound } from 'next/navigation';
+import { buildGoImportMeta, getGitHubUrl, repoExists } from '@/lib/github';
 
 interface PackagePageProps {
   params: Promise<{
     package: string;
+  }>;
+  searchParams: Promise<{
+    'go-get'?: string;
   }>;
 }
 
@@ -23,10 +27,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function PackagePage({ params }: PackagePageProps) {
+export default async function PackagePage({
+  params,
+  searchParams
+}: PackagePageProps) {
   const { package: pkgString } = await params;
+  const { 'go-get': goGet } = await searchParams;
   const pkgName = pkgString.split('@')[0];
   const pkgVersion = pkgString.split('@')[1];
+
+  const exists = await repoExists(pkgName);
+  if (!exists) {
+    notFound();
+  }
 
   const goImportContent = buildGoImportMeta(pkgName);
   const githubUrl = getGitHubUrl(pkgName);
@@ -34,6 +47,19 @@ export default async function PackagePage({ params }: PackagePageProps) {
     ? `${githubUrl}/releases/tag/${pkgVersion}`
     : githubUrl;
 
+  // Go tools request with ?go-get=1 - return minimal HTML with just the meta tag
+  if (goGet === '1') {
+    return (
+      <html>
+        <head>
+          <meta name="go-import" content={goImportContent} />
+        </head>
+        <body />
+      </html>
+    );
+  }
+
+  // Browser request - show redirect page
   return (
     <>
       <head>
