@@ -1,18 +1,20 @@
 'use client';
 
 import { MoonIcon, SunIcon, DesktopIcon } from '@radix-ui/react-icons';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
 
+const emptySubscribe = () => () => {};
+
 export function ModeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const cycleTheme = () => {
     if (theme === 'light') setTheme('dark');
