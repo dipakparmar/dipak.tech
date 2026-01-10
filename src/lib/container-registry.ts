@@ -62,6 +62,64 @@ export const GITHUB_USERNAME = 'dipakparmar';
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000;
 
+// Token cache for anonymous tokens
+const tokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+/**
+ * Fetch an anonymous token for public image access.
+ * Works for both Docker Hub and GHCR public images.
+ */
+async function fetchAnonymousToken(
+  registry: RegistryBackend,
+  imageName: string,
+  actions: string = 'pull'
+): Promise<string | null> {
+  const config = REGISTRY_BACKENDS[registry];
+  const scope = `repository:${imageName}:${actions}`;
+  const cacheKey = `${registry}:${scope}`;
+
+  // Check cache
+  const cached = tokenCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.token;
+  }
+
+  try {
+    const tokenUrl = new URL(config.authUrl);
+    tokenUrl.searchParams.set('service', config.service);
+    tokenUrl.searchParams.set('scope', scope);
+
+    const response = await fetch(tokenUrl.toString(), {
+      headers: {
+        'User-Agent': 'cr.dipak.io/1.0.0'
+      }
+    });
+
+    if (!response.ok) {
+      console.warn(`Failed to fetch anonymous token: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const token = data.token || data.access_token;
+
+    if (token) {
+      // Cache token (default 5 min expiry if not specified)
+      const expiresIn = data.expires_in || 300;
+      tokenCache.set(cacheKey, {
+        token,
+        expiresAt: Date.now() + expiresIn * 1000 - 30000 // 30s buffer
+      });
+      return token;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching anonymous token:', error);
+    return null;
+  }
+}
+
 // Parsed registry path information
 export interface ParsedRegistryPath {
   registry: RegistryBackend;
@@ -241,6 +299,7 @@ export async function registryFetch(
 
 /**
  * Proxy a manifest request to the backend registry.
+ * Automatically fetches anonymous token for public images on 401.
  */
 export async function proxyManifest(
   registry: RegistryBackend,
@@ -251,36 +310,50 @@ export async function proxyManifest(
 ): Promise<NextResponse> {
   const url = buildBackendUrl(registry, imageName, 'manifests', reference);
 
-  const headers: HeadersInit = {
-    'User-Agent': 'cr.dipak.io/1.0.0'
+  const buildHeaders = (auth: string | null): HeadersInit => {
+    const headers: HeadersInit = {
+      'User-Agent': 'cr.dipak.io/1.0.0'
+    };
+
+    // Forward Accept header for proper manifest type
+    if (acceptHeader) {
+      headers['Accept'] = acceptHeader;
+    } else {
+      headers['Accept'] = [
+        'application/vnd.docker.distribution.manifest.v2+json',
+        'application/vnd.docker.distribution.manifest.list.v2+json',
+        'application/vnd.oci.image.manifest.v1+json',
+        'application/vnd.oci.image.index.v1+json',
+        '*/*'
+      ].join(', ');
+    }
+
+    if (auth) {
+      headers['Authorization'] = auth;
+    }
+
+    return headers;
   };
 
-  // Forward Accept header for proper manifest type
-  if (acceptHeader) {
-    headers['Accept'] = acceptHeader;
-  } else {
-    // Default Accept headers for manifest requests
-    headers['Accept'] = [
-      'application/vnd.docker.distribution.manifest.v2+json',
-      'application/vnd.docker.distribution.manifest.list.v2+json',
-      'application/vnd.oci.image.manifest.v1+json',
-      'application/vnd.oci.image.index.v1+json',
-      '*/*'
-    ].join(', ');
-  }
-
-  // Forward Authorization header if provided
-  if (authHeader) {
-    headers['Authorization'] = authHeader;
-  }
-
   try {
-    const response = await registryFetch(url, {
+    // First attempt with client's auth header (if any)
+    let response = await registryFetch(url, {
       method: 'GET',
-      headers
+      headers: buildHeaders(authHeader)
     });
 
-    // Handle auth challenge
+    // If 401 and client didn't provide auth, try fetching anonymous token
+    if (response.status === 401 && !authHeader) {
+      const token = await fetchAnonymousToken(registry, imageName);
+      if (token) {
+        response = await registryFetch(url, {
+          method: 'GET',
+          headers: buildHeaders(`Bearer ${token}`)
+        });
+      }
+    }
+
+    // Still 401 - return auth challenge to client
     if (response.status === 401) {
       const wwwAuth = buildAuthenticateHeader(registry, imageName);
       return new NextResponse(null, {
@@ -332,6 +405,7 @@ export async function proxyManifest(
 
 /**
  * Handle HEAD request for manifest (Docker checks manifest existence first).
+ * Automatically fetches anonymous token for public images on 401.
  */
 export async function headManifest(
   registry: RegistryBackend,
@@ -342,31 +416,46 @@ export async function headManifest(
 ): Promise<NextResponse> {
   const url = buildBackendUrl(registry, imageName, 'manifests', reference);
 
-  const headers: HeadersInit = {
-    'User-Agent': 'cr.dipak.io/1.0.0'
+  const buildHeaders = (auth: string | null): HeadersInit => {
+    const headers: HeadersInit = {
+      'User-Agent': 'cr.dipak.io/1.0.0'
+    };
+
+    if (acceptHeader) {
+      headers['Accept'] = acceptHeader;
+    } else {
+      headers['Accept'] = [
+        'application/vnd.docker.distribution.manifest.v2+json',
+        'application/vnd.docker.distribution.manifest.list.v2+json',
+        'application/vnd.oci.image.manifest.v1+json',
+        'application/vnd.oci.image.index.v1+json',
+        '*/*'
+      ].join(', ');
+    }
+
+    if (auth) {
+      headers['Authorization'] = auth;
+    }
+
+    return headers;
   };
 
-  if (acceptHeader) {
-    headers['Accept'] = acceptHeader;
-  } else {
-    headers['Accept'] = [
-      'application/vnd.docker.distribution.manifest.v2+json',
-      'application/vnd.docker.distribution.manifest.list.v2+json',
-      'application/vnd.oci.image.manifest.v1+json',
-      'application/vnd.oci.image.index.v1+json',
-      '*/*'
-    ].join(', ');
-  }
-
-  if (authHeader) {
-    headers['Authorization'] = authHeader;
-  }
-
   try {
-    const response = await registryFetch(url, {
+    let response = await registryFetch(url, {
       method: 'HEAD',
-      headers
+      headers: buildHeaders(authHeader)
     });
+
+    // If 401 and client didn't provide auth, try fetching anonymous token
+    if (response.status === 401 && !authHeader) {
+      const token = await fetchAnonymousToken(registry, imageName);
+      if (token) {
+        response = await registryFetch(url, {
+          method: 'HEAD',
+          headers: buildHeaders(`Bearer ${token}`)
+        });
+      }
+    }
 
     if (response.status === 401) {
       const wwwAuth = buildAuthenticateHeader(registry, imageName);
@@ -414,6 +503,7 @@ export async function headManifest(
 
 /**
  * Get redirect URL for blob download. Returns 307 redirect to backend.
+ * Automatically fetches anonymous token for public images on 401.
  */
 export async function getBlobRedirect(
   registry: RegistryBackend,
@@ -423,25 +513,35 @@ export async function getBlobRedirect(
 ): Promise<NextResponse> {
   const url = buildBackendUrl(registry, imageName, 'blobs', digest);
 
-  // For blob requests, we redirect directly to the backend
-  // The backend will handle the actual redirect to storage (e.g., S3)
-
-  // First check if auth is needed
-  const headers: HeadersInit = {
-    'User-Agent': 'cr.dipak.io/1.0.0'
+  const buildHeaders = (auth: string | null): HeadersInit => {
+    const headers: HeadersInit = {
+      'User-Agent': 'cr.dipak.io/1.0.0'
+    };
+    if (auth) {
+      headers['Authorization'] = auth;
+    }
+    return headers;
   };
-
-  if (authHeader) {
-    headers['Authorization'] = authHeader;
-  }
 
   try {
     // Do a HEAD request to check auth and get the actual blob location
-    const response = await registryFetch(url, {
+    let response = await registryFetch(url, {
       method: 'HEAD',
-      headers,
+      headers: buildHeaders(authHeader),
       redirect: 'manual' // Don't follow redirects
     });
+
+    // If 401 and client didn't provide auth, try fetching anonymous token
+    if (response.status === 401 && !authHeader) {
+      const token = await fetchAnonymousToken(registry, imageName);
+      if (token) {
+        response = await registryFetch(url, {
+          method: 'HEAD',
+          headers: buildHeaders(`Bearer ${token}`),
+          redirect: 'manual'
+        });
+      }
+    }
 
     if (response.status === 401) {
       const wwwAuth = buildAuthenticateHeader(registry, imageName);
@@ -458,7 +558,7 @@ export async function getBlobRedirect(
       return registryError('BLOB_UNKNOWN', 'blob unknown to registry', 404);
     }
 
-    // If backend returns a redirect, use that location
+    // If backend returns a redirect, use that location (signed URL)
     if (response.status === 307 || response.status === 302) {
       const location = response.headers.get('Location');
       if (location) {
@@ -480,6 +580,7 @@ export async function getBlobRedirect(
 
 /**
  * Handle tags list request.
+ * Automatically fetches anonymous token for public images on 401.
  */
 export async function listTags(
   registry: RegistryBackend,
@@ -488,20 +589,33 @@ export async function listTags(
 ): Promise<NextResponse> {
   const url = buildBackendUrl(registry, imageName, 'tags', 'list');
 
-  const headers: HeadersInit = {
-    'User-Agent': 'cr.dipak.io/1.0.0',
-    Accept: 'application/json'
+  const buildHeaders = (auth: string | null): HeadersInit => {
+    const headers: HeadersInit = {
+      'User-Agent': 'cr.dipak.io/1.0.0',
+      Accept: 'application/json'
+    };
+    if (auth) {
+      headers['Authorization'] = auth;
+    }
+    return headers;
   };
 
-  if (authHeader) {
-    headers['Authorization'] = authHeader;
-  }
-
   try {
-    const response = await registryFetch(url, {
+    let response = await registryFetch(url, {
       method: 'GET',
-      headers
+      headers: buildHeaders(authHeader)
     });
+
+    // If 401 and client didn't provide auth, try fetching anonymous token
+    if (response.status === 401 && !authHeader) {
+      const token = await fetchAnonymousToken(registry, imageName);
+      if (token) {
+        response = await registryFetch(url, {
+          method: 'GET',
+          headers: buildHeaders(`Bearer ${token}`)
+        });
+      }
+    }
 
     if (response.status === 401) {
       const wwwAuth = buildAuthenticateHeader(registry, imageName);
