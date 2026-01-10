@@ -118,9 +118,9 @@ export default async function PackageViewPage({ params }: PackageViewProps) {
 
           {/* Install Command */}
           <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <div className="flex items-center gap-2 rounded-md bg-zinc-900 dark:bg-zinc-950 p-3 border border-zinc-800">
-              <code className="flex-1 text-sm font-mono text-zinc-300 truncate">
-                <span className="text-zinc-500">$</span> {installCommand}
+            <div className="flex items-center gap-2 rounded-md bg-zinc-100 dark:bg-zinc-900 p-3 border border-zinc-200 dark:border-zinc-800">
+              <code className="flex-1 text-sm font-mono text-zinc-700 dark:text-zinc-300 truncate">
+                <span className="text-zinc-400 dark:text-zinc-500">$</span> {installCommand}
               </code>
               <CopyButton text={installCommand} />
             </div>
@@ -193,7 +193,7 @@ export default async function PackageViewPage({ params }: PackageViewProps) {
             <h2 className="text-xl font-bold mb-4">README</h2>
           </BlurFade>
           <BlurFade delay={BLUR_FADE_DELAY * 10}>
-            <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800">
+            <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-zinc-100 dark:prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-200 dark:prose-pre:border-zinc-800">
               <Markdown>{readme}</Markdown>
             </div>
           </BlurFade>
@@ -251,9 +251,9 @@ function ReleaseCard({
         <p className="text-sm text-muted-foreground">{release.name}</p>
       )}
 
-      <div className="flex items-center gap-2 rounded-md bg-zinc-900 dark:bg-zinc-950 p-2 border border-zinc-800">
-        <code className="flex-1 text-xs font-mono text-zinc-300 truncate">
-          <span className="text-zinc-500">$</span> {installCommand}
+      <div className="flex items-center gap-2 rounded-md bg-zinc-100 dark:bg-zinc-900 p-2 border border-zinc-200 dark:border-zinc-800">
+        <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
+          <span className="text-zinc-400 dark:text-zinc-500">$</span> {installCommand}
         </code>
         <CopyButton text={installCommand} />
       </div>

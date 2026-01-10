@@ -83,13 +83,13 @@ export function PackageCard({ repo }: { repo: Repo }) {
       </div>
 
       {/* Install Command */}
-      <div className="mt-4 flex items-center gap-2 rounded-md bg-zinc-900 dark:bg-zinc-950 p-3 border border-zinc-800">
-        <code className="flex-1 text-xs font-mono text-zinc-300 truncate">
-          <span className="text-zinc-500">$</span> {installCommand}
+      <div className="mt-4 flex items-center gap-2 rounded-md bg-zinc-100 dark:bg-zinc-900 p-3 border border-zinc-200 dark:border-zinc-800">
+        <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
+          <span className="text-zinc-400 dark:text-zinc-500">$</span> {installCommand}
         </code>
         <button
           onClick={handleCopy}
-          className="shrink-0 rounded-md p-1.5 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+          className="shrink-0 rounded-md p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
           title="Copy install command"
           type="button"
         >
