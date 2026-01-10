@@ -502,7 +502,8 @@ export async function headManifest(
 }
 
 /**
- * Get redirect URL for blob download. Returns 307 redirect to backend.
+ * Get redirect URL for blob download. Returns 307 redirect to signed URL.
+ * Uses GET with redirect:manual because Docker Hub only returns signed URLs on GET, not HEAD.
  * Automatically fetches anonymous token for public images on 401.
  */
 export async function getBlobRedirect(
@@ -523,25 +524,23 @@ export async function getBlobRedirect(
     return headers;
   };
 
-  try {
-    // Do a HEAD request to check auth and get the actual blob location
-    let response = await registryFetch(url, {
-      method: 'HEAD',
-      headers: buildHeaders(authHeader),
-      redirect: 'manual' // Don't follow redirects
-    });
-
-    // If 401 and client didn't provide auth, try fetching anonymous token
-    if (response.status === 401 && !authHeader) {
-      const token = await fetchAnonymousToken(registry, imageName);
-      if (token) {
-        response = await registryFetch(url, {
-          method: 'HEAD',
-          headers: buildHeaders(`Bearer ${token}`),
-          redirect: 'manual'
-        });
-      }
+  // Determine auth to use - fetch anonymous token if needed
+  let authToUse = authHeader;
+  if (!authHeader) {
+    const token = await fetchAnonymousToken(registry, imageName);
+    if (token) {
+      authToUse = `Bearer ${token}`;
     }
+  }
+
+  try {
+    // Use GET with redirect:manual to get the signed URL
+    // Docker Hub returns 307 to signed Cloudflare/S3 URL on GET, not HEAD
+    const response = await registryFetch(url, {
+      method: 'GET',
+      headers: buildHeaders(authToUse),
+      redirect: 'manual'
+    });
 
     if (response.status === 401) {
       const wwwAuth = buildAuthenticateHeader(registry, imageName);
@@ -558,7 +557,7 @@ export async function getBlobRedirect(
       return registryError('BLOB_UNKNOWN', 'blob unknown to registry', 404);
     }
 
-    // If backend returns a redirect, use that location (signed URL)
+    // Backend should return redirect to signed URL
     if (response.status === 307 || response.status === 302) {
       const location = response.headers.get('Location');
       if (location) {
@@ -566,8 +565,19 @@ export async function getBlobRedirect(
       }
     }
 
-    // Otherwise redirect to the backend URL directly
-    return NextResponse.redirect(url, 307);
+    // If no redirect (unusual), proxy the response headers for client to re-request
+    // This shouldn't normally happen for blob GETs
+    const responseHeaders = new Headers();
+    responseHeaders.set('Docker-Distribution-API-Version', 'registry/2.0');
+    const digest = response.headers.get('Docker-Content-Digest');
+    if (digest) {
+      responseHeaders.set('Docker-Content-Digest', digest);
+    }
+
+    return new NextResponse(null, {
+      status: 200,
+      headers: responseHeaders
+    });
   } catch (error) {
     console.error('Failed to get blob redirect:', error);
     return registryError(
