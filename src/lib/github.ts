@@ -214,15 +214,9 @@ export async function fetchGoPackages(): Promise<Repo[]> {
   }
 }
 
-export function buildGoImportMeta(
-  pkgName: string,
-  pkgVersion?: string
-): string {
-  const gitUrl = pkgVersion
-    ? `https://github.com/${GITHUB_USERNAME}/${pkgName}/releases/tag/${pkgVersion}`
-    : `https://github.com/${GITHUB_USERNAME}/${pkgName}`;
-
-  return `go.pkg.dipak.io/${pkgName} git ${gitUrl}`;
+export function buildGoImportMeta(pkgName: string): string {
+  // go-import meta tag must always use the repository root URL per Go vanity import spec
+  return `go.pkg.dipak.io/${pkgName} git https://github.com/${GITHUB_USERNAME}/${pkgName}`;
 }
 
 export function getGitHubUrl(pkgName: string): string {

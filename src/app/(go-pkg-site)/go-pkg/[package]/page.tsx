@@ -28,7 +28,7 @@ export default async function PackagePage({ params }: PackagePageProps) {
   const pkgName = pkgString.split('@')[0];
   const pkgVersion = pkgString.split('@')[1];
 
-  const goImportContent = buildGoImportMeta(pkgName, pkgVersion);
+  const goImportContent = buildGoImportMeta(pkgName);
   const githubUrl = getGitHubUrl(pkgName);
   const redirectUrl = pkgVersion
     ? `${githubUrl}/releases/tag/${pkgVersion}`
