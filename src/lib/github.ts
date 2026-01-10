@@ -222,3 +222,145 @@ export function buildGoImportMeta(pkgName: string): string {
 export function getGitHubUrl(pkgName: string): string {
   return `https://github.com/${GITHUB_USERNAME}/${pkgName}`;
 }
+
+export interface Release {
+  id: number;
+  tag_name: string;
+  name: string;
+  published_at: string;
+  body: string;
+  prerelease: boolean;
+  draft: boolean;
+  html_url: string;
+}
+
+export async function fetchRepoDetails(repoName: string): Promise<Repo | null> {
+  if (!repoName) return null;
+
+  const cacheKey = `repo-details:${repoName}`;
+  const cached = getCached<Repo>(cacheKey);
+
+  if (cached && !cached.isStale) {
+    return cached.data;
+  }
+
+  try {
+    const res = await fetchWithRetry(
+      `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}`,
+      {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'go.pkg.dipak.io/1.0.0'
+        },
+        next: { revalidate: 3600 }
+      }
+    );
+
+    if (!res.ok) {
+      if (cached) {
+        console.warn(`Serving stale cache for repo details: ${repoName}`);
+        return cached.data;
+      }
+      return null;
+    }
+
+    const repo: Repo = await res.json();
+    setCache(cacheKey, repo);
+    return repo;
+  } catch (error) {
+    console.error('Failed to fetch repo details:', error);
+    if (cached) {
+      console.warn(`Serving stale cache for repo details: ${repoName}`);
+      return cached.data;
+    }
+    return null;
+  }
+}
+
+export async function fetchReadme(repoName: string): Promise<string | null> {
+  if (!repoName) return null;
+
+  const cacheKey = `readme:${repoName}`;
+  const cached = getCached<string>(cacheKey);
+
+  if (cached && !cached.isStale) {
+    return cached.data;
+  }
+
+  try {
+    const res = await fetchWithRetry(
+      `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/readme`,
+      {
+        headers: {
+          Accept: 'application/vnd.github.v3.raw',
+          'User-Agent': 'go.pkg.dipak.io/1.0.0'
+        },
+        next: { revalidate: 3600 }
+      }
+    );
+
+    if (!res.ok) {
+      if (cached) {
+        console.warn(`Serving stale cache for readme: ${repoName}`);
+        return cached.data;
+      }
+      return null;
+    }
+
+    const content = await res.text();
+    setCache(cacheKey, content);
+    return content;
+  } catch (error) {
+    console.error('Failed to fetch readme:', error);
+    if (cached) {
+      console.warn(`Serving stale cache for readme: ${repoName}`);
+      return cached.data;
+    }
+    return null;
+  }
+}
+
+export async function fetchReleases(repoName: string): Promise<Release[]> {
+  if (!repoName) return [];
+
+  const cacheKey = `releases:${repoName}`;
+  const cached = getCached<Release[]>(cacheKey);
+
+  if (cached && !cached.isStale) {
+    return cached.data;
+  }
+
+  try {
+    const res = await fetchWithRetry(
+      `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/releases`,
+      {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'go.pkg.dipak.io/1.0.0'
+        },
+        next: { revalidate: 3600 }
+      }
+    );
+
+    if (!res.ok) {
+      if (cached) {
+        console.warn(`Serving stale cache for releases: ${repoName}`);
+        return cached.data;
+      }
+      return [];
+    }
+
+    const releases: Release[] = await res.json();
+    // Filter out drafts
+    const publicReleases = releases.filter((r) => !r.draft);
+    setCache(cacheKey, publicReleases);
+    return publicReleases;
+  } catch (error) {
+    console.error('Failed to fetch releases:', error);
+    if (cached) {
+      console.warn(`Serving stale cache for releases: ${repoName}`);
+      return cached.data;
+    }
+    return [];
+  }
+}

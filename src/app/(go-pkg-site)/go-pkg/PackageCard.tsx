@@ -9,7 +9,7 @@ export function PackageCard({ repo }: { repo: Repo }) {
   const [copied, setCopied] = useState(false);
   const installCommand = `go get go.pkg.dipak.io/${repo.name}`;
   const githubUrl = `https://github.com/dipakparmar/${repo.name}`;
-  const packageUrl = `/go-pkg/${repo.name}`;
+  const packageUrl = `/go-pkg/view/${repo.name}`;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(installCommand);
