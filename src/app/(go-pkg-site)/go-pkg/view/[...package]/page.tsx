@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import Markdown from 'react-markdown';
+import { Streamdown } from 'streamdown';
 import { Badge } from '@/components/ui/badge';
 import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
@@ -194,7 +194,7 @@ export default async function PackageViewPage({ params }: PackageViewProps) {
           </BlurFade>
           <BlurFade delay={BLUR_FADE_DELAY * 10}>
             <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-zinc-100 dark:prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-200 dark:prose-pre:border-zinc-800">
-              <Markdown>{readme}</Markdown>
+              <Streamdown>{readme}</Streamdown>
             </div>
           </BlurFade>
         </section>

@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { ArrowTopRightIcon } from '@radix-ui/react-icons';
 import Image from 'next/image';
 import Link from 'next/link';
-import Markdown from 'react-markdown';
+import { Streamdown } from 'streamdown';
 import { Slider } from '@/components/ui/slider';
 
 enum DetailLevel {
@@ -96,7 +96,7 @@ export function Portfolio() {
               {personalData.name}
             </h1>
             <div className="text-sm text-muted-foreground">
-              <Markdown>{`${personalData.title} in ${personalData.location}`}</Markdown>
+              <Streamdown>{`${personalData.title} in ${personalData.location}`}</Streamdown>
             </div>
             <Link href={personalData.website}>
               <p className="text-xs text-muted-foreground bg-muted rounded-full inline-block px-2 py-0.5 backdrop-blur-sm backdrop-filter">
@@ -109,7 +109,7 @@ export function Portfolio() {
         <section>
           <h2 className="text-lg font-normal text-foreground mb-2">About</h2>
           <div className="text-sm text-muted-foreground">
-            <Markdown>{personalData.about}</Markdown>
+            <Streamdown>{personalData.about}</Streamdown>
           </div>
         </section>
 
@@ -199,7 +199,7 @@ const Item = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-2 md:gap-4">
       <div className="text-sm text-muted-foreground rounded col-span-full md:col-span-1 text-left md:p-1">
-        <Markdown>{date}</Markdown>
+        <Streamdown>{date}</Streamdown>
       </div>
       <div className="space-y-2 col-span-full md:col-span-1">
         {titlelink ? (
@@ -208,28 +208,28 @@ const Item = ({
             className="flex items-center space-x-1 text-base font-normal text-foreground dark:text-white"
           >
             <div className="hover:underline hover:underline-offset-[3px] hover:decoration-1 transition duration-300 inline">
-              <Markdown>{`${title} ${organization ? `at ${organization}` : ''}`}</Markdown>
+              <Streamdown>{`${title} ${organization ? `at ${organization}` : ''}`}</Streamdown>
             </div>
             <ArrowTopRightIcon className="w-4 h-4 font-bold" />
           </Link>
         ) : (
           <div className="text-base font-normal text-foreground dark:text-white">
-            <Markdown>{`${title} ${organization ? `at ${organization}` : ''}`}</Markdown>
+            <Streamdown>{`${title} ${organization ? `at ${organization}` : ''}`}</Streamdown>
           </div>
         )}
         {location && (
           <div className="text-sm text-muted-foreground">
-            <Markdown>{location}</Markdown>
+            <Streamdown>{location}</Streamdown>
           </div>
         )}
         {description && (
           <div className="text-sm text-muted-foreground [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>ul>li]:mt-2 [&>ol>li]:mt-2">
-            <Markdown>{description}</Markdown>
+            <Streamdown>{description}</Streamdown>
           </div>
         )}
         {clients && (
           <div className="text-sm text-muted-foreground">
-            <Markdown>{clients}</Markdown>
+            <Streamdown>{clients}</Streamdown>
           </div>
         )}
         {images && (

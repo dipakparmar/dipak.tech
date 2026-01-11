@@ -4,7 +4,7 @@ import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
 import { DATA } from '@/data/data';
 import Link from 'next/link';
-import Markdown from 'react-markdown';
+import { Streamdown } from 'streamdown';
 import { Metadata } from 'next';
 
 const BLUR_FADE_DELAY = 0.04;
@@ -49,7 +49,7 @@ export default function Home() {
         </BlurFade>
         <BlurFade delay={BLUR_FADE_DELAY * 4}>
           <div className="prose max-w-full text-pretty font-sans text-sm text-muted-foreground dark:prose-invert">
-            <Markdown>{DATA.summary}</Markdown>
+            <Streamdown>{DATA.summary}</Streamdown>
           </div>
         </BlurFade>
       </section>
