@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
 
 // RDAP Bootstrap URLs for different resource types
 const RDAP_BOOTSTRAP_URLS = {
@@ -23,6 +24,9 @@ interface RDAPCache {
 
 const rdapCache: RDAPCache = {}
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24 hours
+const RESPONSE_CACHE_TTL = 6 * 60 * 60 * 1000
+const RATE_LIMIT = 30
+const RATE_WINDOW_MS = 60 * 1000
 
 async function getRDAPBootstrap(type: keyof typeof RDAP_BOOTSTRAP_URLS): Promise<RDAPService> {
   const now = Date.now()
@@ -209,6 +213,27 @@ export async function GET(request: NextRequest) {
 
     // Normalize and detect query type
     const normalizedQuery = query.trim()
+    const cacheKey = `rdap:${normalizedQuery.toLowerCase()}`
+    const cached = getCached<Record<string, unknown>>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached, { headers: { "X-Cache": "HIT" } })
+    }
+
+    const clientId = getClientId(request.headers)
+    const rateInfo = checkRateLimit(clientId, RATE_LIMIT, RATE_WINDOW_MS)
+    if (!rateInfo.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded" },
+        {
+          status: 429,
+          headers: {
+            ...buildRateLimitHeaders(RATE_LIMIT, rateInfo),
+            "Retry-After": String(Math.ceil(rateInfo.resetAt / 1000)),
+          },
+        },
+      )
+    }
+
     const queryType = detectQueryType(normalizedQuery)
 
     let rdapServer: string | null = null
@@ -276,10 +301,19 @@ export async function GET(request: NextRequest) {
     const data = await response.json()
 
     // Add query type metadata to response
-    return NextResponse.json({
+    const payload = {
       ...data,
       _queryType: queryType,
       _query: normalizedQuery,
+    }
+
+    setCached(cacheKey, payload, RESPONSE_CACHE_TTL)
+
+    return NextResponse.json(payload, {
+      headers: {
+        "X-Cache": "MISS",
+        ...buildRateLimitHeaders(RATE_LIMIT, rateInfo),
+      },
     })
   } catch (error) {
     console.error("WHOIS lookup error:", error)
