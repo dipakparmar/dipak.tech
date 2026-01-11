@@ -2,7 +2,7 @@ import Link from "next/link"
 import { headers } from "next/headers"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Wrench } from "lucide-react"
+import { Shield, Globe, Wrench, Github } from "lucide-react"
 
 export const metadata = {
   title: "Developer Tools | Dipak Parmar",
@@ -25,6 +25,13 @@ const tools = [
     path: "osint",
     icon: Globe,
     color: "text-emerald-500",
+  },
+  {
+    title: "Release Notes",
+    description: "Combine GitHub releases into a single, exportable changelog",
+    path: "github-release-notes",
+    icon: Github,
+    color: "text-slate-600 dark:text-slate-300",
   },
 ]
 
