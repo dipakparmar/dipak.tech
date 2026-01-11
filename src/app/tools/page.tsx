@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { BlurFade } from "@/components/magicui/blur-fade"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Search, Wrench } from "lucide-react"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Shield, Globe, Wrench } from "lucide-react"
 
 export const metadata = {
   title: "Developer Tools | Dipak Parmar",
-  description: "Free online developer tools - SSL certificate utilities, OSINT scanner, WHOIS lookup, and more.",
+  description: "Free online developer tools - SSL certificate utilities, OSINT scanner, and more.",
 }
 
 const BLUR_FADE_DELAY = 0.04
@@ -20,17 +20,10 @@ const tools = [
   },
   {
     title: "OSINT Scanner",
-    description: "DNS record scanning, IP geolocation, and domain intelligence",
+    description: "WHOIS lookup, DNS records, IP geolocation, and domain intelligence",
     href: "/tools/osint",
     icon: Globe,
     color: "text-emerald-500",
-  },
-  {
-    title: "WHOIS Lookup",
-    description: "Domain registration information and ownership details",
-    href: "/tools/whois",
-    icon: Search,
-    color: "text-violet-500",
   },
 ]
 
@@ -56,7 +49,7 @@ export default function ToolsPage() {
         </BlurFade>
 
         {/* Tools Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-2xl gap-6 sm:grid-cols-2">
           {tools.map((tool, index) => (
             <BlurFade key={tool.href} delay={BLUR_FADE_DELAY * (index + 2)}>
               <Link href={tool.href} className="block h-full">
