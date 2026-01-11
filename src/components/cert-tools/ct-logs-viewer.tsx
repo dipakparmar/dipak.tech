@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { normalizeToolsPathname } from "@/lib/tool-routing"
 
 interface CertEntry {
   serialNumber: string
@@ -56,7 +57,9 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
         params.delete("domain")
       }
       const queryString = params.toString()
-      router.replace(`${pathname}${queryString ? `?${queryString}` : ""}`, { scroll: false })
+      const host = typeof window === "undefined" ? "" : window.location.host
+      const resolvedPath = normalizeToolsPathname(pathname, host)
+      router.replace(`${resolvedPath}${queryString ? `?${queryString}` : ""}`, { scroll: false })
     },
     [router, pathname, searchParams]
   )
@@ -65,7 +68,9 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
     if (!query.trim()) return
     const params = new URLSearchParams()
     params.set("domain", query.trim())
-    const url = `${window.location.origin}${pathname}?${params.toString()}`
+    const host = window.location.host
+    const resolvedPath = normalizeToolsPathname(pathname, host)
+    const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
     await navigator.clipboard.writeText(url)
     setUrlCopied(true)
     setTimeout(() => setUrlCopied(false), 2000)

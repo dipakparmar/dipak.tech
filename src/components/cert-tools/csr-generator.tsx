@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import * as pkijs from "pkijs"
 import * as asn1js from "asn1js"
+import { normalizeToolsPathname } from "@/lib/tool-routing"
 
 interface CSRResult {
   csr: string
@@ -196,7 +197,9 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
     if (formData.keyType !== "RSA") params.set("keyType", formData.keyType)
     if (formData.keySize !== "2048") params.set("keySize", formData.keySize)
     if (sans.length > 0) params.set("san", sans.join(","))
-    const url = `${window.location.origin}${pathname}?${params.toString()}`
+    const host = window.location.host
+    const resolvedPath = normalizeToolsPathname(pathname, host)
+    const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
     await navigator.clipboard.writeText(url)
     setUrlCopied(true)
     setTimeout(() => setUrlCopied(false), 2000)

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { normalizeToolsPathname } from "@/lib/tool-routing"
 
 interface KeyPairResult {
   publicKey: string
@@ -60,7 +61,9 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
     if (settings.algorithm !== "RSA") params.set("algorithm", settings.algorithm)
     if (settings.keySize !== "2048") params.set("keySize", settings.keySize)
     if (settings.usage !== "sign") params.set("usage", settings.usage)
-    const url = `${window.location.origin}${pathname}?${params.toString()}`
+    const host = window.location.host
+    const resolvedPath = normalizeToolsPathname(pathname, host)
+    const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
     await navigator.clipboard.writeText(url)
     setUrlCopied(true)
     setTimeout(() => setUrlCopied(false), 2000)

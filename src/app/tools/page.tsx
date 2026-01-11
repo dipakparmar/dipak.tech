@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield, Globe, Wrench, Github } from "lucide-react"
+import { buildToolsHref } from "@/lib/tool-routing"
 
 export const metadata = {
   title: "Developer Tools | Dipak Parmar",
@@ -38,10 +39,7 @@ const tools = [
 export default async function ToolsPage() {
   const headersList = await headers()
   const host = headersList.get("host") || ""
-  const isToolsDomain = host.includes("tools.dipak.io")
-
-  // On tools.dipak.io, use /path; on other domains, use /tools/path
-  const getHref = (path: string) => isToolsDomain ? `/${path}` : `/tools/${path}`
+  const getHref = (path: string) => buildToolsHref(path, host)
   return (
     <main className="flex min-h-dvh flex-col bg-background">
       <div className="container mx-auto max-w-4xl px-4 py-12 sm:py-16">
