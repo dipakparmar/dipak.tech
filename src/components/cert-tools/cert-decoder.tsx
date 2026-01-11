@@ -1,12 +1,15 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { FileText, Copy, Check, AlertCircle, Calendar, Building, Globe, Key, Shield } from "lucide-react"
+import { FileText, Copy, AlertCircle, Link, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+import { CertificateDetails, CertificateData } from "./certificate-details"
 
 interface DecodedCert {
   subject: Record<string, string>
@@ -210,11 +213,32 @@ function parseX509(der: Uint8Array): DecodedCert {
   }
 }
 
+// Transform DecodedCert to CertificateData
+function toCertificateData(decoded: DecodedCert, pem?: string): CertificateData {
+  return {
+    commonName: decoded.subject.CN || "",
+    subject: decoded.subject,
+    issuer: decoded.issuer,
+    serialNumber: decoded.serialNumber,
+    validFrom: decoded.validFrom,
+    validTo: decoded.validTo,
+    publicKeyAlgorithm: decoded.publicKey.algorithm,
+    signatureAlgorithm: decoded.signatureAlgorithm,
+    sans: decoded.sans,
+    fingerprint: decoded.fingerprint,
+    pem: pem,
+    isCA: decoded.isCA,
+  }
+}
+
 export function CertDecoder() {
+  const [mode, setMode] = useState<"paste" | "url">("paste")
   const [pem, setPem] = useState("")
-  const [decoded, setDecoded] = useState<DecodedCert | null>(null)
+  const [urlInput, setUrlInput] = useState("")
+  const [certData, setCertData] = useState<CertificateData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [fetchedPem, setFetchedPem] = useState<string | null>(null)
 
   const handleDecode = useCallback(async () => {
     if (!pem.trim()) {
@@ -228,34 +252,75 @@ export function CertDecoder() {
     }
 
     setError(null)
-    setDecoded(null)
+    setCertData(null)
 
     try {
       const result = await decodeCertificate(pem)
-      setDecoded(result)
+      setCertData(toCertificateData(result, pem))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to decode certificate")
     }
   }, [pem])
 
-  const handleCopy = useCallback(async () => {
-    if (decoded) {
-      await navigator.clipboard.writeText(JSON.stringify(decoded, null, 2))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+  const handleFetchFromUrl = useCallback(async () => {
+    if (!urlInput.trim()) {
+      setError("Please enter a hostname")
+      return
     }
-  }, [decoded])
 
-  const getExpiryStatus = () => {
-    if (!decoded) return { isExpired: false, isExpiringSoon: false }
-    const now = new Date()
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-    const isExpired = decoded.validTo < now
-    const isExpiringSoon = !isExpired && decoded.validTo < thirtyDaysFromNow
-    return { isExpired, isExpiringSoon }
-  }
+    // Parse hostname and port
+    let hostname = urlInput.trim()
+    let port = 443
 
-  const { isExpired, isExpiringSoon } = getExpiryStatus()
+    // Remove protocol if present
+    hostname = hostname.replace(/^https?:\/\//, "")
+    // Remove path if present
+    hostname = hostname.split("/")[0]
+    // Extract port if specified
+    if (hostname.includes(":")) {
+      const parts = hostname.split(":")
+      hostname = parts[0]
+      port = parseInt(parts[1], 10)
+      if (isNaN(port) || port < 1 || port > 65535) {
+        setError("Invalid port number")
+        return
+      }
+    }
+
+    setError(null)
+    setCertData(null)
+    setFetchedPem(null)
+    setLoading(true)
+
+    try {
+      const response = await fetch(`/api/fetch-cert?host=${encodeURIComponent(hostname)}&port=${port}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch certificate")
+      }
+
+      if (!data.pem) {
+        throw new Error("No certificate data received")
+      }
+
+      setFetchedPem(data.pem)
+
+      // Decode the fetched PEM
+      const result = await decodeCertificate(data.pem)
+
+      // Add extra info from the API response
+      if (data.subjectAltNames && data.subjectAltNames.length > 0) {
+        result.sans = data.subjectAltNames
+      }
+
+      setCertData(toCertificateData(result, data.pem))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch certificate")
+    } finally {
+      setLoading(false)
+    }
+  }, [urlInput])
 
   return (
     <div className="space-y-6">
@@ -267,29 +332,105 @@ export function CertDecoder() {
             Certificate Decoder
           </CardTitle>
           <CardDescription>
-            Paste a PEM-encoded certificate to decode and view its details. All processing happens in your browser.
+            Decode and view certificate details. Paste a PEM certificate or fetch directly from a website.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Textarea
-            placeholder="-----BEGIN CERTIFICATE-----&#10;MIIFazCCBFOgAwIBAgISA...&#10;-----END CERTIFICATE-----"
-            value={pem}
-            onChange={(e) => setPem(e.target.value)}
-            className="min-h-48 font-mono text-xs"
-          />
-          <div className="flex gap-3">
-            <Button onClick={handleDecode}>Decode Certificate</Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setPem("")
-                setDecoded(null)
-                setError(null)
-              }}
-            >
-              Clear
-            </Button>
-          </div>
+          <Tabs value={mode} onValueChange={(v) => {
+            setMode(v as "paste" | "url")
+            setError(null)
+            setCertData(null)
+            setFetchedPem(null)
+          }}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="paste" className="gap-2">
+                <FileText className="h-4 w-4" />
+                Paste PEM
+              </TabsTrigger>
+              <TabsTrigger value="url" className="gap-2">
+                <Link className="h-4 w-4" />
+                Fetch from URL
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="paste" className="mt-4 space-y-4">
+              <Textarea
+                placeholder="-----BEGIN CERTIFICATE-----&#10;MIIFazCCBFOgAwIBAgISA...&#10;-----END CERTIFICATE-----"
+                value={pem}
+                onChange={(e) => setPem(e.target.value)}
+                className="min-h-48 font-mono text-xs"
+              />
+              <div className="flex gap-3">
+                <Button onClick={handleDecode}>Decode Certificate</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPem("")
+                    setCertData(null)
+                    setError(null)
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="url" className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Hostname</Label>
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="example.com or example.com:8443"
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleFetchFromUrl()
+                      }
+                    }}
+                    className="flex-1 font-mono"
+                  />
+                  <Button onClick={handleFetchFromUrl} disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Fetching...
+                      </>
+                    ) : (
+                      "Fetch Certificate"
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter a hostname to fetch its SSL/TLS certificate. Optionally specify a port (default: 443).
+                </p>
+              </div>
+
+              {/* Show fetched PEM */}
+              {fetchedPem && (
+                <div className="space-y-2">
+                  <Label>Fetched Certificate (PEM)</Label>
+                  <Textarea
+                    value={fetchedPem}
+                    readOnly
+                    className="min-h-32 font-mono text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(fetchedPem)
+                    }}
+                    className="gap-1"
+                  >
+                    <Copy className="h-3 w-3" />
+                    Copy PEM
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {error && (
             <Alert variant="destructive">
@@ -301,111 +442,7 @@ export function CertDecoder() {
       </Card>
 
       {/* Decoded Result */}
-      {decoded && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5 text-cyan-500" />
-                  Decoded Certificate
-                </CardTitle>
-                <CardDescription>Certificate details parsed from PEM</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1">
-                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                {copied ? "Copied" : "Copy JSON"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Status */}
-            <div className="flex flex-wrap gap-2">
-              {isExpired ? (
-                <Badge variant="destructive">Expired</Badge>
-              ) : isExpiringSoon ? (
-                <Badge variant="outline" className="border-amber-500 text-amber-500">
-                  Expiring Soon
-                </Badge>
-              ) : (
-                <Badge variant="default" className="bg-emerald-500">
-                  Valid
-                </Badge>
-              )}
-              <Badge variant="secondary">{decoded.publicKey.algorithm}</Badge>
-              <Badge variant="outline">{decoded.signatureAlgorithm}</Badge>
-            </div>
-
-            {/* Subject */}
-            <div className="space-y-2">
-              <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Globe className="h-4 w-4" />
-                Subject
-              </h4>
-              <div className="rounded-lg border bg-muted/30 p-3">
-                {Object.entries(decoded.subject).map(([key, value]) => (
-                  <div key={key} className="flex gap-2 text-sm">
-                    <span className="font-medium text-muted-foreground">{key}:</span>
-                    <span className="font-mono">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Issuer */}
-            <div className="space-y-2">
-              <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Building className="h-4 w-4" />
-                Issuer
-              </h4>
-              <div className="rounded-lg border bg-muted/30 p-3">
-                {Object.entries(decoded.issuer).map(([key, value]) => (
-                  <div key={key} className="flex gap-2 text-sm">
-                    <span className="font-medium text-muted-foreground">{key}:</span>
-                    <span className="font-mono">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Validity */}
-            <div className="space-y-2">
-              <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                Validity Period
-              </h4>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Not Before</p>
-                  <p className="font-mono text-sm">{decoded.validFrom.toISOString()}</p>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Not After</p>
-                  <p className="font-mono text-sm">{decoded.validTo.toISOString()}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Serial & Fingerprint */}
-            <div className="space-y-2">
-              <h4 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Key className="h-4 w-4" />
-                Identifiers
-              </h4>
-              <div className="space-y-2">
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Serial Number</p>
-                  <p className="break-all font-mono text-xs">{decoded.serialNumber}</p>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Fingerprint (partial)</p>
-                  <p className="break-all font-mono text-xs">{decoded.fingerprint}</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {certData && <CertificateDetails certificate={certData} showPem={true} />}
     </div>
   )
 }

@@ -4,23 +4,11 @@ import { useEffect, useState, use } from "react"
 import Link from "next/link"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  ArrowLeft,
-  Shield,
-  Building,
-  Calendar,
-  Globe,
-  Hash,
-  FileText,
-  Copy,
-  Check,
-  AlertCircle,
-  ExternalLink,
-} from "lucide-react"
+import { ArrowLeft, Shield, AlertCircle, ExternalLink } from "lucide-react"
+import { CertificateDetails, CertificateData, parseDN } from "@/components/cert-tools/certificate-details"
 
 const BLUR_FADE_DELAY = 0.04
 
@@ -41,26 +29,11 @@ interface CertificateResponse {
   }
 }
 
-// Parse DN string like "CN=R13,O=Let's Encrypt,C=US" into object
-function parseDN(dn: string): Record<string, string> {
-  const result: Record<string, string> = {}
-  // Handle escaped commas and split properly
-  const parts = dn.split(/,(?=\s*[A-Z]+=)/)
-  for (const part of parts) {
-    const match = part.trim().match(/^([A-Z]+)=(.+)$/)
-    if (match) {
-      result[match[1]] = match[2]
-    }
-  }
-  return result
-}
-
 export default function CertificateViewPage({ params }: { params: Promise<{ serial: string }> }) {
   const { serial } = use(params)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [cert, setCert] = useState<CertificateResponse["certificate"] | null>(null)
-  const [copied, setCopied] = useState<string | null>(null)
+  const [certData, setCertData] = useState<CertificateData | null>(null)
 
   useEffect(() => {
     async function fetchCertificate() {
@@ -82,7 +55,25 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
         }
 
         const data: CertificateResponse = await response.json()
-        setCert(data.certificate)
+        const cert = data.certificate
+
+        // Transform to normalized format
+        const normalized: CertificateData = {
+          commonName: cert.commonName,
+          subject: parseDN(cert.subject),
+          issuer: parseDN(cert.issuer),
+          serialNumber: cert.serialNumber,
+          validFrom: cert.notBefore,
+          validTo: cert.notAfter,
+          publicKeyAlgorithm: cert.publicKeyAlgorithm,
+          signatureAlgorithm: cert.signatureAlgorithm,
+          sans: cert.dnsNames,
+          sha256: cert.sha256,
+          pem: cert.pem,
+          isPrecert: cert.isPrecert,
+        }
+
+        setCertData(normalized)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch certificate")
       } finally {
@@ -94,36 +85,6 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
       fetchCertificate()
     }
   }, [serial])
-
-  const handleCopy = async (text: string, id: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopied(id)
-    setTimeout(() => setCopied(null), 2000)
-  }
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZoneName: "short",
-    })
-  }
-
-  const getExpiryStatus = () => {
-    if (!cert) return { isExpired: false, isExpiringSoon: false }
-    const now = new Date()
-    const expiry = new Date(cert.notAfter)
-    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-    return {
-      isExpired: expiry < now,
-      isExpiringSoon: expiry >= now && expiry < thirtyDays,
-    }
-  }
-
-  const { isExpired, isExpiringSoon } = getExpiryStatus()
 
   return (
     <main className="min-h-screen bg-background">
@@ -145,9 +106,9 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
               <Shield className="mr-2 h-4 w-4 text-cyan-500" />
               <span className="text-sm font-medium">Certificate Details</span>
             </div>
-            {cert && (
+            {certData && (
               <h1 className="break-all font-mono text-xl font-bold tracking-tight sm:text-2xl">
-                {cert.commonName}
+                {certData.commonName}
               </h1>
             )}
           </div>
@@ -188,269 +149,25 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
         )}
 
         {/* Certificate Details */}
-        {cert && (() => {
-          const subject = parseDN(cert.subject)
-          const issuer = parseDN(cert.issuer)
-          const isWildcard = cert.commonName.startsWith("*.")
+        {certData && (
+          <BlurFade delay={BLUR_FADE_DELAY * 3}>
+            <CertificateDetails certificate={certData} showPem={true} />
 
-          return (
-            <div className="space-y-6">
-              {/* Status & Badges */}
-              <BlurFade delay={BLUR_FADE_DELAY * 3}>
-                <div className="flex flex-wrap gap-2">
-                  {isExpired ? (
-                    <Badge variant="destructive">Expired</Badge>
-                  ) : isExpiringSoon ? (
-                    <Badge variant="outline" className="border-amber-500 text-amber-500">
-                      Expiring Soon
-                    </Badge>
-                  ) : (
-                    <Badge variant="default" className="bg-emerald-500">
-                      Valid
-                    </Badge>
-                  )}
-                  {isWildcard && <Badge variant="outline">Wildcard</Badge>}
-                  {cert.isPrecert && <Badge variant="secondary">Precertificate</Badge>}
-                  {cert.publicKeyAlgorithm && (
-                    <Badge variant="secondary">{cert.publicKeyAlgorithm}</Badge>
-                  )}
-                  {cert.signatureAlgorithm && <Badge variant="outline">{cert.signatureAlgorithm}</Badge>}
-                </div>
-              </BlurFade>
-
-              {/* Subject */}
-              <BlurFade delay={BLUR_FADE_DELAY * 4}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Globe className="h-5 w-5 text-cyan-500" />
-                      Subject
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="rounded-lg border bg-muted/30 p-3">
-                      <p className="text-xs text-muted-foreground">Common Name (CN)</p>
-                      <p className="break-all font-mono text-sm">{cert.commonName}</p>
-                    </div>
-                    {subject.O && (
-                      <div className="rounded-lg border bg-muted/30 p-3">
-                        <p className="text-xs text-muted-foreground">Organization (O)</p>
-                        <p className="font-mono text-sm">{subject.O}</p>
-                      </div>
-                    )}
-                    {(subject.L || subject.ST || subject.C) && (
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        {subject.L && (
-                          <div className="rounded-lg border bg-muted/30 p-3">
-                            <p className="text-xs text-muted-foreground">Locality (L)</p>
-                            <p className="font-mono text-sm">{subject.L}</p>
-                          </div>
-                        )}
-                        {subject.ST && (
-                          <div className="rounded-lg border bg-muted/30 p-3">
-                            <p className="text-xs text-muted-foreground">State (ST)</p>
-                            <p className="font-mono text-sm">{subject.ST}</p>
-                          </div>
-                        )}
-                        {subject.C && (
-                          <div className="rounded-lg border bg-muted/30 p-3">
-                            <p className="text-xs text-muted-foreground">Country (C)</p>
-                            <p className="font-mono text-sm">{subject.C}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </BlurFade>
-
-              {/* DNS Names / SANs */}
-              {cert.dnsNames && cert.dnsNames.length > 0 && (
-                <BlurFade delay={BLUR_FADE_DELAY * 5}>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Globe className="h-5 w-5 text-emerald-500" />
-                        Subject Alternative Names ({cert.dnsNames.length})
-                      </CardTitle>
-                      <CardDescription>DNS names covered by this certificate</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {cert.dnsNames.map((name) => (
-                          <Badge key={name} variant="secondary" className="font-mono text-xs">
-                            {name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </BlurFade>
-              )}
-
-              {/* Issuer */}
-              <BlurFade delay={BLUR_FADE_DELAY * 6}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Building className="h-5 w-5 text-violet-500" />
-                      Issuer
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {issuer.CN && (
-                      <div className="rounded-lg border bg-muted/30 p-3">
-                        <p className="text-xs text-muted-foreground">Common Name (CN)</p>
-                        <p className="font-mono text-sm">{issuer.CN}</p>
-                      </div>
-                    )}
-                    {issuer.O && (
-                      <div className="rounded-lg border bg-muted/30 p-3">
-                        <p className="text-xs text-muted-foreground">Organization (O)</p>
-                        <p className="font-mono text-sm">{issuer.O}</p>
-                      </div>
-                    )}
-                    {issuer.C && (
-                      <div className="rounded-lg border bg-muted/30 p-3">
-                        <p className="text-xs text-muted-foreground">Country (C)</p>
-                        <p className="font-mono text-sm">{issuer.C}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </BlurFade>
-
-              {/* Validity */}
-              <BlurFade delay={BLUR_FADE_DELAY * 7}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Calendar className="h-5 w-5 text-amber-500" />
-                      Validity Period
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-lg border bg-muted/30 p-4">
-                        <p className="text-xs text-muted-foreground">Not Before</p>
-                        <p className="font-mono text-sm">{formatDate(cert.notBefore)}</p>
-                      </div>
-                      <div className="rounded-lg border bg-muted/30 p-4">
-                        <p className="text-xs text-muted-foreground">Not After</p>
-                        <p className="font-mono text-sm">{formatDate(cert.notAfter)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </BlurFade>
-
-              {/* Fingerprints & Serial */}
-              <BlurFade delay={BLUR_FADE_DELAY * 8}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Hash className="h-5 w-5 text-rose-500" />
-                      Identifiers
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="rounded-lg border bg-muted/30 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs text-muted-foreground">Serial Number</p>
-                          <p className="break-all font-mono text-xs">{cert.serialNumber}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0"
-                          onClick={() => handleCopy(cert.serialNumber, "serial")}
-                        >
-                          {copied === "serial" ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    {cert.sha256 && (
-                      <div className="rounded-lg border bg-muted/30 p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs text-muted-foreground">SHA-256 Fingerprint</p>
-                            <p className="break-all font-mono text-xs">{cert.sha256}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={() => handleCopy(cert.sha256, "sha256")}
-                          >
-                            {copied === "sha256" ? (
-                              <Check className="h-3 w-3" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </BlurFade>
-
-              {/* PEM Certificate */}
-              {cert.pem && (
-                <BlurFade delay={BLUR_FADE_DELAY * 9}>
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="flex items-center gap-2 text-lg">
-                            <FileText className="h-5 w-5 text-cyan-500" />
-                            PEM Certificate
-                          </CardTitle>
-                          <CardDescription>Raw certificate in PEM format</CardDescription>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => handleCopy(cert.pem, "pem")}
-                        >
-                          {copied === "pem" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                          {copied === "pem" ? "Copied" : "Copy"}
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <pre className="max-h-64 overflow-auto rounded-lg border bg-muted/30 p-4 font-mono text-xs">
-                        {cert.pem}
-                      </pre>
-                    </CardContent>
-                  </Card>
-                </BlurFade>
-              )}
-
-              {/* External Link */}
-              <BlurFade delay={BLUR_FADE_DELAY * 10}>
-                <div className="flex justify-center pt-4">
-                  <a
-                    href={`https://www.certkit.io/certificate/serial/${cert.serialNumber}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" className="gap-2">
-                      <ExternalLink className="h-4 w-4" />
-                      View on CertKit.io
-                    </Button>
-                  </a>
-                </div>
-              </BlurFade>
+            {/* External Link */}
+            <div className="mt-8 flex justify-center">
+              <a
+                href={`https://www.certkit.io/certificate/serial/${certData.serialNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" className="gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  View on CertKit.io
+                </Button>
+              </a>
             </div>
-          )
-        })()}
+          </BlurFade>
+        )}
       </div>
     </main>
   )
