@@ -57,7 +57,7 @@ export default function Home() {
         <div className="grid items-center justify-center gap-2 px-4 text-center md:px-6 w-full py-12">
           <BlurFade delay={BLUR_FADE_DELAY * 16}>
             <div className="space-y-3">
-              <div className="inline-block rounded-lg bg-foreground text-background px-3 py-1 text-sm">
+              <div className="inline-block rounded-lg bg-primary text-primary-foreground px-3 py-1 text-sm">
                 Contact
               </div>
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
@@ -68,14 +68,14 @@ export default function Home() {
                 question via{' '}
                 <Link
                   href={DATA.contact.social.X.url}
-                  className="text-blue-500 hover:underline"
+                  className="text-primary hover:underline"
                 >
                   Twitter
                 </Link>{' '}
                 or{' '}
                 <Link
                   href={DATA.contact.social.LinkedIn.url}
-                  className="text-blue-500 hover:underline"
+                  className="text-primary hover:underline"
                 >
                   Linkedin
                 </Link>
