@@ -1,7 +1,8 @@
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { WhoisLookup } from "@/components/whois-lookup"
 import { Globe, Hash, Network } from "lucide-react"
+
+import { BlurFade } from "@/components/magicui/blur-fade"
 import { Suspense } from "react"
+import { WhoisLookup } from "@/components/whois-lookup"
 
 const BLUR_FADE_DELAY = 0.04
 
@@ -14,53 +15,44 @@ export default function Page() {
       </div>
 
       <div className="container mx-auto px-4 py-16 md:py-24">
-        <div className="mx-auto max-w-5xl space-y-16">
+        <div className="mx-auto max-w-6xl space-y-14">
           {/* Hero Section */}
-          <div className="space-y-6 text-center">
-            <BlurFade delay={BLUR_FADE_DELAY}>
-              <div className="inline-flex items-center gap-2 rounded-full border bg-background/80 backdrop-blur-sm px-4 py-1.5 text-xs font-medium shadow-sm">
+          <BlurFade delay={BLUR_FADE_DELAY}>
+            <div className="mb-8 text-center">
+              <div className="mb-4 inline-flex items-center justify-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5">
                 <span className="relative flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-                Powered by RDAP Protocol
+                <span className="text-sm font-medium">OSINT Command Center</span>
               </div>
-            </BlurFade>
-
-            <BlurFade delay={BLUR_FADE_DELAY * 2}>
-              <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                Network Intelligence
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Domain & IP Intelligence
               </h1>
-            </BlurFade>
-
-            <BlurFade delay={BLUR_FADE_DELAY * 3}>
-              <p className="mx-auto max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg md:text-xl">
-                Query comprehensive registration data for domains, IP addresses, and autonomous systems using the
-                modern RDAP API
+              <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
+                Investigate domains, IPs, and autonomous systems with live DNS, HTTP, TLS, and geo intelligence.
+                Powered by RDAP and OSINT APIs.
               </p>
-            </BlurFade>
-
-            {/* Feature pills */}
-            <BlurFade delay={BLUR_FADE_DELAY * 4}>
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              {/* Feature pills */}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
                   <Globe className="h-4 w-4" />
-                  <span>Domains</span>
+                  <span>Domains & RDAP</span>
                 </div>
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
                   <Network className="h-4 w-4" />
-                  <span>IP Addresses</span>
+                  <span>DNS & IP Intel</span>
                 </div>
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
                   <Hash className="h-4 w-4" />
-                  <span>ASN Lookup</span>
+                  <span>ASN & TLS Signals</span>
                 </div>
               </div>
-            </BlurFade>
-          </div>
+            </div>
+          </BlurFade>
 
           {/* Search Component */}
-          <BlurFade delay={BLUR_FADE_DELAY * 5}>
+          <BlurFade delay={BLUR_FADE_DELAY * 3}>
             <Suspense fallback={<div className="h-14 animate-pulse rounded-xl bg-muted" />}>
               <WhoisLookup />
             </Suspense>

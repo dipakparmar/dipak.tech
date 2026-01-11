@@ -9,13 +9,31 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import type React from "react"
 import { Spinner } from "@/components/ui/spinner"
-import { WhoisResults } from "@/components/whois-results"
+import { OsintResults } from "@/components/osint-results"
 
 const EXAMPLE_QUERIES = [
   { label: "google.com", icon: Globe, type: "domain" },
   { label: "8.8.8.8", icon: Network, type: "ip" },
   { label: "AS15169", icon: Hash, type: "asn" },
 ]
+
+type QueryType = "domain" | "ipv4" | "ipv6" | "asn"
+
+function detectQueryType(query: string): QueryType {
+  if (/^(AS)?(\\d+)$/i.test(query)) {
+    return "asn"
+  }
+
+  if (query.includes(":")) {
+    return "ipv6"
+  }
+
+  if (/^(\\d{1,3}\\.){3}\\d{1,3}$/.test(query)) {
+    return "ipv4"
+  }
+
+  return "domain"
+}
 
 export function WhoisLookup() {
   const router = useRouter()
@@ -26,7 +44,15 @@ export function WhoisLookup() {
   const [query, setQuery] = useState(initialQuery)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<any>(null)
+  const [rdapData, setRdapData] = useState<any>(null)
+  const [dnsData, setDnsData] = useState<any>(null)
+  const [httpData, setHttpData] = useState<any>(null)
+  const [certData, setCertData] = useState<any>(null)
+  const [ipData, setIpData] = useState<any>(null)
+  const [osintErrors, setOsintErrors] = useState<Record<string, string>>({})
+  const [pending, setPending] = useState<Record<string, boolean>>({})
+  const [certDnsData, setCertDnsData] = useState<Record<string, any> | null>(null)
+  const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState(false)
   const hasAutoSearched = useRef(false)
   const prevUrlQuery = useRef(initialQuery)
@@ -46,7 +72,15 @@ export function WhoisLookup() {
 
       setLoading(true)
       setError(null)
-      setData(null)
+      setRdapData(null)
+      setDnsData(null)
+      setHttpData(null)
+      setCertData(null)
+      setIpData(null)
+      setOsintErrors({})
+      setPending({})
+      setCertDnsData(null)
+      setCertDnsPending({})
 
       // Update URL with query parameter
       if (updateUrl) {
@@ -58,14 +92,74 @@ export function WhoisLookup() {
       }
 
       try {
-        const response = await fetch(`/api/whois?query=${encodeURIComponent(searchQuery.trim())}`)
-        const result = await response.json()
+        const trimmed = searchQuery.trim()
+        const fetchJson = async (url: string) => {
+          const response = await fetch(url)
+          const result = await response.json()
 
-        if (!response.ok) {
-          throw new Error(result.error || "Failed to fetch information")
+          if (!response.ok) {
+            throw new Error(result.error || "Failed to fetch information")
+          }
+
+          return result
         }
 
-        setData(result)
+        const queryType = detectQueryType(trimmed)
+        const tasks: Array<{ key: string; promise: Promise<any> }> = [
+          { key: "rdap", promise: fetchJson(`/api/whois?query=${encodeURIComponent(trimmed)}`) },
+        ]
+
+        if (queryType === "domain") {
+          tasks.push(
+            { key: "dns", promise: fetchJson(`/api/osint/dns?target=${encodeURIComponent(trimmed)}`) },
+            { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
+            { key: "certs", promise: fetchJson(`/api/osint/certificates?target=${encodeURIComponent(trimmed)}`) },
+            { key: "ip", promise: fetchJson(`/api/osint/ip?target=${encodeURIComponent(trimmed)}`) },
+          )
+        }
+
+        if (queryType === "ipv4" || queryType === "ipv6") {
+          tasks.push(
+            { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
+            { key: "ip", promise: fetchJson(`/api/osint/ip?target=${encodeURIComponent(trimmed)}`) },
+          )
+        }
+
+        const requestedKeys = new Set(tasks.map((task) => task.key))
+        setPending(Object.fromEntries(tasks.map((task) => [task.key, true])))
+
+        const baselineErrors: Record<string, string> = {}
+        if (!requestedKeys.has("dns")) baselineErrors.dns = "Not applicable for this query type"
+        if (!requestedKeys.has("http")) baselineErrors.http = "Not applicable for this query type"
+        if (!requestedKeys.has("certs")) baselineErrors.certs = "Not applicable for this query type"
+        if (!requestedKeys.has("ip")) baselineErrors.ip = "Not applicable for this query type"
+        setOsintErrors(baselineErrors)
+
+        const taskPromises = tasks.map((task) => task.promise)
+        tasks.forEach((task) => {
+          task.promise
+            .then((value) => {
+              if (task.key === "rdap") setRdapData(value)
+              if (task.key === "dns") setDnsData(value)
+              if (task.key === "http") setHttpData(value)
+              if (task.key === "certs") setCertData(value)
+              if (task.key === "ip") setIpData(value)
+            })
+            .catch((err) => {
+              setOsintErrors((prev) => ({
+                ...prev,
+                [task.key]: err instanceof Error ? err.message : "Lookup failed",
+              }))
+            })
+            .finally(() => {
+              setPending((prev) => ({ ...prev, [task.key]: false }))
+            })
+        })
+
+        const settled = await Promise.allSettled(taskPromises)
+        if (settled.every((result) => result.status === "rejected")) {
+          setError("No intelligence data available for this query")
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred")
       } finally {
@@ -92,11 +186,62 @@ export function WhoisLookup() {
       if (urlQuery) {
         performLookup(urlQuery, false)
       } else {
-        setData(null)
+        setRdapData(null)
+        setDnsData(null)
+        setHttpData(null)
+        setCertData(null)
+        setIpData(null)
+        setOsintErrors({})
+        setPending({})
+        setCertDnsData(null)
+        setCertDnsPending({})
         setError(null)
       }
     }
   }, [searchParams, performLookup])
+
+  // Fetch DNS for certificate domains when certs are loaded
+  useEffect(() => {
+    if (!certData?.names || certData.names.length === 0) return
+
+    const mainDomain = query.toLowerCase().replace(/^www\./, "")
+
+    // Get unique subdomains from cert names (excluding wildcards and main domain)
+    const subdomains = certData.names
+      .filter((name: string) => {
+        const normalized = name.toLowerCase().replace(/^\*\./, "").replace(/^www\./, "")
+        return normalized !== mainDomain && !name.startsWith("*")
+      })
+      .slice(0, 10) // Limit to 10 subdomains to avoid too many requests
+
+    if (subdomains.length === 0) return
+
+    // Initialize pending state
+    setCertDnsPending(Object.fromEntries(subdomains.map((d: string) => [d, true])))
+    setCertDnsData({})
+
+    // Fetch DNS for each subdomain
+    const fetchDns = async (domain: string) => {
+      try {
+        const response = await fetch(`/api/osint/dns?target=${encodeURIComponent(domain)}`)
+        const result = await response.json()
+
+        if (!response.ok) {
+          return { error: result.error || "DNS lookup failed" }
+        }
+        return result
+      } catch {
+        return { error: "DNS lookup failed" }
+      }
+    }
+
+    subdomains.forEach((domain: string) => {
+      fetchDns(domain).then((result) => {
+        setCertDnsData((prev) => ({ ...prev, [domain]: result }))
+        setCertDnsPending((prev) => ({ ...prev, [domain]: false }))
+      })
+    })
+  }, [certData, query])
 
   const handleLookup = async (e?: React.FormEvent, queryOverride?: string) => {
     e?.preventDefault()
@@ -111,6 +256,8 @@ export function WhoisLookup() {
     setQuery(example)
     performLookup(example)
   }
+
+  const hasResults = Boolean(rdapData || dnsData || httpData || certData || ipData)
 
   return (
     <div className="space-y-8">
@@ -153,7 +300,7 @@ export function WhoisLookup() {
         </form>
 
         {/* Quick Examples */}
-        {!data && !loading && (
+        {!hasResults && !loading && (
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-sm text-muted-foreground">Try:</span>
             {EXAMPLE_QUERIES.map((example) => (
@@ -180,7 +327,7 @@ export function WhoisLookup() {
       </div>
 
       {/* Results Section */}
-      {data && (
+      {(rdapData || dnsData || httpData || certData || ipData) && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Share Button */}
           <div className="mb-6 flex justify-end">
@@ -203,7 +350,18 @@ export function WhoisLookup() {
               )}
             </Button>
           </div>
-          <WhoisResults data={data} query={query} />
+          <OsintResults
+            rdapData={rdapData}
+            dnsData={dnsData}
+            httpData={httpData}
+            certData={certData}
+            ipData={ipData}
+            query={query}
+            errors={osintErrors}
+            pending={pending}
+            certDnsData={certDnsData}
+            certDnsPending={certDnsPending}
+          />
         </div>
       )}
     </div>
