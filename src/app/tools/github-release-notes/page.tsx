@@ -1,6 +1,7 @@
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { ReleaseNotesTool } from "@/components/release-notes-tool"
 import { FileText, Filter, Github, Layers } from "lucide-react"
+import { Suspense } from "react"
 
 export const metadata = {
   title: "GitHub Release Notes | Dipak Parmar",
@@ -51,7 +52,9 @@ export default function GitHubReleaseNotesPage() {
           </BlurFade>
 
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <ReleaseNotesTool />
+            <Suspense fallback={<div className="h-72 animate-pulse rounded-2xl border bg-muted/40" />}>
+              <ReleaseNotesTool />
+            </Suspense>
           </BlurFade>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { Calendar, Download, ExternalLink, Eye, EyeOff, Printer, Tag } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -26,13 +26,10 @@ interface ReleaseNotesDisplayProps {
 }
 
 export function ReleaseNotesDisplay({ releases, loading }: ReleaseNotesDisplayProps) {
-  const [visibleReleases, setVisibleReleases] = useState<Set<string>>(new Set())
-  const [showAll, setShowAll] = useState(true)
-
-  useEffect(() => {
-    setVisibleReleases(new Set(releases.map((release) => release.tag_name)))
-    setShowAll(true)
-  }, [releases])
+  const [visibleReleases, setVisibleReleases] = useState<Set<string>>(
+    () => new Set(releases.map((release) => release.tag_name)),
+  )
+  const [showAll, setShowAll] = useState(() => releases.length > 0)
 
   const versionGroups = useMemo(() => {
     return releases.reduce(

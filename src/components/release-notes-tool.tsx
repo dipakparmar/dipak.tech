@@ -74,6 +74,7 @@ export function ReleaseNotesTool() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [meta, setMeta] = useState<{ totalFetched?: number; skippedRanges?: string[] } | null>(null)
+  const releaseKey = useMemo(() => releases.map((release) => release.tag_name).join("|"), [releases])
 
   const parsedRepo = useMemo(() => parseRepo(repoInput), [repoInput])
   const repoHint = parsedRepo ? `${parsedRepo.owner}/${parsedRepo.repo}` : undefined
@@ -241,7 +242,7 @@ export function ReleaseNotesTool() {
         </div>
       )}
 
-      <ReleaseNotesDisplay releases={releases} loading={loading} />
+      <ReleaseNotesDisplay key={releaseKey} releases={releases} loading={loading} />
     </div>
   )
 }
