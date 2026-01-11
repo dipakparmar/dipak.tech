@@ -29,6 +29,7 @@ export function WhoisLookup() {
   const [data, setData] = useState<any>(null)
   const [copied, setCopied] = useState(false)
   const hasAutoSearched = useRef(false)
+  const prevUrlQuery = useRef(initialQuery)
 
   const handleShare = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href)
@@ -49,8 +50,10 @@ export function WhoisLookup() {
 
       // Update URL with query parameter
       if (updateUrl) {
+        const trimmedQuery = searchQuery.trim()
         const params = new URLSearchParams(searchParams.toString())
-        params.set("q", searchQuery.trim())
+        params.set("q", trimmedQuery)
+        prevUrlQuery.current = trimmedQuery // Prevent useEffect from re-triggering
         router.push(`${pathname}?${params.toString()}`)
       }
 
@@ -72,17 +75,19 @@ export function WhoisLookup() {
     [pathname, router, searchParams]
   )
 
-  // Sync state with URL search params
+  // Sync state with URL search params (only on URL changes, not local edits)
   useEffect(() => {
     const urlQuery = searchParams.get("q") || ""
 
     if (urlQuery && !hasAutoSearched.current) {
       // Initial load with query param
       hasAutoSearched.current = true
+      prevUrlQuery.current = urlQuery
       setQuery(urlQuery)
       performLookup(urlQuery, false)
-    } else if (urlQuery !== query && hasAutoSearched.current) {
-      // URL changed (back/forward navigation)
+    } else if (urlQuery !== prevUrlQuery.current) {
+      // URL actually changed (back/forward navigation)
+      prevUrlQuery.current = urlQuery
       setQuery(urlQuery)
       if (urlQuery) {
         performLookup(urlQuery, false)
@@ -91,7 +96,7 @@ export function WhoisLookup() {
         setError(null)
       }
     }
-  }, [searchParams, query, performLookup])
+  }, [searchParams, performLookup])
 
   const handleLookup = async (e?: React.FormEvent, queryOverride?: string) => {
     e?.preventDefault()
