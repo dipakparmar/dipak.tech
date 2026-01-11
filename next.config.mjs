@@ -121,6 +121,27 @@ const nextConfig = {
         ],
         destination: '/container-registry/v2/:path*'
       },
+      // tools.dipak.io routes
+      {
+        source: '/',
+        has: [
+          {
+            type: 'host',
+            value: 'tools.dipak.io'
+          }
+        ],
+        destination: '/tools'
+      },
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'tools.dipak.io'
+          }
+        ],
+        destination: '/tools/:path*'
+      },
       // dipak.bio routes
       {
         source: '/',
