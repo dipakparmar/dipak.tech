@@ -1,6 +1,6 @@
 import './globals.css';
 
-import { Inter as FontSans, Karla } from 'next/font/google';
+import { Inter, Karla } from 'next/font/google';
 
 import type { Metadata } from 'next';
 import Script from 'next/script';
@@ -12,10 +12,7 @@ export const viewport: Viewport = {
   initialScale: 1
 };
 
-const fontSans = FontSans({
-  subsets: ['latin'],
-  variable: '--font-sans'
-});
+const fontInter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 const fontKarla = Karla({
   subsets: ['latin'],
@@ -88,7 +85,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={fontInter.variable}>
       {process.env.NEXT_PUBLIC_GA_TAG_ID &&
       process.env.NODE_ENV === 'production' ? (
         <>
@@ -111,7 +108,7 @@ export default function RootLayout({
       <body
         className={cn(
           'min-h-screen bg-background antialiased',
-          fontSans.variable,
+          fontInter.variable,
           fontKarla.variable
         )}
       >
