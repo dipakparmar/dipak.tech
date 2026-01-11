@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Shield, AlertCircle, ExternalLink } from "lucide-react"
 import { CertificateDetails, CertificateData, parseDN } from "@/components/cert-tools/certificate-details"
+import { detectValidationType } from "@/lib/certificate-utils"
 
 const BLUR_FADE_DELAY = 0.04
 
@@ -57,10 +58,14 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
         const data: CertificateResponse = await response.json()
         const cert = data.certificate
 
+        // Parse subject and detect validation type from PEM
+        const subject = parseDN(cert.subject)
+        const validationType = cert.pem ? detectValidationType(cert.pem, subject) : undefined
+
         // Transform to normalized format
         const normalized: CertificateData = {
           commonName: cert.commonName,
-          subject: parseDN(cert.subject),
+          subject,
           issuer: parseDN(cert.issuer),
           serialNumber: cert.serialNumber,
           validFrom: cert.notBefore,
@@ -71,6 +76,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
           sha256: cert.sha256,
           pem: cert.pem,
           isPrecert: cert.isPrecert,
+          validationType,
         }
 
         setCertData(normalized)

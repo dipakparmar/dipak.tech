@@ -33,6 +33,7 @@ export interface CertificateData {
   isWildcard?: boolean
   isPrecert?: boolean
   isCA?: boolean
+  validationType?: "DV" | "OV" | "EV"
 }
 
 interface CertificateDetailsProps {
@@ -102,6 +103,19 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
           <Badge variant="default" className="bg-emerald-500">
             Valid
           </Badge>
+        )}
+        {certificate.validationType === "EV" && (
+          <Badge variant="default" className="bg-green-600">
+            EV
+          </Badge>
+        )}
+        {certificate.validationType === "OV" && (
+          <Badge variant="default" className="bg-blue-600">
+            OV
+          </Badge>
+        )}
+        {certificate.validationType === "DV" && (
+          <Badge variant="outline">DV</Badge>
         )}
         {isWildcard && <Badge variant="outline">Wildcard</Badge>}
         {certificate.isPrecert && <Badge variant="secondary">Precertificate</Badge>}

@@ -24,6 +24,8 @@ interface DecodedCert {
   extKeyUsage: string[]
   signatureAlgorithm: string
   fingerprint: string
+  validationType: "DV" | "OV" | "EV"
+  policyOIDs: string[]
 }
 
 // Parse PEM certificate using Web Crypto API
@@ -41,6 +43,41 @@ async function decodeCertificate(pem: string): Promise<DecodedCert> {
 
   return parsed
 }
+
+// Known EV (Extended Validation) policy OIDs
+const EV_POLICY_OIDS = new Set([
+  "2.23.140.1.1", // CA/Browser Forum EV
+  "2.16.840.1.114412.2.1", // DigiCert EV
+  "2.16.840.1.114412.1.3.0.2", // DigiCert EV
+  "1.3.6.1.4.1.34697.2.1", // AffirmTrust EV
+  "1.3.6.1.4.1.34697.2.2", // AffirmTrust EV
+  "1.3.6.1.4.1.34697.2.3", // AffirmTrust EV
+  "1.3.6.1.4.1.34697.2.4", // AffirmTrust EV
+  "2.16.840.1.114028.10.1.2", // Entrust EV
+  "1.3.6.1.4.1.6449.1.2.1.5.1", // Sectigo/Comodo EV
+  "2.16.840.1.114414.1.7.23.3", // Starfield EV
+  "2.16.840.1.114413.1.7.23.3", // GoDaddy EV
+  "1.3.6.1.4.1.8024.0.2.100.1.2", // QuoVadis EV
+  "2.16.756.1.89.1.2.1.1", // SwissSign EV
+  "1.3.6.1.4.1.14370.1.6", // GeoTrust EV
+  "2.16.840.1.113733.1.7.48.1", // VeriSign/Symantec EV
+  "2.16.840.1.114404.1.1.2.4.1", // Trustwave EV
+  "1.3.6.1.4.1.4146.1.1", // GlobalSign EV
+  "2.16.578.1.26.1.3.3", // Buypass EV
+  "1.3.6.1.4.1.17326.10.14.2.1.2", // Camerfirma EV
+  "1.3.6.1.4.1.17326.10.8.12.1.2", // Camerfirma EV
+  "1.3.6.1.4.1.22234.2.5.2.3.1", // Keynectis EV
+  "1.3.6.1.4.1.782.1.2.1.8.1", // Network Solutions EV
+  "1.3.6.1.4.1.6334.1.100.1", // Cybertrust EV
+  "2.16.840.1.114171.500.9", // Wells Fargo EV
+  "1.3.6.1.4.1.13177.10.1.3.10", // Finmeccanica EV
+  "2.16.792.3.0.4.1.1.4", // E-Tugra EV
+  "2.16.840.1.114028.10.1.2", // Entrust EV
+  "1.3.6.1.4.1.40869.1.1.22.3", // TWCA EV
+  "1.3.6.1.4.1.23223.1.1.1", // StartCom EV
+  "2.16.840.1.114414.1.7.24.3", // Starfield EV
+  "2.16.840.1.114413.1.7.24.3", // GoDaddy EV
+])
 
 // Simplified X.509 ASN.1 parser
 function parseX509(der: Uint8Array): DecodedCert {
@@ -186,16 +223,154 @@ function parseX509(der: Uint8Array): DecodedCert {
   // Subject
   const subject = parseName()
 
-  // Subject Public Key Info
-  readTag() // SEQUENCE
-  readTag() // SEQUENCE (algorithm)
-  const pkAlgTag = readTag()
-  const pkAlgorithm = oidNames[readOID(pkAlgTag.length)] || "Unknown"
+  // Subject Public Key Info - skip the entire SEQUENCE
+  const spkiTag = readTag() // SEQUENCE
+  offset += spkiTag.length
+
+  // Parse extensions if present
+  const policyOIDs: string[] = []
+  const sans: string[] = []
+  let isCA = false
+
+  // Look for extensions (context tag [3])
+  // Skip optional issuerUniqueID [1] and subjectUniqueID [2]
+  while (offset < der.length) {
+    if (der[offset] === 0xa3) {
+      // Extensions [3]
+      offset++
+      const extOuterLen = readLength()
+      const extEnd = offset + extOuterLen
+
+      // Extensions SEQUENCE
+      if (der[offset] === 0x30) {
+        readTag() // SEQUENCE
+
+        while (offset < extEnd && offset < der.length) {
+          if (der[offset] !== 0x30) break
+
+          const extSeqTag = readTag() // Extension SEQUENCE
+          const extSeqEnd = offset + extSeqTag.length
+
+          if (der[offset] !== 0x06) {
+            offset = extSeqEnd
+            continue
+          }
+
+          const extOidTag = readTag()
+          const extOid = readOID(extOidTag.length)
+
+          // Certificate Policies (2.5.29.32)
+          if (extOid === "2.5.29.32") {
+            // Skip critical flag if present
+            if (der[offset] === 0x01) {
+              offset += 3
+            }
+            // OCTET STRING wrapper
+            if (der[offset] === 0x04) {
+              readTag()
+              // certificatePolicies SEQUENCE
+              if (der[offset] === 0x30) {
+                const policiesTag = readTag()
+                const policiesEnd = offset + policiesTag.length
+
+                while (offset < policiesEnd && offset < der.length) {
+                  if (der[offset] !== 0x30) break
+                  const policyTag = readTag() // PolicyInformation SEQUENCE
+                  const policyEnd = offset + policyTag.length
+
+                  if (der[offset] === 0x06) {
+                    const policyOidTag = readTag()
+                    const policyOid = readOID(policyOidTag.length)
+                    policyOIDs.push(policyOid)
+                  }
+
+                  offset = policyEnd
+                }
+              }
+            }
+          }
+          // Subject Alternative Name (2.5.29.17)
+          else if (extOid === "2.5.29.17") {
+            // Skip critical flag if present
+            if (der[offset] === 0x01) {
+              offset += 3
+            }
+            // OCTET STRING wrapper
+            if (der[offset] === 0x04) {
+              readTag()
+              // GeneralNames SEQUENCE
+              if (der[offset] === 0x30) {
+                const sanSeqTag = readTag()
+                const sanEnd = offset + sanSeqTag.length
+
+                while (offset < sanEnd && offset < der.length) {
+                  const sanType = der[offset]
+                  offset++
+                  const sanLen = readLength()
+
+                  // DNS name (type 2) or IP (type 7)
+                  if ((sanType & 0x1f) === 2) {
+                    sans.push(new TextDecoder().decode(der.slice(offset, offset + sanLen)))
+                  }
+                  offset += sanLen
+                }
+              }
+            }
+          }
+          // Basic Constraints (2.5.29.19)
+          else if (extOid === "2.5.29.19") {
+            // Skip critical flag if present
+            if (der[offset] === 0x01) {
+              offset += 3
+            }
+            // OCTET STRING wrapper
+            if (der[offset] === 0x04) {
+              readTag()
+              // BasicConstraints SEQUENCE
+              if (der[offset] === 0x30) {
+                const bcTag = readTag()
+                const bcEnd = offset + bcTag.length
+                // Check for cA BOOLEAN TRUE
+                if (offset < bcEnd && der[offset] === 0x01 && der[offset + 1] === 0x01 && der[offset + 2] === 0xff) {
+                  isCA = true
+                }
+              }
+            }
+          }
+
+          offset = extSeqEnd
+        }
+      }
+      break
+    } else if (der[offset] === 0xa1 || der[offset] === 0xa2) {
+      // Skip issuerUniqueID or subjectUniqueID
+      offset++
+      const skipLen = readLength()
+      offset += skipLen
+    } else {
+      break
+    }
+  }
+
+  // Determine validation type
+  const hasEVPolicy = policyOIDs.some((oid) => EV_POLICY_OIDS.has(oid))
+  const hasOrganization = !!subject.O
+
+  let validationType: "DV" | "OV" | "EV" = "DV"
+  if (hasEVPolicy) {
+    validationType = "EV"
+  } else if (hasOrganization) {
+    validationType = "OV"
+  }
 
   // Calculate fingerprint
   const fingerprint = Array.from(new Uint8Array(der.slice(0, 20)))
     .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
     .join(":")
+
+  // Get public key algorithm from SPKI (simplified - just report what we found earlier)
+  const pkAlgorithm = signatureAlgorithm.includes("RSA") ? "RSA" :
+                      signatureAlgorithm.includes("EC") ? "EC" : "Unknown"
 
   return {
     subject,
@@ -204,12 +379,14 @@ function parseX509(der: Uint8Array): DecodedCert {
     validFrom,
     validTo,
     publicKey: { algorithm: pkAlgorithm },
-    sans: [],
-    isCA: false,
+    sans,
+    isCA,
     keyUsage: [],
     extKeyUsage: [],
     signatureAlgorithm,
     fingerprint,
+    validationType,
+    policyOIDs,
   }
 }
 
@@ -228,6 +405,7 @@ function toCertificateData(decoded: DecodedCert, pem?: string): CertificateData 
     fingerprint: decoded.fingerprint,
     pem: pem,
     isCA: decoded.isCA,
+    validationType: decoded.validationType,
   }
 }
 
@@ -312,6 +490,11 @@ export function CertDecoder() {
       // Add extra info from the API response
       if (data.subjectAltNames && data.subjectAltNames.length > 0) {
         result.sans = data.subjectAltNames
+      }
+
+      // Use validationType from API if available (more reliable server-side parsing)
+      if (data.validationType) {
+        result.validationType = data.validationType
       }
 
       setCertData(toCertificateData(result, data.pem))
