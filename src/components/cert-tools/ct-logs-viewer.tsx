@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Search, Eye, Shield, Calendar, Building, Globe, Share2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +36,8 @@ interface CTLogsViewerProps {
 
 export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [query, setQuery] = useState(initialDomain)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,6 +45,21 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
   const [stats, setStats] = useState<{ total: number; timeTaken: number; issuers: string[]; names: string[] } | null>(null)
   const [urlCopied, setUrlCopied] = useState(false)
   const hasAutoSearched = useRef(false)
+
+  // Update URL with domain param (preserves search state on navigation)
+  const updateUrlWithDomain = useCallback(
+    (domain: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (domain.trim()) {
+        params.set("domain", domain.trim())
+      } else {
+        params.delete("domain")
+      }
+      const queryString = params.toString()
+      router.replace(`${pathname}${queryString ? `?${queryString}` : ""}`, { scroll: false })
+    },
+    [router, pathname, searchParams]
+  )
 
   const handleShareUrl = useCallback(async () => {
     if (!query.trim()) return
@@ -65,6 +82,9 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
     setError(null)
     setResults(null)
     setStats(null)
+
+    // Update URL with current search query
+    updateUrlWithDomain(q)
 
     try {
       const response = await fetch("https://ct.certkit.io/search", {
@@ -106,7 +126,7 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
     } finally {
       setLoading(false)
     }
-  }, [query])
+  }, [query, updateUrlWithDomain])
 
   // Auto-search if initial domain is provided
   useEffect(() => {
