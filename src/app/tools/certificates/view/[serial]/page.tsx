@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, use } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,6 +32,7 @@ interface CertificateResponse {
 
 export default function CertificateViewPage({ params }: { params: Promise<{ serial: string }> }) {
   const { serial } = use(params)
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [certData, setCertData] = useState<CertificateData | null>(null)
@@ -97,12 +98,15 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
       <div className="container mx-auto max-w-4xl px-4 py-12 sm:py-16">
         {/* Back Button */}
         <BlurFade delay={BLUR_FADE_DELAY}>
-          <Link href="/tools/certificates">
-            <Button variant="ghost" size="sm" className="mb-6 gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Certificate Tools
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-6 gap-2"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
         </BlurFade>
 
         {/* Header */}
