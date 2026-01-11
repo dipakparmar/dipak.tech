@@ -83,7 +83,7 @@ function CertificateToolsContent() {
       {/* Tools Tabs */}
       <BlurFade delay={BLUR_FADE_DELAY * 3}>
         <Tabs value={activeTool} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-4">
+          <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-4">
             <TabsTrigger
               value="ct-logs"
               className="flex items-center gap-2 rounded-lg border bg-muted/50 px-4 py-3 data-[state=active]:border-cyan-500/50 data-[state=active]:bg-cyan-500/10"
