@@ -54,8 +54,11 @@ Each route group has its own layout with ThemeProvider and ModeToggle for theme 
 
 - `src/components/ui/` - shadcn/ui components (new-york style)
 - `src/components/magicui/` - Animation components (blur-fade, dock)
+- `src/components/cert-tools/` - Certificate tool components (decoder, CSR generator, etc.)
 - `src/lib/github.ts` - GitHub API client with retry logic and stale-while-revalidate caching
 - `src/lib/container-registry.ts` - Container registry proxy logic (Docker Hub & GHCR APIs)
+- `src/lib/certificate-utils.ts` - Certificate parsing utilities (validation type detection)
+- `src/lib/dns-scanner.ts` - DNS record resolution for OSINT
 - `src/data/data.tsx` - Static personal data (name, skills, social links)
 
 ### Component System
@@ -84,6 +87,44 @@ Key endpoints:
 
 The landing page fetches and displays container images from both Docker Hub and GHCR APIs with server-side caching.
 
+### Developer Tools
+
+The `/tools` routes provide various developer utilities:
+
+#### Certificate Tools (`/tools/certificates`)
+- **CT Log Search** - Searches Certificate Transparency logs via CertKit API
+- **Certificate Decoder** - Decodes PEM certificates client-side using custom ASN.1 parser, or fetches SSL certs from URLs via `/api/fetch-cert`
+- **CSR Generator** - Generates X.509 CSRs using pkijs library with SAN support (DNS, email, IP)
+- **Key Generator** - Generates RSA/EC key pairs using Web Crypto API
+
+Key components:
+- `src/components/cert-tools/certificate-details.tsx` - Shared certificate display component
+- `src/components/cert-tools/cert-decoder.tsx` - PEM decoder with URL fetching
+- `src/components/cert-tools/csr-generator.tsx` - CSR generation with existing key support
+- `src/lib/certificate-utils.ts` - Shared utilities for validation type detection (DV/OV/EV)
+- `src/app/api/fetch-cert/route.ts` - Server-side SSL certificate fetching using Node.js TLS
+
+Certificate validation types are detected by:
+1. EV: Presence of known EV policy OIDs in Certificate Policies extension
+2. OV: Subject contains Organization (O) field
+3. DV: Neither of the above
+
+#### OSINT Command Center (`/tools/osint`)
+- DNS record scanning with visual map
+- IP geolocation lookup
+- Color-coded DNS connections for easy tracing
+
+Key files:
+- `src/components/osint-results.tsx` - Results display with DNS map visualization
+- `src/app/api/osint/route.ts` - DNS scanning API
+- `src/app/api/resolve-ips/route.ts` - IP geolocation API
+- `src/lib/dns-scanner.ts` - DNS record resolution logic
+
+#### WHOIS Lookup (`/tools/whois`)
+- Domain registration information lookup
+- `src/components/whois-lookup.tsx` - WHOIS lookup component
+- `src/app/api/whois/route.ts` - WHOIS API endpoint
+
 ## Environment Variables
 
 Authorative source of truth for env vars is `.env.example`. Always refer to it when adding new variables.
@@ -100,5 +141,6 @@ Key variables:
 - Bun as package manager (Node.js 24 required)
 - Apollo Client for GraphQL
 - motion library for animations
+- pkijs for X.509 certificate/CSR generation
 
 Authorative source of truth for dependencies is `package.json`. Always refer to it when adding or updating dependencies.
