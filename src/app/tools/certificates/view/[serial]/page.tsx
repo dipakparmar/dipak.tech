@@ -156,7 +156,7 @@ export default function CertificateViewPage({ params }: { params: Promise<{ seri
             {/* External Link */}
             <div className="mt-8 flex justify-center">
               <a
-                href={`https://www.certkit.io/certificate/serial/${certData.serialNumber}`}
+                href={`https://www.certkit.io/tools/ct-logs/certificate?serial=${certData.serialNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
