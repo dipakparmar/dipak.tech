@@ -22,12 +22,12 @@ export default function Home() {
         <div className="mx-auto w-full max-w-2xl space-y-8">
           <div className="gap-2 flex justify-between">
             <div className="flex-col flex flex-1 space-y-1.5">
-              <BlurFadeText
-                delay={BLUR_FADE_DELAY}
-                className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none"
-                yOffset={8}
-                text={`Hi, I'm ${DATA.name.split(' ')[0]} 👋`}
-              />
+              <BlurFade delay={BLUR_FADE_DELAY}>
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                  Hi, I&apos;m {DATA.name.split(' ')[0]}{' '}
+                  <span className="inline-block origin-[70%_70%] animate-wave">👋</span>
+                </h1>
+              </BlurFade>
               <BlurFadeText
                 className="max-w-150 md:text-xl"
                 delay={BLUR_FADE_DELAY}
