@@ -202,13 +202,18 @@ async function fetchCertificate(hostname: string, port: number = 443): Promise<C
 
         // Extract policy OIDs and determine validation type
         const policyOIDs = cert.raw ? extractPolicyOIDs(cert.raw) : []
-        const subject = typeof cert.subject === "object" ? cert.subject : parseDN(String(cert.subject || ""))
+        const subject: Record<string, string> = typeof cert.subject === "object"
+          ? Object.fromEntries(Object.entries(cert.subject).map(([k, v]) => [k, String(v)]))
+          : parseDN(String(cert.subject || ""))
+        const issuer: Record<string, string> = typeof cert.issuer === "object"
+          ? Object.fromEntries(Object.entries(cert.issuer).map(([k, v]) => [k, String(v)]))
+          : parseDN(String(cert.issuer || ""))
         const validationType = determineValidationType(subject, policyOIDs)
 
         const info: CertificateInfo = {
           pem,
           subject,
-          issuer: typeof cert.issuer === "object" ? cert.issuer : parseDN(String(cert.issuer || "")),
+          issuer,
           validFrom: cert.valid_from || "",
           validTo: cert.valid_to || "",
           serialNumber: cert.serialNumber || "",
