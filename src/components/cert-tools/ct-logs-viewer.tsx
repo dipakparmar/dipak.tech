@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { normalizeToolsPathname } from "@/lib/tool-routing"
+import { buildToolsHref, normalizeToolsPathname } from "@/lib/tool-routing"
 
 interface CertEntry {
   serialNumber: string
@@ -354,7 +354,10 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
                   </div>
 
                   {/* Actions */}
-                  <Link href={`/tools/certificates/view/${cert.serialNumber}`} className="shrink-0">
+                  <Link
+                    href={buildToolsHref(`/certificates/view/${cert.serialNumber}`, typeof window === "undefined" ? "" : window.location.host)}
+                    className="shrink-0"
+                  >
                     <Button variant="outline" size="sm" className="gap-1">
                       <Eye className="h-3 w-3" />
                       View
