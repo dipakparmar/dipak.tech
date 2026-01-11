@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { headers } from "next/headers"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield, Globe, Wrench } from "lucide-react"
@@ -14,22 +15,28 @@ const tools = [
   {
     title: "Certificate Tools",
     description: "Search CT logs, decode certificates, generate CSRs and key pairs",
-    href: "/tools/certificates",
+    path: "certificates",
     icon: Shield,
     color: "text-cyan-500",
   },
   {
     title: "OSINT Scanner",
     description: "WHOIS lookup, DNS records, IP geolocation, and domain intelligence",
-    href: "/tools/osint",
+    path: "osint",
     icon: Globe,
     color: "text-emerald-500",
   },
 ]
 
-export default function ToolsPage() {
+export default async function ToolsPage() {
+  const headersList = await headers()
+  const host = headersList.get("host") || ""
+  const isToolsDomain = host.includes("tools.dipak.io")
+
+  // On tools.dipak.io, use /path; on other domains, use /tools/path
+  const getHref = (path: string) => isToolsDomain ? `/${path}` : `/tools/${path}`
   return (
-    <main className="min-h-screen bg-background">
+    <main className="flex min-h-dvh flex-col bg-background">
       <div className="container mx-auto max-w-4xl px-4 py-12 sm:py-16">
         {/* Header */}
         <BlurFade delay={BLUR_FADE_DELAY}>
@@ -51,8 +58,8 @@ export default function ToolsPage() {
         {/* Tools Grid */}
         <div className="mx-auto grid max-w-2xl gap-6 sm:grid-cols-2">
           {tools.map((tool, index) => (
-            <BlurFade key={tool.href} delay={BLUR_FADE_DELAY * (index + 2)}>
-              <Link href={tool.href} className="block h-full">
+            <BlurFade key={tool.path} delay={BLUR_FADE_DELAY * (index + 2)}>
+              <Link href={getHref(tool.path)} className="block h-full">
                 <Card className="h-full transition-colors hover:border-cyan-500/50 hover:bg-muted/30">
                   <CardHeader>
                     <div className={`mb-2 ${tool.color}`}>
@@ -67,6 +74,21 @@ export default function ToolsPage() {
           ))}
         </div>
       </div>
+
+      <footer className="mt-auto pb-8 pt-16">
+        <BlurFade delay={BLUR_FADE_DELAY * 5}>
+          <p className="text-center text-sm text-muted-foreground">
+            Made with <span className="text-red-500">❤️</span> by{" "}
+            <Link
+              href="https://dipak.tech"
+              className="font-medium text-foreground transition-colors hover:text-blue-500"
+            >
+              Dipak Parmar
+            </Link>{" "}
+            in Canada 🇨🇦
+          </p>
+        </BlurFade>
+      </footer>
     </main>
   )
 }
