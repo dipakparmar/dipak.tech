@@ -81,14 +81,14 @@ const nextConfig = {
         destination: '/go-pkg'
       },
       {
-        source: '/:package',
+        source: '/:path*',
         has: [
           {
             type: 'host',
             value: 'go.pkg.dipak.io'
           }
         ],
-        destination: '/go-pkg/:package'
+        destination: '/go-pkg/:path*'
       },
       // cr.dipak.io routes - Container Registry
       {
