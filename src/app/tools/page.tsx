@@ -2,7 +2,7 @@ import Link from "next/link"
 import { headers } from "next/headers"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Wrench, Github } from "lucide-react"
+import { Shield, Globe, Wrench, Github, Terminal } from "lucide-react"
 import { buildHref } from "@/lib/host-routing"
 import { ogUrls } from "@/lib/og-config"
 
@@ -64,6 +64,13 @@ const tools = [
     path: "github-release-notes",
     icon: Github,
     color: "text-slate-600 dark:text-slate-300",
+  },
+  {
+    title: "Serial Console",
+    description: "Web-based serial terminal for Arduino, ESP32, and more",
+    path: "serial-console",
+    icon: Terminal,
+    color: "text-violet-500",
   },
 ]
 
