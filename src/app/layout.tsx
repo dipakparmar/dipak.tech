@@ -23,7 +23,7 @@ const fontKarla = Karla({
 
 const title = 'Dipak Parmar | ☁️ DevSecOps Engineer | @iamdipakparmar';
 const description =
-  'DevSecOps Engineer and Open Source Developer with 4+ years of experience in Cloud Automation, Kubernetes, and Monitoring from Kamloops, BC 🇨🇦';
+  'DevSecOps Engineer and Open Source Developer with 6+ years of experience in Cloud Automation, Kubernetes, and Monitoring from Kamloops, BC 🇨🇦';
 
 const ogImageUrl = ogUrls.portfolio({
   title: 'Dipak Parmar',
