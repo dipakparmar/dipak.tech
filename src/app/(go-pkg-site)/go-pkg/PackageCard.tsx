@@ -6,11 +6,15 @@ import { buildHref } from '@/lib/host-routing';
 import Link from 'next/link';
 import { useState } from 'react';
 
-export function PackageCard({ repo }: { repo: Repo }) {
+interface PackageCardProps {
+  repo: Repo;
+  host: string;
+}
+
+export function PackageCard({ repo, host }: PackageCardProps) {
   const [copied, setCopied] = useState(false);
   const installCommand = `go get go.pkg.dipak.io/${repo.name}`;
   const githubUrl = `https://github.com/dipakparmar/${repo.name}`;
-  const host = typeof window !== 'undefined' ? window.location.host : '';
   const packageUrl = buildHref('goPkg', `/view/${repo.name}`, host);
 
   const handleCopy = async () => {

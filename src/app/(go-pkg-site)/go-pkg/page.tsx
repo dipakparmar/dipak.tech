@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { fetchGoPackages, Repo } from '@/lib/github';
 import { PackageCard } from './PackageCard';
 import { BlurFade } from '@/components/magicui/blur-fade';
@@ -48,6 +49,8 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function GoPackagesHome() {
+  const headersList = await headers();
+  const host = headersList.get('host') || '';
   const repositories = await fetchGoPackages();
 
   return (
@@ -109,7 +112,7 @@ export default async function GoPackagesHome() {
         <div className="mt-4 grid gap-4">
           {repositories.map((repo: Repo, index: number) => (
             <BlurFade key={repo.id} delay={BLUR_FADE_DELAY * 7 + index * 0.05}>
-              <PackageCard repo={repo} />
+              <PackageCard repo={repo} host={host} />
             </BlurFade>
           ))}
         </div>
