@@ -1,10 +1,15 @@
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
+import { buildHref } from '@/lib/host-routing';
 
 const BLUR_FADE_DELAY = 0.04;
 
-export default function PackageNotFound() {
+export default async function PackageNotFound() {
+  const headersList = await headers();
+  const host = headersList.get('host') || '';
+
   return (
     <main className="flex flex-col min-h-dvh items-center justify-center space-y-6">
       <BlurFadeText
@@ -18,7 +23,7 @@ export default function PackageNotFound() {
       </BlurFade>
       <BlurFade delay={BLUR_FADE_DELAY * 3}>
         <Link
-          href="/go-pkg"
+          href={buildHref('goPkg', '/', host)}
           className="text-sm text-blue-500 hover:underline"
         >
           ← Back to all packages

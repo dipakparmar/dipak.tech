@@ -3,7 +3,7 @@ import { headers } from "next/headers"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield, Globe, Wrench, Github } from "lucide-react"
-import { buildToolsHref } from "@/lib/tool-routing"
+import { buildHref } from "@/lib/host-routing"
 import { ogUrls } from "@/lib/og-config"
 
 const ogImageUrl = ogUrls.tools({
@@ -70,7 +70,7 @@ const tools = [
 export default async function ToolsPage() {
   const headersList = await headers()
   const host = headersList.get("host") || ""
-  const getHref = (path: string) => buildToolsHref(path, host)
+  const getHref = (path: string) => buildHref('tools', path, host)
   return (
     <main className="flex min-h-dvh flex-col bg-background">
       <div className="container mx-auto max-w-4xl px-4 py-12 sm:py-16">

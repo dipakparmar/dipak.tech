@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Streamdown } from 'streamdown';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import {
   getGitHubUrl,
   type Release
 } from '@/lib/github';
+import { buildHref } from '@/lib/host-routing';
 import { CopyButton } from './CopyButton';
 
 const BLUR_FADE_DELAY = 0.04;
@@ -44,6 +46,9 @@ export default async function PackageViewPage({ params }: PackageViewProps) {
     notFound();
   }
 
+  const headersList = await headers();
+  const host = headersList.get('host') || '';
+
   // Fetch all data in parallel
   const [repo, readme, releases] = await Promise.all([
     fetchRepoDetails(repoName),
@@ -65,7 +70,7 @@ export default async function PackageViewPage({ params }: PackageViewProps) {
         <div className="space-y-4">
           <BlurFade delay={BLUR_FADE_DELAY}>
             <Link
-              href="/go-pkg"
+              href={buildHref('goPkg', '/', host)}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               ← Back to packages

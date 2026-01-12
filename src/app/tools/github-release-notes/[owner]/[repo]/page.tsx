@@ -1,6 +1,6 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { getToolsBasePath } from "@/lib/tool-routing"
+import { getBasePath } from "@/lib/host-routing"
 
 type PageProps = {
   params: { owner: string; repo: string }
@@ -12,7 +12,7 @@ const getParam = (value?: string | string[]) => (Array.isArray(value) ? value[0]
 export default async function ReleaseNotesRedirectPage({ params, searchParams }: PageProps) {
   const headersList = await headers()
   const host = headersList.get("host") || ""
-  const basePath = getToolsBasePath(host)
+  const basePath = getBasePath('tools', host)
   const repoKey = `${params.owner}/${params.repo}`
   const minVersion = getParam(searchParams.minVersion)
   const maxVersion = getParam(searchParams.maxVersion)

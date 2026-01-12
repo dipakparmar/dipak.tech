@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { buildToolsHref, normalizeToolsPathname } from "@/lib/tool-routing"
+import { buildHref, normalizePathname } from "@/lib/host-routing"
 
 interface CertEntry {
   serialNumber: string
@@ -58,7 +58,7 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
       }
       const queryString = params.toString()
       const host = typeof window === "undefined" ? "" : window.location.host
-      const resolvedPath = normalizeToolsPathname(pathname, host)
+      const resolvedPath = normalizePathname('tools', pathname, host)
       router.replace(`${resolvedPath}${queryString ? `?${queryString}` : ""}`, { scroll: false })
     },
     [router, pathname, searchParams]
@@ -69,7 +69,7 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
     const params = new URLSearchParams()
     params.set("domain", query.trim())
     const host = window.location.host
-    const resolvedPath = normalizeToolsPathname(pathname, host)
+    const resolvedPath = normalizePathname('tools', pathname, host)
     const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
     await navigator.clipboard.writeText(url)
     setUrlCopied(true)
@@ -355,7 +355,7 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
 
                   {/* Actions */}
                   <Link
-                    href={buildToolsHref(`/certificates/view/${cert.serialNumber}`, typeof window === "undefined" ? "" : window.location.host)}
+                    href={buildHref('tools', `/certificates/view/${cert.serialNumber}`, typeof window === "undefined" ? "" : window.location.host)}
                     className="shrink-0"
                   >
                     <Button variant="outline" size="sm" className="gap-1">
