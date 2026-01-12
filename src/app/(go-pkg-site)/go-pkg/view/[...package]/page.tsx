@@ -14,6 +14,7 @@ import {
   type Release
 } from '@/lib/github';
 import { buildHref } from '@/lib/host-routing';
+import { ogUrls, siteConfig } from '@/lib/og-config';
 import { CopyButton } from './CopyButton';
 
 const BLUR_FADE_DELAY = 0.04;
@@ -29,10 +30,38 @@ export async function generateMetadata({
 }: PackageViewProps): Promise<Metadata> {
   const { package: pkgSegments } = await params;
   const repoName = pkgSegments[0]?.split('@')[0] || '';
+  const description = `View Go package: go.pkg.dipak.io/${repoName}`;
+
+  const ogImageUrl = ogUrls.goPkg({
+    package: repoName,
+    description,
+    import: `go.pkg.dipak.io/${repoName}`,
+  });
 
   return {
     title: `${repoName} - Go Package`,
-    description: `View Go package: go.pkg.dipak.io/${repoName}`
+    description,
+    openGraph: {
+      title: `${repoName} - Go Package`,
+      description,
+      url: `${siteConfig.goPkg.baseUrl}/view/${repoName}`,
+      siteName: siteConfig.goPkg.domain,
+      type: 'website',
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${repoName} Go Package`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${repoName} - Go Package`,
+      description,
+      images: [ogImageUrl],
+    },
   };
 }
 
