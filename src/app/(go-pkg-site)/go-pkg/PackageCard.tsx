@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import type { Repo } from '@/lib/github';
+import { buildHref } from '@/lib/host-routing';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -9,7 +10,8 @@ export function PackageCard({ repo }: { repo: Repo }) {
   const [copied, setCopied] = useState(false);
   const installCommand = `go get go.pkg.dipak.io/${repo.name}`;
   const githubUrl = `https://github.com/dipakparmar/${repo.name}`;
-  const packageUrl = `/go-pkg/view/${repo.name}`;
+  const host = typeof window !== 'undefined' ? window.location.host : '';
+  const packageUrl = buildHref('goPkg', `/view/${repo.name}`, host);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(installCommand);
