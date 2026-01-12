@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import type { Viewport } from 'next';
 import { cn } from '@/lib/utils';
-import { ogUrls } from '@/lib/og-config';
+import { ogUrls, LOGO_URL } from '@/lib/og-config';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -84,6 +84,9 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: 'https://dipak.tech'
+  },
+  other: {
+    'og:logo': LOGO_URL
   }
 };
 

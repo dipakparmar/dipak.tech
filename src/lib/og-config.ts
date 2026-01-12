@@ -91,6 +91,9 @@ export const toolIcons: Record<string, string> = {
 // Avatar URL
 export const AVATAR_URL = 'https://avatars.githubusercontent.com/u/24366206?v=4';
 
+// Logo URL (used for og:logo meta tag)
+export const LOGO_URL = 'https://github.com/dipakparmar.png?size=512';
+
 // =============================================================================
 // Token Generation (Server-side, synchronous)
 // =============================================================================
