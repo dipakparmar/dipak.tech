@@ -1,33 +1,41 @@
 import { Metadata } from 'next';
 import LinksContent from './LinksContent';
+import { ogUrls } from '@/lib/og-config';
+
+const ogImageUrl = ogUrls.links({
+  name: 'Dipak Parmar',
+  title: 'DevSecOps Engineer',
+  handle: '@iamdipakparmar',
+});
 
 export const metadata: Metadata = {
-  title: 'Dipak Parmar | ☁️ DevOps Engineer | @iamdipakparmar',
-  description: '☁️ DevSecOps Engineer',
+  title: 'Dipak Parmar | DevSecOps Engineer | @iamdipakparmar',
+  description: 'DevSecOps Engineer - Connect with me on social media',
   openGraph: {
-    title: 'Dipak Parmar | DevSecOps Engineer',
-    description: '☁️ DevSecOps Engineer',
-    url: 'https://dipak.bio/links',
+    title: 'Dipak Parmar',
+    description: 'DevSecOps Engineer - Connect with me on social media',
+    url: 'https://dipak.bio',
     images: [
       {
-        url: 'https://github.com/dipakparmar.png',
-        width: 600,
-        height: 600,
-        type: 'image/jpg'
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        type: 'image/png'
       }
     ],
     locale: 'en_US',
-    siteName: 'DipakBio',
+    siteName: 'dipak.bio',
     type: 'profile'
   },
   twitter: {
     card: 'summary_large_image',
-    title: '@iamdipakparmar | Dipak Parmar | ☁️ DevSecOps Engineer',
-    description: '☁️ DevSecOps Engineer',
-    images: ['https://github.com/dipakparmar.png']
+    title: 'Dipak Parmar | DevSecOps Engineer',
+    description: 'DevSecOps Engineer - Connect with me on social media',
+    creator: '@iamdipakparmar',
+    images: [ogImageUrl]
   },
   alternates: {
-    canonical: 'https://dipak.bio/links'
+    canonical: 'https://dipak.bio'
   }
 };
 

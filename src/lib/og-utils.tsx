@@ -1,13 +1,120 @@
 import { ImageResponse } from 'next/og';
+import {
+  OG_SECRET,
+  OG_WIDTH,
+  OG_HEIGHT,
+  AVATAR_URL,
+  gradients,
+  toolIcons,
+  siteConfig,
+} from './og-config';
 
-// Common dimensions
-export const OG_WIDTH = 1200;
-export const OG_HEIGHT = 630;
+// Re-export config for convenience
+export {
+  OG_WIDTH,
+  OG_HEIGHT,
+  AVATAR_URL,
+  gradients,
+  toolIcons,
+  siteConfig,
+};
 
-// Avatar URL
-export const AVATAR_URL = 'https://avatars.githubusercontent.com/u/24366206?v=4';
+export type SiteType = keyof typeof gradients;
 
-// Load Google Font dynamically
+// Derive domains from siteConfig
+export const domains: Record<SiteType, string> = {
+  portfolio: siteConfig.portfolio.domain,
+  tools: siteConfig.tools.domain,
+  'go-pkg': siteConfig.goPkg.domain,
+  'container-registry': siteConfig.containerRegistry.domain,
+  links: siteConfig.links.domain,
+};
+
+// =============================================================================
+// OG URL Verification (Edge runtime compatible - uses Web Crypto API)
+// =============================================================================
+
+// Convert ArrayBuffer to hex string
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Generate HMAC signature for OG parameters (async for Edge runtime)
+export async function generateOGToken(params: Record<string, string>): Promise<string> {
+  const sortedParams = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join('&');
+
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(OG_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(sortedParams));
+  return toHex(signature);
+}
+
+// Verify HMAC signature for OG parameters
+export async function verifyOGToken(
+  params: Record<string, string>,
+  token: string
+): Promise<boolean> {
+  const expectedToken = await generateOGToken(params);
+  // Constant-time comparison to prevent timing attacks
+  if (token.length !== expectedToken.length) return false;
+  let result = 0;
+  for (let i = 0; i < token.length; i++) {
+    result |= token.charCodeAt(i) ^ expectedToken.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+// Extract params from URL (excluding token) for verification
+export function extractOGParams(searchParams: URLSearchParams): Record<string, string> {
+  const params: Record<string, string> = {};
+  searchParams.forEach((value, key) => {
+    if (key !== 'token') {
+      params[key] = value;
+    }
+  });
+  return params;
+}
+
+// Middleware to verify OG request
+export async function verifyOGRequest(request: Request): Promise<{ valid: boolean; error?: string }> {
+  const { searchParams } = new URL(request.url);
+  const token = searchParams.get('token');
+
+  // Allow requests without token in development
+  if (process.env.NODE_ENV === 'development' && !token) {
+    return { valid: true };
+  }
+
+  if (!token) {
+    return { valid: false, error: 'Missing token' };
+  }
+
+  const params = extractOGParams(searchParams);
+  const isValid = await verifyOGToken(params, token);
+
+  if (!isValid) {
+    return { valid: false, error: 'Invalid token' };
+  }
+
+  return { valid: true };
+}
+
+// =============================================================================
+// Font Loading
+// =============================================================================
+
 export async function loadGoogleFont(font: string, text: string) {
   const url = `https://fonts.googleapis.com/css2?family=${font}:wght@400;600;700&text=${encodeURIComponent(text)}`;
   const css = await (await fetch(url)).text();
@@ -25,34 +132,9 @@ export async function loadGoogleFont(font: string, text: string) {
   throw new Error('Failed to load font data');
 }
 
-// Gradient themes for different sites
-export const gradients = {
-  portfolio: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-  tools: 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)',
-  'go-pkg': 'linear-gradient(145deg, #00ADD8 0%, #007d9c 100%)',
-  'container-registry': 'linear-gradient(145deg, #003f5c 0%, #2496ED 100%)',
-  links: 'linear-gradient(145deg, #ec4899 0%, #8b5cf6 50%, #6366f1 100%)',
-} as const;
-
-export type SiteType = keyof typeof gradients;
-
-// Site domains
-export const domains: Record<SiteType, string> = {
-  portfolio: 'dipak.tech',
-  tools: 'tools.dipak.io',
-  'go-pkg': 'go.pkg.dipak.io',
-  'container-registry': 'cr.dipak.io',
-  links: 'dipak.bio',
-};
-
-// Tool category icons
-export const toolIcons: Record<string, string> = {
-  certificates: '🔐',
-  osint: '🔍',
-  'github-release-notes': '📋',
-  whois: '🌐',
-  default: '🛠️',
-};
+// =============================================================================
+// Shared OG Image Components
+// =============================================================================
 
 // Shared avatar component (returns JSX for OG images)
 export function Avatar({ size = 80 }: { size?: number }) {
@@ -338,6 +420,10 @@ export function Badge({ icon, text, subtext, gradient }: BadgeProps) {
     </div>
   );
 }
+
+// =============================================================================
+// Response Helpers
+// =============================================================================
 
 // Create ImageResponse with common settings
 export async function createOGResponse(

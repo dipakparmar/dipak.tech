@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import type { Viewport } from 'next';
 import { cn } from '@/lib/utils';
+import { ogUrls } from '@/lib/og-config';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -23,6 +24,12 @@ const fontKarla = Karla({
 const title = 'Dipak Parmar | ☁️ DevSecOps Engineer | @iamdipakparmar';
 const description =
   'DevSecOps Engineer and Open Source Developer with 4+ years of experience in Cloud Automation, Kubernetes, and Monitoring from Kamloops, BC 🇨🇦';
+
+const ogImageUrl = ogUrls.portfolio({
+  title: 'Dipak Parmar',
+  subtitle: 'DevSecOps Engineer & Open Source Developer',
+  site: 'portfolio',
+});
 
 export const metadata: Metadata = {
   title: title,
@@ -60,9 +67,9 @@ export const metadata: Metadata = {
     description: description,
     images: [
       {
-        url: 'https://dipak.tech/static/images/banner.jpg',
+        url: ogImageUrl,
         width: 1200,
-        height: 720,
+        height: 630,
         alt: title
       }
     ]
@@ -72,7 +79,8 @@ export const metadata: Metadata = {
     site: '@iamdipakparmar',
     card: 'summary_large_image',
     title: title,
-    description: description
+    description: description,
+    images: [ogImageUrl]
   },
   alternates: {
     canonical: 'https://dipak.tech'

@@ -2,10 +2,41 @@ import { BlurFade } from "@/components/magicui/blur-fade"
 import { ReleaseNotesTool } from "@/components/release-notes-tool"
 import { FileText, Filter, Github, Layers } from "lucide-react"
 import { Suspense } from "react"
+import { ogUrls } from "@/lib/og-config"
+
+const ogImageUrl = ogUrls.tools({
+  tool: "Release Notes Combiner",
+  description: "Merge, filter, and export GitHub release notes",
+  category: "github-release-notes",
+})
 
 export const metadata = {
   title: "GitHub Release Notes | Dipak Parmar",
   description: "Combine and export GitHub release notes with version filters.",
+  openGraph: {
+    title: "GitHub Release Notes",
+    description: "Merge, filter, and export release notes from any GitHub repository",
+    url: "https://tools.dipak.io/github-release-notes",
+    siteName: "tools.dipak.io",
+    type: "website",
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: "GitHub Release Notes Combiner",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GitHub Release Notes | Dipak Parmar",
+    description: "Merge, filter, and export release notes from any GitHub repository",
+    images: [ogImageUrl],
+  },
+  alternates: {
+    canonical: "https://tools.dipak.io/github-release-notes",
+  },
 }
 
 const BLUR_FADE_DELAY = 0.04

@@ -9,20 +9,41 @@ import {
   DockerHubRepository,
   GHCRPackage
 } from '@/lib/container-registry';
+import { ogUrls } from '@/lib/og-config';
 
 const BLUR_FADE_DELAY = 0.04;
+
+const ogImageUrl = ogUrls.containerRegistry({
+  image: 'Container Registry',
+  description: 'Docker images via vanity domain',
+});
 
 export const metadata: Metadata = {
   title: 'Container Registry by Dipak Parmar',
   description:
     'Container registry vanity domain for Docker images by Dipak Parmar',
   openGraph: {
-    title: 'Container Registry by Dipak Parmar',
+    title: 'Container Registry',
     description:
       'Container registry vanity domain for Docker images by Dipak Parmar',
     url: 'https://cr.dipak.io',
     siteName: 'cr.dipak.io',
-    type: 'website'
+    type: 'website',
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: 'Container Registry by Dipak Parmar'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Container Registry by Dipak Parmar',
+    description:
+      'Container registry vanity domain for Docker images by Dipak Parmar',
+    images: [ogImageUrl]
   },
   alternates: {
     canonical: 'https://cr.dipak.io'

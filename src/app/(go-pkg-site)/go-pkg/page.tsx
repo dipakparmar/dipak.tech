@@ -4,20 +4,41 @@ import { fetchGoPackages, Repo } from '@/lib/github';
 import { PackageCard } from './PackageCard';
 import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
+import { ogUrls } from '@/lib/og-config';
 
 const BLUR_FADE_DELAY = 0.04;
+
+const ogImageUrl = ogUrls.goPkg({
+  package: 'Go Packages',
+  description: 'Vanity import domain for Go modules',
+});
 
 export const metadata: Metadata = {
   title: 'Go Packages by Dipak Parmar',
   description:
     'Vanity import domain for Go packages owned and maintained by Dipak Parmar',
   openGraph: {
-    title: 'Go Packages by Dipak Parmar',
+    title: 'Go Packages',
     description:
       'Vanity import domain for Go packages owned and maintained by Dipak Parmar',
     url: 'https://go.pkg.dipak.io',
     siteName: 'go.pkg.dipak.io',
-    type: 'website'
+    type: 'website',
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: 'Go Packages by Dipak Parmar'
+      }
+    ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Go Packages by Dipak Parmar',
+    description:
+      'Vanity import domain for Go packages owned and maintained by Dipak Parmar',
+    images: [ogImageUrl]
   },
   alternates: {
     canonical: 'https://go.pkg.dipak.io'

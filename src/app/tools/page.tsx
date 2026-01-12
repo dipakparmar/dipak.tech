@@ -4,10 +4,41 @@ import { BlurFade } from "@/components/magicui/blur-fade"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Shield, Globe, Wrench, Github } from "lucide-react"
 import { buildToolsHref } from "@/lib/tool-routing"
+import { ogUrls } from "@/lib/og-config"
+
+const ogImageUrl = ogUrls.tools({
+  tool: "Developer Tools",
+  description: "Free online SSL certificate utilities, OSINT scanner, and more",
+  category: "default",
+})
 
 export const metadata = {
   title: "Developer Tools | Dipak Parmar",
   description: "Free online developer tools - SSL certificate utilities, OSINT scanner, and more.",
+  openGraph: {
+    title: "Developer Tools",
+    description: "Free online developer tools - SSL certificate utilities, OSINT scanner, and more.",
+    url: "https://tools.dipak.io",
+    siteName: "tools.dipak.io",
+    type: "website",
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: "Developer Tools by Dipak Parmar",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Developer Tools | Dipak Parmar",
+    description: "Free online developer tools - SSL certificate utilities, OSINT scanner, and more.",
+    images: [ogImageUrl],
+  },
+  alternates: {
+    canonical: "https://tools.dipak.io",
+  },
 }
 
 const BLUR_FADE_DELAY = 0.04
