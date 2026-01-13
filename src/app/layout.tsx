@@ -1,9 +1,9 @@
 import './globals.css';
 
 import { Inter, Karla } from 'next/font/google';
+import { GoogleTagManager } from '@next/third-parties/google';
 
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import type { Viewport } from 'next';
 import { cn } from '@/lib/utils';
 import { ogUrls, LOGO_URL } from '@/lib/og-config';
@@ -99,22 +99,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={fontInter.variable}>
       {process.env.NEXT_PUBLIC_GA_TAG_ID &&
       process.env.NODE_ENV === 'production' ? (
-        <>
-          <Script
-            strategy="lazyOnload"
-            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_TAG_ID}`}
-          />
-          <Script id="google-analytics" strategy="lazyOnload">
-            {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_TAG_ID}', {
-              page_path: window.location.pathname,
-            });
-                `}
-          </Script>{' '}
-        </>
+        <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GA_TAG_ID} />
       ) : null}
       <body
         className={cn(

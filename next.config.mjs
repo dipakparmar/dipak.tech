@@ -1,18 +1,21 @@
+// Note: 'unsafe-inline' is required for script-src because Next.js injects
+// many inline scripts for hydration/routing that cannot be hashed.
+// This is a known Next.js limitation for static pages.
 const ContentSecurityPolicy = `
-	default-src 'self';
-	script-src 'self' https://www.googletagmanager.com https://static.cloudflareinsights.com 'unsafe-inline';
-	style-src 'self' 'unsafe-inline';
-	child-src 'none';
-	frame-src 'none';
-	connect-src 'self' https://www.cloudflare.com https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://*.doubleclick.net https://graph.dipak.io https://api.github.com https://ghcr.io https://registry-1.docker.io https://auth.docker.io https://hub.docker.com https://ct.certkit.io;
-	img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com https://*.google.com https://*.google.ca data:;
-	media-src 'self';
-	font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
-	object-src 'none';
-	base-uri 'self';
-	form-action 'self';
-	frame-ancestors 'none';
-	upgrade-insecure-requests;
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com;
+  style-src 'self' 'unsafe-inline';
+  child-src 'none';
+  frame-src 'none';
+  connect-src 'self' https://www.cloudflare.com https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://*.doubleclick.net https://graph.dipak.io https://api.github.com https://ghcr.io https://registry-1.docker.io https://auth.docker.io https://hub.docker.com https://ct.certkit.io;
+  img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com https://*.google.com https://*.google.ca data:;
+  media-src 'self';
+  font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
+  object-src 'none';
+  base-uri 'self';
+  form-action 'self';
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
 `;
 
 const securityHeaders = [

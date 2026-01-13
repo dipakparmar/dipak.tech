@@ -144,3 +144,29 @@ Key variables:
 - pkijs for X.509 certificate/CSR generation
 
 Authorative source of truth for dependencies is `package.json`. Always refer to it when adding or updating dependencies.
+
+## Security Headers & CSP
+
+Security headers are configured in `next.config.mjs` via the `headers()` function.
+
+### Content Security Policy (CSP)
+
+The CSP uses `'unsafe-inline'` for `script-src` due to Next.js limitations:
+
+**Why `'unsafe-inline'` is required:**
+- Next.js injects many inline scripts for hydration, routing, and React runtime
+- These scripts have dynamic hashes that change per page/build
+- Hash-based CSP is not practical as you cannot pre-compute all hashes
+- Nonce-based CSP requires dynamic rendering (loses static page generation)
+
+**Trade-off decision:** Static pages are prioritized over strict CSP. The site uses static generation for performance and CDN caching.
+
+**Alternative approaches considered:**
+1. **Nonce-based CSP** (`proxy.ts` + `'strict-dynamic'`): Works but forces all pages to be server-rendered
+2. **Hash-based CSP**: Not feasible due to Next.js's many dynamic inline scripts
+3. **Current approach**: `'unsafe-inline'` to preserve static pages
+
+**If stricter CSP is needed in the future:**
+- Use `proxy.ts` (Next.js 16's middleware replacement) with nonce generation
+- Accept that all pages become dynamically rendered
+- See Next.js docs: https://nextjs.org/docs/app/guides/content-security-policy
