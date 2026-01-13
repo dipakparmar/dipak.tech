@@ -1,6 +1,10 @@
 import { Metadata } from 'next';
+import type { ProfilePage, WebSite, WithContext } from 'schema-dts';
+
 import LinksContent from './LinksContent';
 import { ogUrls } from '@/lib/og-config';
+import { JsonLd } from '@/components/seo/json-ld';
+import { personSchema, personReference } from '@/lib/schema';
 
 const ogImageUrl = ogUrls.links({
   name: 'Dipak Parmar',
@@ -37,6 +41,30 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://dipak.bio'
   }
+};
+
+const websiteSchema: WithContext<WebSite> = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://dipak.bio#website',
+  url: 'https://dipak.bio',
+  name: 'Dipak Parmar Links',
+  description: 'DevSecOps Engineer - Connect with me on social media',
+  publisher: personReference
+};
+
+const profilePageSchema: WithContext<ProfilePage> = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfilePage',
+  '@id': 'https://dipak.bio#profile',
+  url: 'https://dipak.bio',
+  name: 'Dipak Parmar | DevSecOps Engineer',
+  description: 'DevSecOps Engineer - Connect with me on social media',
+  isPartOf: {
+    '@id': 'https://dipak.bio#website'
+  },
+  about: personReference,
+  mainEntity: personReference
 };
 
 interface Link {
@@ -128,7 +156,12 @@ export default async function LinksPage() {
   const links: Link[] = data?.links || [];
   const social_links: SocialLink[] = data?.social_links || [];
 
-  return <LinksContent initialLinks={links} initialSocialLinks={social_links} />;
+  return (
+    <>
+      <JsonLd data={[personSchema, websiteSchema, profilePageSchema]} />
+      <LinksContent initialLinks={links} initialSocialLinks={social_links} />
+    </>
+  );
 }
 
 /*

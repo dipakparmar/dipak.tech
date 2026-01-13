@@ -6,6 +6,10 @@ import { PackageCard } from './PackageCard';
 import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
 import { ogUrls } from '@/lib/og-config';
+import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from 'schema-dts';
+
+import { JsonLd } from '@/components/seo/json-ld';
+import { personSchema, personReference } from '@/lib/schema';
 
 const BLUR_FADE_DELAY = 0.04;
 
@@ -46,32 +50,75 @@ export const metadata: Metadata = {
   }
 };
 
+const websiteSchema: WithContext<WebSite> = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://go.pkg.dipak.io#website',
+  url: 'https://go.pkg.dipak.io',
+  name: 'Go Packages',
+  description:
+    'Vanity import domain for Go packages owned and maintained by Dipak Parmar',
+  publisher: personReference
+};
+
+const pageSchema: WithContext<CollectionPage> = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': 'https://go.pkg.dipak.io#collection',
+  url: 'https://go.pkg.dipak.io',
+  name: 'Go Packages',
+  description:
+    'Vanity import domain for Go packages owned and maintained by Dipak Parmar',
+  isPartOf: {
+    '@id': 'https://go.pkg.dipak.io#website'
+  },
+  mainEntity: {
+    '@id': 'https://go.pkg.dipak.io#packages'
+  }
+};
+
 export const revalidate = 3600;
 
 export default async function GoPackagesHome() {
   const headersList = await headers();
   const host = headersList.get('host') || '';
   const repositories = await fetchGoPackages();
+  const packageListSchema: WithContext<ItemList> = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    '@id': 'https://go.pkg.dipak.io#packages',
+    name: 'Go Packages',
+    itemListElement: repositories.map(
+      (repo, index): ListItem => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: repo.name,
+        url: `https://go.pkg.dipak.io/${repo.name}`
+      })
+    )
+  };
 
   return (
-    <main className="flex flex-col min-h-dvh space-y-10">
-      <section id="hero">
-        <div className="mx-auto w-full max-w-2xl space-y-8">
-          <div className="flex-col flex flex-1 space-y-1.5">
-            <BlurFadeText
-              delay={BLUR_FADE_DELAY}
-              className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none"
-              yOffset={8}
-              text="Go Packages 📦"
-            />
-            <BlurFadeText
-              className="max-w-150 md:text-xl"
-              delay={BLUR_FADE_DELAY * 2}
-              text="My Go packages via vanity import path"
-            />
+    <>
+      <JsonLd data={[personSchema, websiteSchema, packageListSchema, pageSchema]} />
+      <main className="flex flex-col min-h-dvh space-y-10">
+        <section id="hero">
+          <div className="mx-auto w-full max-w-2xl space-y-8">
+            <div className="flex-col flex flex-1 space-y-1.5">
+              <BlurFadeText
+                delay={BLUR_FADE_DELAY}
+                className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none"
+                yOffset={8}
+                text="Go Packages 📦"
+              />
+              <BlurFadeText
+                className="max-w-150 md:text-xl"
+                delay={BLUR_FADE_DELAY * 2}
+                text="My Go packages via vanity import path"
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
       <section id="about">
         <BlurFade delay={BLUR_FADE_DELAY * 3}>
@@ -126,20 +173,21 @@ export default async function GoPackagesHome() {
         )}
       </section>
 
-      <footer className="mt-auto pt-16 pb-8">
-        <BlurFade delay={BLUR_FADE_DELAY * 10}>
-          <p className="text-center text-sm text-muted-foreground">
-            Made with <span className="text-red-500">❤️</span> by{' '}
-            <Link
-              href="https://dipak.tech"
-              className="font-medium text-foreground hover:text-blue-500 transition-colors"
-            >
-              Dipak Parmar
-            </Link>{' '}
-            in Canada 🇨🇦
-          </p>
-        </BlurFade>
-      </footer>
-    </main>
+        <footer className="mt-auto pt-16 pb-8">
+          <BlurFade delay={BLUR_FADE_DELAY * 10}>
+            <p className="text-center text-sm text-muted-foreground">
+              Made with <span className="text-red-500">❤️</span> by{' '}
+              <Link
+                href="https://dipak.tech"
+                className="font-medium text-foreground hover:text-blue-500 transition-colors"
+              >
+                Dipak Parmar
+              </Link>{' '}
+              in Canada 🇨🇦
+            </p>
+          </BlurFade>
+        </footer>
+      </main>
+    </>
   );
 }
