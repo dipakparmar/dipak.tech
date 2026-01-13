@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { Rnd } from 'react-rnd';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -104,17 +105,26 @@ interface TabConnections {
 }
 
 export function SerialConsole() {
-  // Tab management
+  // Tab management - use stable initial ID to avoid hydration mismatch
   const [tabs, setTabs] = useState<TabState[]>(() => [
-    createDefaultTab(crypto.randomUUID(), 'serial'),
+    createDefaultTab('initial-tab', 'serial'),
   ]);
-  const [activeTabId, setActiveTabId] = useState<string>(tabs[0].id);
+  const [activeTabId, setActiveTabId] = useState<string>('initial-tab');
 
   // Global state
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [sshPassword, setSshPassword] = useState('');
+
+  // Window state for draggable/resizable (desktop-only floating window)
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [windowState, setWindowState] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [rndKey, setRndKey] = useState(0); // Key to force Rnd remount when needed
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [savedWindowState, setSavedWindowState] = useState<{ pos: { x: number; y: number }; size: { width: number; height: number } } | null>(null);
+  const hasUserMovedWindow = useRef(false); // Track if user has moved/resized window
 
   // Terminal settings (shared across tabs)
   const [terminalSettings, setTerminalSettings] = useState<TerminalSettings>(
@@ -888,7 +898,100 @@ export function SerialConsole() {
 
   const containerClass = isFullscreen
     ? 'fixed inset-0 z-50 flex flex-col bg-background'
+    : isDesktop
+    ? 'flex flex-col rounded-xl overflow-hidden border bg-background shadow-2xl'
     : 'relative flex flex-col h-[500px] sm:h-[650px] rounded-xl overflow-hidden border bg-background shadow-xl';
+
+  // Check if device is desktop and initialize/restore window position
+  useEffect(() => {
+    const STORAGE_KEY = 'web-terminal-window-state-v2';
+
+    const initializeWindow = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+
+      if (!desktop) return;
+
+      // Calculate centered position first
+      const defaultWidth = Math.min(900, window.innerWidth - 100);
+      const defaultHeight = Math.min(600, window.innerHeight - 150);
+      const centeredX = Math.round((window.innerWidth - defaultWidth) / 2);
+      const centeredY = Math.round(Math.max(80, (window.innerHeight - defaultHeight) / 2));
+
+      // Try to restore from localStorage
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const { pos, size } = JSON.parse(saved);
+          // Validate position is within current viewport
+          const validWidth = Math.min(Math.max(400, size.width), window.innerWidth - 40);
+          const validHeight = Math.min(Math.max(300, size.height), window.innerHeight - 40);
+          const validX = Math.min(Math.max(0, pos.x), window.innerWidth - validWidth);
+          const validY = Math.min(Math.max(0, pos.y), window.innerHeight - validHeight);
+          setWindowState({ x: validX, y: validY, width: validWidth, height: validHeight });
+          hasUserMovedWindow.current = true;
+          return;
+        }
+      } catch {
+        // Ignore localStorage errors
+      }
+
+      // Default: center the window
+      setWindowState({ x: centeredX, y: centeredY, width: defaultWidth, height: defaultHeight });
+    };
+
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+
+    // Initialize window state
+    initializeWindow();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []); // Empty dependency - only run once on mount
+
+  // Save window state to localStorage only after user interaction
+  useEffect(() => {
+    if (isDesktop && windowState && !isFullscreen && hasUserMovedWindow.current) {
+      const STORAGE_KEY = 'web-terminal-window-state-v2';
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          pos: { x: windowState.x, y: windowState.y },
+          size: { width: windowState.width, height: windowState.height },
+        }));
+      } catch {
+        // Ignore localStorage errors
+      }
+    }
+  }, [isDesktop, windowState, isFullscreen]);
+
+  // Minimize/restore window (yellow button)
+  const toggleMinimize = useCallback(() => {
+    setIsMinimized((prev) => !prev);
+  }, []);
+
+  // Toggle fullscreen/windowed mode (green button - macOS zoom behavior)
+  const toggleMaximize = useCallback(() => {
+    if (isFullscreen) {
+      // Restore to saved window state
+      setIsFullscreen(false);
+      if (savedWindowState) {
+        setWindowState({
+          x: savedWindowState.pos.x,
+          y: savedWindowState.pos.y,
+          width: savedWindowState.size.width,
+          height: savedWindowState.size.height,
+        });
+        // Force Rnd remount to apply restored position
+        setRndKey(k => k + 1);
+      }
+    } else if (windowState) {
+      // Save current state and go fullscreen
+      setSavedWindowState({ pos: { x: windowState.x, y: windowState.y }, size: { width: windowState.width, height: windowState.height } });
+      setIsFullscreen(true);
+    }
+  }, [isFullscreen, windowState, savedWindowState]);
 
   // Render connection settings dialog content
   const renderConnectionSettings = () => {
@@ -1121,26 +1224,76 @@ export function SerialConsole() {
     }
   };
 
-  return (
-    <div className={containerClass}>
+  // Terminal window content
+  const terminalContent = (
+    <div className={containerClass} style={isDesktop && !isFullscreen ? { width: '100%', height: isMinimized ? 'auto' : '100%' } : undefined}>
       {/* macOS-style Title Bar */}
-      <div className="flex items-center gap-2 bg-muted/80 px-3 py-2 border-b">
+      <div
+        className={`title-bar flex items-center gap-2 bg-muted/80 px-3 py-2 border-b select-none ${isDesktop && !isFullscreen ? 'cursor-move' : 'cursor-default'}`}
+        onDoubleClick={isDesktop ? toggleMaximize : undefined}
+      >
         {/* Traffic light buttons */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={isFullscreen ? toggleFullscreen : undefined}
-            className="h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-110 transition-all"
-            aria-label="Close"
-          />
-          <button
-            className="h-3 w-3 rounded-full bg-[#febc2e] hover:brightness-110 transition-all"
-            aria-label="Minimize"
-          />
-          <button
-            onClick={toggleFullscreen}
-            className="h-3 w-3 rounded-full bg-[#28c840] hover:brightness-110 transition-all"
-            aria-label="Maximize"
-          />
+        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Red button: Exit fullscreen if in fullscreen (like closing a maximized window)
+                    if (isFullscreen) toggleMaximize();
+                  }}
+                  className="h-3 w-3 rounded-full bg-[#ff5f57] hover:brightness-110 transition-all flex items-center justify-center group"
+                  aria-label="Close"
+                >
+                  <X className="h-2 w-2 text-[#820005] opacity-0 group-hover:opacity-100" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{isFullscreen ? 'Exit Fullscreen' : 'Close'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Yellow button: Minimize to title bar only (desktop only)
+                    if (isDesktop && !isFullscreen) toggleMinimize();
+                  }}
+                  className="h-3 w-3 rounded-full bg-[#febc2e] hover:brightness-110 transition-all flex items-center justify-center group"
+                  aria-label="Minimize"
+                >
+                  <Minus className="h-2 w-2 text-[#985600] opacity-0 group-hover:opacity-100" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{isMinimized ? 'Restore' : 'Minimize'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Green button: Toggle fullscreen/windowed (zoom behavior)
+                    toggleMaximize();
+                  }}
+                  className="h-3 w-3 rounded-full bg-[#28c840] hover:brightness-110 transition-all flex items-center justify-center group"
+                  aria-label="Maximize"
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="h-2 w-2 text-[#006400] opacity-0 group-hover:opacity-100" />
+                  ) : (
+                    <Maximize2 className="h-2 w-2 text-[#006400] opacity-0 group-hover:opacity-100" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         {/* Title */}
         <div className="flex-1 text-center">
@@ -1153,6 +1306,7 @@ export function SerialConsole() {
       </div>
 
       {/* Tab Bar */}
+      {!isMinimized && (
       <div className="flex items-center bg-muted/50 border-b overflow-x-auto">
         <div className="flex items-center flex-1 min-w-0">
           {tabs.map((tab) => (
@@ -1200,8 +1354,10 @@ export function SerialConsole() {
           </Tooltip>
         </TooltipProvider>
       </div>
+      )}
 
       {/* Toolbar */}
+      {!isMinimized && (
       <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/50 px-1 sm:px-2 py-1.5 border-b overflow-x-auto">
         {/* Connection status indicator */}
         <div className="flex items-center gap-1.5 px-1 sm:px-2">
@@ -1470,9 +1626,10 @@ export function SerialConsole() {
           </Tooltip>
         </TooltipProvider>
       </div>
+      )}
 
       {/* Search Bar */}
-      {showSearch && (
+      {showSearch && !isMinimized && (
         <div className="flex items-center gap-1 sm:gap-2 bg-muted/50 px-2 sm:px-3 py-1.5 border-b">
           <Search className="h-4 w-4 text-muted-foreground shrink-0" />
           <input
@@ -1520,6 +1677,7 @@ export function SerialConsole() {
       )}
 
       {/* Terminal Panes - render all but only show active */}
+      {!isMinimized && (
       <div className="flex-1 min-h-0 relative overflow-hidden">
         {tabs.map((tab) => (
           <div
@@ -1542,19 +1700,22 @@ export function SerialConsole() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between border-t bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-2">
-          <Circle
-            className={`h-2 w-2 ${activeTab.isConnected ? 'fill-green-500 text-green-500' : 'fill-muted-foreground/50 text-muted-foreground/50'}`}
-          />
-          {activeTab.isConnected ? 'Connected - click terminal to type' : 'Local shell - type "help" for commands'}
-        </span>
-        <Badge variant="outline" className="h-5 text-[10px]">
-          {terminalSettings.lineEnding.toUpperCase()}
-        </Badge>
-      </div>
+      {!isMinimized && (
+        <div className="flex items-center justify-between border-t bg-muted/50 px-2 py-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <Circle
+              className={`h-2 w-2 ${activeTab.isConnected ? 'fill-green-500 text-green-500' : 'fill-muted-foreground/50 text-muted-foreground/50'}`}
+            />
+            {activeTab.isConnected ? 'Connected - click terminal to type' : 'Local shell - type "help" for commands'}
+          </span>
+          <Badge variant="outline" className="h-5 text-[10px]">
+            {terminalSettings.lineEnding.toUpperCase()}
+          </Badge>
+        </div>
+      )}
 
       {/* Not supported warning (only for Serial) */}
       {activeTab.connectionType === 'serial' && !isSupported && (
@@ -1572,4 +1733,65 @@ export function SerialConsole() {
       )}
     </div>
   );
+
+  // Desktop: Always show as floating draggable window (unless fullscreen)
+  if (isDesktop && !isFullscreen && windowState) {
+    return (
+      <>
+        {/* Backdrop overlay - only show during drag */}
+        {isDragging && (
+          <div className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm pointer-events-none" />
+        )}
+        <Rnd
+          key={rndKey}
+          default={{
+            x: windowState.x,
+            y: windowState.y,
+            width: windowState.width,
+            height: isMinimized ? 48 : windowState.height,
+          }}
+          onDragStart={() => setIsDragging(true)}
+          onDragStop={(_, d) => {
+            hasUserMovedWindow.current = true;
+            setWindowState(prev => prev ? { ...prev, x: d.x, y: d.y } : null);
+            setIsDragging(false);
+          }}
+          onResizeStop={(_, __, ref, ___, position) => {
+            hasUserMovedWindow.current = true;
+            setWindowState({
+              x: position.x,
+              y: position.y,
+              width: ref.offsetWidth,
+              height: ref.offsetHeight,
+            });
+          }}
+          minWidth={400}
+          minHeight={isMinimized ? 48 : 300}
+          maxWidth={typeof window !== 'undefined' ? window.innerWidth - 40 : 1200}
+          maxHeight={typeof window !== 'undefined' ? window.innerHeight - 40 : 800}
+          dragHandleClassName="title-bar"
+          enableResizing={!isMinimized}
+          resizeHandleStyles={{
+            bottom: { cursor: 'ns-resize' },
+            right: { cursor: 'ew-resize' },
+            bottomRight: { cursor: 'nwse-resize' },
+            bottomLeft: { cursor: 'nesw-resize' },
+            topRight: { cursor: 'nesw-resize' },
+            topLeft: { cursor: 'nwse-resize' },
+            top: { cursor: 'ns-resize' },
+            left: { cursor: 'ew-resize' },
+          }}
+          style={{
+            position: 'fixed',
+            zIndex: 50,
+          }}
+        >
+          {terminalContent}
+        </Rnd>
+      </>
+    );
+  }
+
+  // Mobile or fullscreen: render normally
+  return terminalContent;
 }
