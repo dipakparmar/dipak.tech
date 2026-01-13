@@ -1,6 +1,6 @@
 import { Terminal, Usb, Globe, Search } from 'lucide-react';
 import { BlurFade } from '@/components/magicui/blur-fade';
-import { SerialConsole } from '@/components/serial-console/serial-console';
+import { WebTerminal } from '@/components/web-terminal/web-terminal';
 import { ogUrls, siteConfig } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
@@ -91,7 +91,7 @@ export default function WebTerminalPage() {
           </BlurFade>
 
           {/* Terminal */}
-          <SerialConsole />
+          <WebTerminal />
         </div>
       </div>
     </main>

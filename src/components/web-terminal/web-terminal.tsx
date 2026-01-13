@@ -104,7 +104,7 @@ interface TabConnections {
   readLoopActive: boolean;
 }
 
-export function SerialConsole() {
+export function WebTerminal() {
   // Tab management - use stable initial ID to avoid hydration mismatch
   const [tabs, setTabs] = useState<TabState[]>(() => [
     createDefaultTab('initial-tab', 'serial'),
