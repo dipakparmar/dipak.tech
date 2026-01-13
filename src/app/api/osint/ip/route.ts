@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 interface DNSRecord {
   name: string
@@ -92,11 +93,7 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
-    console.error("IP intelligence error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch IP intelligence" },
-      { status: 500 },
-    )
+    return captureAPIError(error, request, 500, { operation: "ip_intelligence" })
   }
 }
 

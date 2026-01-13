@@ -1,5 +1,6 @@
 // Core DNS reconnaissance engine with modular architecture
 
+import * as Sentry from '@sentry/nextjs'
 import type { CertificateEntry, ScanResult, SubdomainResult } from "@/types/network-ossint"
 
 export class DNSScanner {
@@ -29,7 +30,11 @@ export class DNSScanner {
         scanDuration,
       }
     } catch (error) {
-      console.error("[v0] DNS scan error:", error)
+      console.error("DNS scan error:", error)
+      Sentry.captureMessage(`DNS scan failed for domain: ${domain}`, {
+        level: 'warning',
+        extra: { error: error instanceof Error ? error.message : String(error) }
+      })
       throw new Error(`Failed to scan domain: ${error instanceof Error ? error.message : "Unknown error"}`)
     }
   }

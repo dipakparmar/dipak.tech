@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
 import { fetchReleaseNotes } from "@/lib/github"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 const CACHE_TTL = 5 * 60 * 1000
 const RATE_LIMIT = 12
@@ -85,7 +86,6 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to fetch release notes"
-    return NextResponse.json({ error: message }, { status: 400 })
+    return captureAPIError(error, request, 500, { operation: "github_release_notes" })
   }
 }

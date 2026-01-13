@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 interface CertEntry {
   issuer_name: string
@@ -83,11 +84,7 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
-    console.error("Certificate lookup error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch certificates" },
-      { status: 500 },
-    )
+    return captureAPIError(error, request, 500, { operation: "certificate_lookup" })
   }
 }
 

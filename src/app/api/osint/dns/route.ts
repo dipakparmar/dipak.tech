@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 const RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA"] as const
 const RESPONSE_CACHE_TTL = 5 * 60 * 1000
@@ -83,11 +84,7 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
-    console.error("DNS lookup error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to lookup DNS records" },
-      { status: 500 },
-    )
+    return captureAPIError(error, request, 500, { operation: "dns_lookup" })
   }
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-
 import { revalidatePath } from 'next/cache';
+import { captureAPIError } from '@/lib/sentry-utils';
 
 async function handleRevalidation(request: NextRequest) {
   console.log(
@@ -12,10 +12,11 @@ async function handleRevalidation(request: NextRequest) {
   const webhookSecret = process.env.WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    console.error('[Next.js] WEBHOOK_SECRET not configured');
-    return NextResponse.json(
-      { message: 'Server configuration error' },
-      { status: 500 }
+    return captureAPIError(
+      new Error('WEBHOOK_SECRET not configured'),
+      request,
+      500,
+      { operation: 'revalidate_links' }
     );
   }
 
@@ -43,12 +44,7 @@ async function handleRevalidation(request: NextRequest) {
       } catch (err) {
         // If there was an error, Next.js will continue
         // to show the last successfully generated page
-        console.error(`[Next.js] Error revalidating path /links`, err);
-
-        return NextResponse.json(
-          { message: 'Error revalidating' },
-          { status: 500 }
-        );
+        return captureAPIError(err, request, 500, { operation: 'revalidate_links' });
       }
     }
   }
