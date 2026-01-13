@@ -66,9 +66,9 @@ const tools = [
     color: "text-slate-600 dark:text-slate-300",
   },
   {
-    title: "Serial Console",
-    description: "Web-based serial terminal for Arduino, ESP32, and more",
-    path: "serial-console",
+    title: "Web Terminal",
+    description: "Browser-based terminal for Serial, WebSocket, SSH, and Telnet",
+    path: "web-terminal",
     icon: Terminal,
     color: "text-violet-500",
   },

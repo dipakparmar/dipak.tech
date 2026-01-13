@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import { Terminal } from '@xterm/xterm';
+import { useEffect, useLayoutEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import { useTheme } from 'next-themes';
+import { Terminal, ITheme } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { SearchAddon } from '@xterm/addon-search';
@@ -30,6 +31,57 @@ export interface TerminalDisplayHandle {
   serializeAsHtml: () => string;
 }
 
+// Theme-aware color palettes
+const darkTheme: ITheme = {
+  background: 'hsl(222.2 84% 4.9%)', // matches --background in dark mode
+  foreground: 'hsl(210 40% 98%)', // matches --foreground in dark mode
+  cursor: 'hsl(217.2 91.2% 59.8%)', // primary blue
+  cursorAccent: 'hsl(222.2 84% 4.9%)',
+  selectionBackground: 'hsl(217.2 91.2% 59.8% / 0.3)',
+  selectionForeground: 'hsl(210 40% 98%)',
+  black: '#484f58',
+  red: '#ff7b72',
+  green: '#3fb950',
+  yellow: '#d29922',
+  blue: '#58a6ff',
+  magenta: '#bc8cff',
+  cyan: '#39c5cf',
+  white: '#b1bac4',
+  brightBlack: '#6e7681',
+  brightRed: '#ffa198',
+  brightGreen: '#56d364',
+  brightYellow: '#e3b341',
+  brightBlue: '#79c0ff',
+  brightMagenta: '#d2a8ff',
+  brightCyan: '#56d4dd',
+  brightWhite: '#f0f6fc',
+};
+
+const lightTheme: ITheme = {
+  background: 'hsl(0 0% 100%)', // white background for light mode
+  foreground: 'hsl(222.2 84% 4.9%)', // dark text
+  cursor: 'hsl(221.2 83.2% 53.3%)', // primary blue
+  cursorAccent: 'hsl(0 0% 100%)',
+  selectionBackground: 'hsl(221.2 83.2% 53.3% / 0.2)',
+  selectionForeground: 'hsl(222.2 84% 4.9%)',
+  black: '#24292f',
+  red: '#cf222e',
+  green: '#116329',
+  yellow: '#4d2d00',
+  blue: '#0969da',
+  magenta: '#8250df',
+  cyan: '#1b7c83',
+  white: '#6e7781',
+  brightBlack: '#57606a',
+  brightRed: '#a40e26',
+  brightGreen: '#1a7f37',
+  brightYellow: '#633c01',
+  brightBlue: '#218bff',
+  brightMagenta: '#a475f9',
+  brightCyan: '#3192aa',
+  brightWhite: '#8c959f',
+};
+
 export const TerminalDisplay = forwardRef<
   TerminalDisplayHandle,
   TerminalDisplayProps
@@ -43,10 +95,26 @@ export const TerminalDisplay = forwardRef<
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const serializeAddonRef = useRef<SerializeAddon | null>(null);
   const autoScrollRef = useRef(autoScroll);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     autoScrollRef.current = autoScroll;
   }, [autoScroll]);
+
+  // Update terminal theme when system theme changes
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.options.theme = resolvedTheme === 'dark' ? darkTheme : lightTheme;
+    }
+  }, [resolvedTheme]);
+
+  // Update terminal font size dynamically (useLayoutEffect for smoother visual updates)
+  useLayoutEffect(() => {
+    if (terminalRef.current && fitAddonRef.current) {
+      terminalRef.current.options.fontSize = fontSize;
+      fitAddonRef.current.fit();
+    }
+  }, [fontSize]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -55,30 +123,7 @@ export const TerminalDisplay = forwardRef<
       fontSize,
       fontFamily:
         '"JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace',
-      theme: {
-        background: '#0d1117',
-        foreground: '#c9d1d9',
-        cursor: '#58a6ff',
-        cursorAccent: '#0d1117',
-        selectionBackground: '#264f78',
-        selectionForeground: '#ffffff',
-        black: '#484f58',
-        red: '#ff7b72',
-        green: '#3fb950',
-        yellow: '#d29922',
-        blue: '#58a6ff',
-        magenta: '#bc8cff',
-        cyan: '#39c5cf',
-        white: '#b1bac4',
-        brightBlack: '#6e7681',
-        brightRed: '#ffa198',
-        brightGreen: '#56d364',
-        brightYellow: '#e3b341',
-        brightBlue: '#79c0ff',
-        brightMagenta: '#d2a8ff',
-        brightCyan: '#56d4dd',
-        brightWhite: '#f0f6fc',
-      },
+      theme: resolvedTheme === 'dark' ? darkTheme : lightTheme,
       cursorBlink: true,
       cursorStyle: 'bar',
       scrollback: 10000,
@@ -137,7 +182,8 @@ export const TerminalDisplay = forwardRef<
       resizeObserver.disconnect();
       terminal.dispose();
     };
-  }, [fontSize, onData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onData]);
 
   useImperativeHandle(
     ref,
@@ -199,8 +245,7 @@ export const TerminalDisplay = forwardRef<
   return (
     <div
       ref={containerRef}
-      className="h-full w-full bg-[#0d1117]"
-      style={{ padding: '8px' }}
+      className="h-full w-full bg-background"
     />
   );
 });

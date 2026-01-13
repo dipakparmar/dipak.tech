@@ -85,7 +85,7 @@ export const toolIcons: Record<string, string> = {
   osint: '🔍',
   'github-release-notes': '📋',
   whois: '🌐',
-  'serial-console': '📟',
+  'web-terminal': '📟',
   default: '🛠️',
 };
 

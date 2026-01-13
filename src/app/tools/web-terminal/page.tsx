@@ -1,22 +1,22 @@
-import { Terminal, Usb, Globe, Network, Search } from 'lucide-react';
+import { Terminal, Usb, Globe, Search } from 'lucide-react';
 import { BlurFade } from '@/components/magicui/blur-fade';
 import { SerialConsole } from '@/components/serial-console/serial-console';
 import { ogUrls, siteConfig } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
-  tool: 'Serial Console',
-  description: 'Web-based serial terminal',
-  category: 'serial-console',
+  tool: 'Web Terminal',
+  description: 'Browser-based terminal',
+  category: 'web-terminal',
 });
 
 export const metadata = {
-  title: 'Serial Console | Dipak Parmar',
+  title: 'Web Terminal | Dipak Parmar',
   description:
-    'Browser-based serial terminal for Arduino, ESP32, Raspberry Pi and other serial devices. Supports Serial, WebSocket, SSH, and Telnet connections.',
+    'Browser-based terminal supporting Serial, WebSocket, SSH, and Telnet connections. Connect to Arduino, ESP32, Raspberry Pi and other devices.',
   openGraph: {
-    title: 'Serial Console',
-    description: 'Web-based serial terminal for Arduino, ESP32, and more',
-    url: `${siteConfig.tools.baseUrl}/serial-console`,
+    title: 'Web Terminal',
+    description: 'Browser-based terminal for Serial, WebSocket, SSH, and Telnet',
+    url: `${siteConfig.tools.baseUrl}/web-terminal`,
     siteName: siteConfig.tools.domain,
     type: 'website',
     images: [
@@ -24,24 +24,24 @@ export const metadata = {
         url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: 'Serial Console Tool',
+        alt: 'Web Terminal Tool',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image' as const,
-    title: 'Serial Console | Dipak Parmar',
-    description: 'Web-based serial terminal for Arduino, ESP32, and more',
+    title: 'Web Terminal | Dipak Parmar',
+    description: 'Browser-based terminal for Serial, WebSocket, SSH, and Telnet',
     images: [ogImageUrl],
   },
   alternates: {
-    canonical: `${siteConfig.tools.baseUrl}/serial-console`,
+    canonical: `${siteConfig.tools.baseUrl}/web-terminal`,
   },
 };
 
 const BLUR_FADE_DELAY = 0.04;
 
-export default function SerialConsolePage() {
+export default function WebTerminalPage() {
   return (
     <main className="min-h-screen bg-background">
       {/* Gradient background effect */}
@@ -59,13 +59,13 @@ export default function SerialConsolePage() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-500 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
                 </span>
-                <span className="text-sm font-medium">Serial Console</span>
+                <span className="text-sm font-medium">Web Terminal</span>
               </div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Web Serial Terminal
+                Web Terminal
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Connect to Arduino, ESP32, Raspberry Pi, and other devices directly from your browser.
+                Connect via Serial, WebSocket, SSH, or Telnet directly from your browser.
                 Full terminal emulation with ANSI support, search, and session logging.
               </p>
               {/* Feature pills */}

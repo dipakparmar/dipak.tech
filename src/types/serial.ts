@@ -110,3 +110,42 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   timestamps: false,
   autoScroll: true,
 };
+
+/**
+ * Tab state for multi-terminal support
+ */
+export interface TabState {
+  id: string;
+  title: string;
+  connectionType: ConnectionType;
+  isConnected: boolean;
+  serialSettings: SerialSettings;
+  wsSettings: WebSocketSettings;
+  sshSettings: SSHSettings;
+  telnetSettings: TelnetSettings;
+  sessionLog: LogEntry[];
+}
+
+/**
+ * Create a new tab with default settings
+ */
+export function createDefaultTab(id: string, connectionType: ConnectionType = 'serial'): TabState {
+  const typeLabels: Record<ConnectionType, string> = {
+    serial: 'Serial',
+    websocket: 'WebSocket',
+    ssh: 'SSH',
+    telnet: 'Telnet',
+  };
+
+  return {
+    id,
+    title: `${typeLabels[connectionType]} ${id.slice(-4)}`,
+    connectionType,
+    isConnected: false,
+    serialSettings: { ...DEFAULT_SERIAL_SETTINGS },
+    wsSettings: { ...DEFAULT_WEBSOCKET_SETTINGS },
+    sshSettings: { ...DEFAULT_SSH_SETTINGS },
+    telnetSettings: { ...DEFAULT_TELNET_SETTINGS },
+    sessionLog: [],
+  };
+}
