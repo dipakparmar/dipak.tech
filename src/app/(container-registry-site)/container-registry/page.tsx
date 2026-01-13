@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
 import { ImageCard } from './ImageCard';
+import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from 'schema-dts';
+
 import {
   fetchDockerHubRepositories,
   fetchGHCRPackages,
@@ -10,6 +12,8 @@ import {
   GHCRPackage
 } from '@/lib/container-registry';
 import { ogUrls } from '@/lib/og-config';
+import { JsonLd } from '@/components/seo/json-ld';
+import { personSchema, personReference } from '@/lib/schema';
 
 const BLUR_FADE_DELAY = 0.04;
 
@@ -47,6 +51,33 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: 'https://cr.dipak.io'
+  }
+};
+
+const websiteSchema: WithContext<WebSite> = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': 'https://cr.dipak.io#website',
+  url: 'https://cr.dipak.io',
+  name: 'Container Registry',
+  description:
+    'Container registry vanity domain for Docker images by Dipak Parmar',
+  publisher: personReference
+};
+
+const pageSchema: WithContext<CollectionPage> = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  '@id': 'https://cr.dipak.io#collection',
+  url: 'https://cr.dipak.io',
+  name: 'Container Registry',
+  description:
+    'Container registry vanity domain for Docker images by Dipak Parmar',
+  isPartOf: {
+    '@id': 'https://cr.dipak.io#website'
+  },
+  mainEntity: {
+    '@id': 'https://cr.dipak.io#images'
   }
 };
 
@@ -91,26 +122,44 @@ export default async function ContainerRegistryHome() {
 
   const dockerImages = dockerHubRepos.map(formatDockerHubImage);
   const ghcrImages = ghcrPackages.map(formatGHCRImage);
+  const allImages = [...dockerImages, ...ghcrImages];
+  const imageListSchema: WithContext<ItemList> = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    '@id': 'https://cr.dipak.io#images',
+    name: 'Container Images',
+    itemListElement: allImages.map(
+      (image, index): ListItem => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: image.name,
+        description: image.description,
+        url: `https://cr.dipak.io/${image.registry}/${image.name}`
+      })
+    )
+  };
 
   return (
-    <main className="flex flex-col min-h-dvh space-y-10 w-full max-w-full overflow-hidden">
-      <section id="hero">
-        <div className="mx-auto w-full max-w-2xl space-y-8">
-          <div className="flex-col flex flex-1 space-y-1.5">
-            <BlurFadeText
-              delay={BLUR_FADE_DELAY}
-              className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none"
-              yOffset={8}
-              text="Container Registry 🐳"
-            />
-            <BlurFadeText
-              className="max-w-150 md:text-xl"
-              delay={BLUR_FADE_DELAY * 2}
-              text="Docker images via vanity domain"
-            />
+    <>
+      <JsonLd data={[personSchema, websiteSchema, imageListSchema, pageSchema]} />
+      <main className="flex flex-col min-h-dvh space-y-10 w-full max-w-full overflow-hidden">
+        <section id="hero">
+          <div className="mx-auto w-full max-w-2xl space-y-8">
+            <div className="flex-col flex flex-1 space-y-1.5">
+              <BlurFadeText
+                delay={BLUR_FADE_DELAY}
+                className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none"
+                yOffset={8}
+                text="Container Registry 🐳"
+              />
+              <BlurFadeText
+                className="max-w-150 md:text-xl"
+                delay={BLUR_FADE_DELAY * 2}
+                text="Docker images via vanity domain"
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
       <section id="usage">
         <BlurFade delay={BLUR_FADE_DELAY * 3}>
@@ -253,6 +302,7 @@ export default async function ContainerRegistryHome() {
           </p>
         </BlurFade>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }
