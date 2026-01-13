@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 const HEADER_ALLOWLIST = [
   "server",
@@ -110,11 +111,7 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
-    console.error("HTTP fingerprint error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch HTTP metadata" },
-      { status: 500 },
-    )
+    return captureAPIError(error, request, 500, { operation: "http_fingerprint" })
   }
 }
 

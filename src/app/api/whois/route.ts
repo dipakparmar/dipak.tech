@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 // RDAP Bootstrap URLs for different resource types
 const RDAP_BOOTSTRAP_URLS = {
@@ -316,10 +317,6 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("WHOIS lookup error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to perform lookup" },
-      { status: 500 },
-    )
+    return captureAPIError(error, request, 500, { operation: "whois_lookup" })
   }
 }

@@ -1,0 +1,15 @@
+'use client';
+
+import { ErrorBoundary } from '@/components/error-boundary';
+
+export default function ContainerRegistryError({
+  error,
+  reset
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <ErrorBoundary error={error} reset={reset} routeGroup="container-registry" />
+  );
+}

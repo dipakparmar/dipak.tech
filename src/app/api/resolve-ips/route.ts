@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import * as Sentry from "@sentry/nextjs"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 export const runtime = "edge"
 
@@ -46,7 +48,11 @@ export async function POST(request: Request) {
           const result = await resolveSubdomain(subdomain)
           return { subdomain, result }
         } catch (error) {
-          console.error(`[v0] Failed to resolve ${subdomain}:`, error)
+          console.error(`Failed to resolve ${subdomain}:`, error)
+          Sentry.captureMessage(`Failed to resolve subdomain: ${subdomain}`, {
+            level: 'warning',
+            extra: { error: error instanceof Error ? error.message : String(error) }
+          })
           return { subdomain, result: { ips: [], isUnresolved: true } }
         }
       })
@@ -59,11 +65,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ results })
   } catch (error) {
-    console.error("[v0] IP resolution error:", error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to resolve IPs" },
-      { status: 500 },
-    )
+    return captureAPIError(error, request, 500, { operation: "ip_resolution" })
   }
 }
 
@@ -124,7 +126,11 @@ async function resolveSubdomain(subdomain: string): Promise<ResolveResult> {
 
     return result
   } catch (error) {
-    console.error(`[v0] Failed to resolve ${subdomain}:`, error)
+    console.error(`Failed to resolve ${subdomain}:`, error)
+    Sentry.captureMessage(`DNS resolution failed for subdomain: ${subdomain}`, {
+      level: 'warning',
+      extra: { error: error instanceof Error ? error.message : String(error) }
+    })
     return { ...result, isUnresolved: true }
   }
 }

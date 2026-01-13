@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import * as tls from "tls"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 interface CertificateInfo {
   pem: string
@@ -264,7 +265,6 @@ export async function GET(request: NextRequest) {
     const certInfo = await fetchCertificate(host, port)
     return NextResponse.json(certInfo)
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to fetch certificate"
-    return NextResponse.json({ error: message }, { status: 500 })
+    return captureAPIError(err, request, 500, { operation: "fetch_certificate" })
   }
 }
