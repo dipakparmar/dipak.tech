@@ -114,14 +114,14 @@ export function WhoisLookup() {
             { key: "dns", promise: fetchJson(`/api/osint/dns?target=${encodeURIComponent(trimmed)}`) },
             { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
             { key: "certs", promise: fetchJson(`/api/osint/certificates?target=${encodeURIComponent(trimmed)}`) },
-            { key: "ip", promise: fetchJson(`/api/osint/ip?target=${encodeURIComponent(trimmed)}`) },
+            { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
           )
         }
 
         if (queryType === "ipv4" || queryType === "ipv6") {
           tasks.push(
             { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
-            { key: "ip", promise: fetchJson(`/api/osint/ip?target=${encodeURIComponent(trimmed)}`) },
+            { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
           )
         }
 
