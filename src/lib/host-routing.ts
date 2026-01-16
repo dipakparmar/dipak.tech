@@ -7,6 +7,7 @@ import { siteConfig } from './og-config';
 export const hosts = {
   portfolio: siteConfig.portfolio.domain,
   tools: siteConfig.tools.domain,
+  ip: siteConfig.ip.domain,
   goPkg: siteConfig.goPkg.domain,
   containerRegistry: siteConfig.containerRegistry.domain,
   links: siteConfig.links.domain,
@@ -18,6 +19,7 @@ export type HostKey = keyof typeof hosts;
 export const routePrefixes: Record<HostKey, string> = {
   portfolio: '',
   tools: '/tools',
+  ip: '/tools/ip',
   goPkg: '/go-pkg',
   containerRegistry: '/container-registry',
   links: '/links',

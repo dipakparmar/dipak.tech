@@ -5,7 +5,7 @@ import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "s
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Wrench, Github, Terminal } from "lucide-react"
+import { Shield, Globe, Wrench, Github, Terminal, Network } from "lucide-react"
 import { buildHref } from "@/lib/host-routing"
 import { ogUrls } from "@/lib/og-config"
 import { personSchema, personReference } from "@/lib/schema"
@@ -54,6 +54,13 @@ const tools = [
     path: "certificates",
     icon: Shield,
     color: "text-cyan-500",
+  },
+  {
+    title: "IP Information",
+    description: "View your IP address details, lookup any IP, and get geolocation data",
+    path: "ip",
+    icon: Network,
+    color: "text-blue-500",
   },
   {
     title: "OSINT Scanner",

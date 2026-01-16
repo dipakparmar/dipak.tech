@@ -10,7 +10,7 @@ const ContentSecurityPolicy = `
   frame-src 'none';
   worker-src 'self' blob:;
   connect-src 'self' https://www.cloudflare.com https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://*.doubleclick.net https://graph.dipak.io https://api.github.com https://ghcr.io https://registry-1.docker.io https://auth.docker.io https://hub.docker.com https://ct.certkit.io https://*.sentry.io;
-  img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com https://*.google.com https://*.google.ca data:;
+  img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com https://*.google.com https://*.google.ca https://*.basemaps.cartocdn.com data:;
   media-src 'self';
   font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
   object-src 'none';
@@ -125,6 +125,27 @@ const nextConfig = {
           }
         ],
         destination: '/container-registry/v2/:path*'
+      },
+      // ip.dipak.io routes
+      {
+        source: '/',
+        has: [
+          {
+            type: 'host',
+            value: 'ip.dipak.io'
+          }
+        ],
+        destination: '/tools/ip'
+      },
+      {
+        source: '/api/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'ip.dipak.io'
+          }
+        ],
+        destination: '/api/:path*'
       },
       // tools.dipak.io routes
       {

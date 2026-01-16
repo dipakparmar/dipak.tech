@@ -36,6 +36,16 @@ export const siteConfig = {
       category: 'default',
     },
   },
+  ip: {
+    domain: 'ip.dipak.io',
+    baseUrl: 'https://ip.dipak.io',
+    ogPath: '/api/og/tools',
+    defaults: {
+      tool: 'IP Information',
+      description: 'View detailed information about any IP address',
+      category: 'default',
+    },
+  },
   goPkg: {
     domain: 'go.pkg.dipak.io',
     baseUrl: 'https://go.pkg.dipak.io',
