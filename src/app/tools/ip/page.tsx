@@ -1,35 +1,18 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { BlurFade } from "@/components/magicui/blur-fade"
-import {
-  Globe,
-  MapPin,
-  Network,
-  Shield,
-  Clock,
-  Server,
-  Copy,
-  Check,
-  Loader2,
-  Search,
-  Info,
-} from "lucide-react"
-import { IPResponse } from "@/types/ip"
-import { Map, MapMarker, MapTileLayer, MapPopup } from "@/components/ui/map"
-import { siteConfig } from "@/lib/og-config"
-
-const BLUR_FADE_DELAY = 0.04
+import { Suspense } from "react"
+import IPInfoContent from "./ip-info-content"
+import { Loader2 } from "lucide-react"
 
 export default function IPInfoPage() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }>
+      <IPInfoContent />
+    </Suspense>
+  )
+}
   const [loading, setLoading] = useState(false)
   const [ipData, setIpData] = useState<IPResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
