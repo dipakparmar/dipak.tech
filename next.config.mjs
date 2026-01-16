@@ -138,6 +138,21 @@ const nextConfig = {
         destination: '/tools/ip'
       },
       {
+        source: '/',
+        has: [
+          {
+            type: 'host',
+            value: 'ip.dipak.io'
+          },
+          {
+            type: 'header',
+            key: 'user-agent',
+            value: '^(?!.*(curl|Wget|httpie)).*$'
+          }
+        ],
+        destination: '/api/ip'
+      },
+      {
         source: '/api/:path*',
         has: [
           {
