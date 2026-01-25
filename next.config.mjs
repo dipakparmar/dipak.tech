@@ -75,37 +75,38 @@ const nextConfig = {
   async redirects() {
     try {
       const redirectRules = [
-        // Redirect dipak.tech/tools/ip to ip.dipak.io (specific route must come first)
+        // Redirect /tools/ip to ip.dipak.io from production domains only
+        // (skip localhost and Vercel previews)
         {
           source: '/tools/ip',
           has: [
             {
               type: 'host',
-              value: 'dipak.tech'
+              value: '(?!localhost|.*\\.vercel\\.app$|ip\\.dipak\\.io$).*'
             }
           ],
           destination: 'https://ip.dipak.io',
           permanent: true
         },
-        // Redirect dipak.tech/tools/* to tools.dipak.io/*
+        // Redirect /tools/* to tools.dipak.io from production domains only
         {
           source: '/tools/:path*',
           has: [
             {
               type: 'host',
-              value: 'dipak.tech'
+              value: '(?!localhost|.*\\.vercel\\.app$|tools\\.dipak\\.io$).*'
             }
           ],
           destination: 'https://tools.dipak.io/:path*',
           permanent: true
         },
-        // Redirect dipak.tech/go-pkg/* to go.pkg.dipak.io/*
+        // Redirect /go-pkg/* to go.pkg.dipak.io from production domains only
         {
           source: '/go-pkg/:path*',
           has: [
             {
               type: 'host',
-              value: 'dipak.tech'
+              value: '(?!localhost|.*\\.vercel\\.app$|go\\.pkg\\.dipak\\.io$).*'
             }
           ],
           destination: 'https://go.pkg.dipak.io/:path*',
@@ -116,19 +117,19 @@ const nextConfig = {
           has: [
             {
               type: 'host',
-              value: 'dipak.tech'
+              value: '(?!localhost|.*\\.vercel\\.app$|go\\.pkg\\.dipak\\.io$).*'
             }
           ],
           destination: 'https://go.pkg.dipak.io',
           permanent: true
         },
-        // Redirect dipak.tech/container-registry/* to cr.dipak.io/*
+        // Redirect /container-registry/* to cr.dipak.io from production domains only
         {
           source: '/container-registry/:path*',
           has: [
             {
               type: 'host',
-              value: 'dipak.tech'
+              value: '(?!localhost|.*\\.vercel\\.app$|cr\\.dipak\\.io$).*'
             }
           ],
           destination: 'https://cr.dipak.io/:path*',
@@ -139,19 +140,19 @@ const nextConfig = {
           has: [
             {
               type: 'host',
-              value: 'dipak.tech'
+              value: '(?!localhost|.*\\.vercel\\.app$|cr\\.dipak\\.io$).*'
             }
           ],
           destination: 'https://cr.dipak.io',
           permanent: true
         },
-        // Redirect dipak.tech/links to dipak.bio
+        // Redirect /links to dipak.bio from production domains only
         {
           source: '/links',
           has: [
             {
               type: 'host',
-              value: 'dipak.tech'
+              value: '(?!localhost|.*\\.vercel\\.app$|dipak\\.bio$).*'
             }
           ],
           destination: 'https://dipak.bio',
@@ -239,7 +240,7 @@ const nextConfig = {
         ],
         destination: '/container-registry/v2/:path*'
       },
-      // ip.dipak.io routes - More specific rule first (with user-agent condition)
+      // ip.dipak.io routes - CLI tools (curl/wget/httpie) get API response
       {
         source: '/',
         has: [
@@ -250,12 +251,12 @@ const nextConfig = {
           {
             type: 'header',
             key: 'user-agent',
-            value: '^(?!.*(curl|Wget|httpie)).*$'
+            value: '.*(curl|wget|httpie|Wget).*'
           }
         ],
         destination: '/api/ip'
       },
-      // Less specific rule second (matches CLI tools like curl/wget/httpie)
+      // Browsers get HTML page
       {
         source: '/',
         has: [
