@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server"
 import * as Sentry from "@sentry/nextjs"
-import { captureAPIError } from "@/lib/sentry-utils"
 
-export const runtime = "edge"
+import { NextResponse } from "next/server"
+import { captureAPIError } from "@/lib/sentry-utils"
 
 interface DNSRecord {
   name: string
