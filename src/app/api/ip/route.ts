@@ -159,31 +159,47 @@ function isIPv6(value: string) {
 }
 
 async function resolveDomainToIP(domain: string): Promise<string | null> {
-  const response = await queryDNS(domain, "A")
-  if (response.Answer && response.Answer.length > 0) {
-    return response.Answer[0].data
+  try {
+    const response = await queryDNS(domain, "A")
+    if (response.Answer && response.Answer.length > 0) {
+      return response.Answer[0].data
+    }
+  } catch (error) {
+    console.error(`Failed to resolve A record for domain ${domain}:`, error)
   }
 
-  const fallback = await queryDNS(domain, "AAAA")
-  if (fallback.Answer && fallback.Answer.length > 0) {
-    return fallback.Answer[0].data
+  try {
+    const fallback = await queryDNS(domain, "AAAA")
+    if (fallback.Answer && fallback.Answer.length > 0) {
+      return fallback.Answer[0].data
+    }
+  } catch (error) {
+    console.error(`Failed to resolve AAAA record for domain ${domain}:`, error)
   }
 
+  console.warn(`Domain ${domain} has no A or AAAA DNS records`)
   return null
 }
 
 async function queryDNS(name: string, type: "A" | "AAAA"): Promise<DNSResponse> {
   const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`
 
-  const response = await fetch(url, {
-    headers: {
-      Accept: "application/dns-json",
-    },
-  })
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/dns-json",
+      },
+    })
 
-  if (!response.ok) {
-    throw new Error(`DNS query failed: ${response.status}`)
+    if (!response.ok) {
+      const error = new Error(`DNS query failed for ${name} (${type}): HTTP ${response.status}`)
+      console.error(error.message)
+      throw error
+    }
+
+    return await response.json()
+  } catch (error) {
+    console.error(`DNS query error for ${name} (${type}):`, error)
+    throw error
   }
-
-  return await response.json()
 }

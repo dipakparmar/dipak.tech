@@ -40,26 +40,41 @@ export default function IPInfoContent() {
   const [baseUrl, setBaseUrl] = useState("")
 
   useEffect(() => {
-    // Set base URL for API examples based on current host
-    const host = window.location.host
-    if (host.includes(siteConfig.ip.domain)) {
-      setBaseUrl(siteConfig.ip.baseUrl)
-    } else if (host.includes(siteConfig.tools.domain)) {
-      setBaseUrl(siteConfig.tools.baseUrl)
-    } else {
-      // Development or other environment
-      setBaseUrl(window.location.origin)
-    }
+    try {
+      // Set base URL for API examples based on current host
+      const host = window.location.host
+      if (host.includes(siteConfig.ip.domain)) {
+        setBaseUrl(siteConfig.ip.baseUrl)
+      } else if (host.includes(siteConfig.tools.domain)) {
+        setBaseUrl(siteConfig.tools.baseUrl)
+      } else {
+        // Development or other environment
+        setBaseUrl(window.location.origin)
+      }
 
-    // Check URL params for IP (support both 'target' and 'ip' params)
-    const urlIp = searchParams.get("target") || searchParams.get("ip")
+      // Check URL params for IP (support both 'target' and 'ip' params)
+      const urlIp = searchParams.get("target") || searchParams.get("ip")
 
-    if (urlIp) {
-      setCustomIp(urlIp)
-      setShowSearch(true)
-      fetchIPInfo(urlIp)
-    } else {
-      // Load user's IP on mount
+      if (urlIp) {
+        // Validate and sanitize the IP parameter
+        const trimmedIp = urlIp.trim()
+        if (trimmedIp.length > 0 && trimmedIp.length < 256) {
+          setCustomIp(trimmedIp)
+          setShowSearch(true)
+          fetchIPInfo(trimmedIp)
+        } else {
+          console.warn(`Invalid IP parameter length: ${trimmedIp.length}`)
+          setError("Invalid IP address parameter")
+          fetchIPInfo() // Fall back to auto-detect
+        }
+      } else {
+        // Load user's IP on mount
+        fetchIPInfo()
+      }
+    } catch (error) {
+      console.error('Error initializing IP info component:', error)
+      setError('Failed to initialize IP lookup')
+      // Still try to fetch user's IP as fallback
       fetchIPInfo()
     }
   }, [searchParams])
@@ -95,19 +110,49 @@ export default function IPInfoContent() {
     }
   }
 
-  const handleCustomLookup = (e: React.FormEvent) => {
+  const handleCustomLookup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (customIp.trim()) {
-      // Update URL with IP param
-      router.push(`/tools/ip?ip=${encodeURIComponent(customIp.trim())}`)
-      fetchIPInfo(customIp.trim())
+      try {
+        // Update URL with IP param
+        await router.push(`/tools/ip?ip=${encodeURIComponent(customIp.trim())}`)
+        fetchIPInfo(customIp.trim())
+      } catch (error) {
+        console.error('Failed to update URL during IP lookup:', error)
+        // Still fetch the IP info even if URL update fails
+        fetchIPInfo(customIp.trim())
+      }
     }
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+
+      // Fallback to legacy method
+      try {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } catch (fallbackError) {
+        console.error('Fallback copy method also failed:', fallbackError)
+        // Show error state to user
+        setError('Failed to copy to clipboard. Please copy manually.')
+        setTimeout(() => setError(null), 3000)
+      }
+    }
   }
 
   return (

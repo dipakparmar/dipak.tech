@@ -24,9 +24,23 @@ export async function generateMetadata({
     if (response.ok) {
       const data = await response.json()
       commonName = data.certificate?.commonName || "Certificate"
+
+      if (!data.certificate?.commonName) {
+        console.warn(
+          `Certificate data fetched for serial ${serial} but commonName is missing`,
+          { serial }
+        )
+      }
+    } else {
+      console.error(
+        `Failed to fetch certificate metadata for serial ${serial}: HTTP ${response.status}`
+      )
     }
-  } catch {
-    // Use default if fetch fails
+  } catch (error) {
+    console.error(
+      `Exception while fetching certificate metadata for serial ${serial}:`,
+      error instanceof Error ? error.message : String(error)
+    )
   }
 
   const description = `View SSL certificate details for ${commonName}`
