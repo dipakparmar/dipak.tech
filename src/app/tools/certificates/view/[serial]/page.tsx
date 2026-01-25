@@ -61,6 +61,9 @@ export async function generateMetadata({
       description,
       images: [ogImageUrl],
     },
+    alternates: {
+      canonical: `${siteConfig.tools.baseUrl}/certificates/view/${serial}`,
+    },
   }
 }
 

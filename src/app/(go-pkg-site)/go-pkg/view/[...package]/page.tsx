@@ -62,6 +62,9 @@ export async function generateMetadata({
       description,
       images: [ogImageUrl],
     },
+    alternates: {
+      canonical: `${siteConfig.goPkg.baseUrl}/view/${repoName}`,
+    },
   };
 }
 
