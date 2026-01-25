@@ -72,6 +72,93 @@ const nextConfig = {
     ]
   },
 
+  async redirects() {
+    return [
+      // Redirect dipak.tech/tools/ip to ip.dipak.io (specific route must come first)
+      {
+        source: '/tools/ip',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.tech'
+          }
+        ],
+        destination: 'https://ip.dipak.io',
+        permanent: true
+      },
+      // Redirect dipak.tech/tools/* to tools.dipak.io/*
+      {
+        source: '/tools/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.tech'
+          }
+        ],
+        destination: 'https://tools.dipak.io/:path*',
+        permanent: true
+      },
+      // Redirect dipak.tech/go-pkg/* to go.pkg.dipak.io/*
+      {
+        source: '/go-pkg/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.tech'
+          }
+        ],
+        destination: 'https://go.pkg.dipak.io/:path*',
+        permanent: true
+      },
+      {
+        source: '/go-pkg',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.tech'
+          }
+        ],
+        destination: 'https://go.pkg.dipak.io',
+        permanent: true
+      },
+      // Redirect dipak.tech/container-registry/* to cr.dipak.io/*
+      {
+        source: '/container-registry/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.tech'
+          }
+        ],
+        destination: 'https://cr.dipak.io/:path*',
+        permanent: true
+      },
+      {
+        source: '/container-registry',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.tech'
+          }
+        ],
+        destination: 'https://cr.dipak.io',
+        permanent: true
+      },
+      // Redirect dipak.tech/links to dipak.bio
+      {
+        source: '/links',
+        has: [
+          {
+            type: 'host',
+            value: 'dipak.tech'
+          }
+        ],
+        destination: 'https://dipak.bio',
+        permanent: true
+      }
+    ];
+  },
+
   async rewrites() {
     return [
       // go.pkg.dipak.io routes
