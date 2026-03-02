@@ -5,7 +5,7 @@ import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "s
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Wrench, Github, Terminal, Network } from "lucide-react"
+import { Shield, Globe, Wrench, Github, Terminal, Network, Search } from "lucide-react"
 import { buildHref } from "@/lib/host-routing"
 import { ogUrls } from "@/lib/og-config"
 import { personSchema, personReference } from "@/lib/schema"
@@ -61,6 +61,13 @@ const tools = [
     path: "ip",
     icon: Network,
     color: "text-blue-500",
+  },
+  {
+    title: "WHOIS Lookup",
+    description: "Domain, IP, and ASN registration lookup via RDAP protocol",
+    path: "whois",
+    icon: Search,
+    color: "text-amber-500",
   },
   {
     title: "OSINT Scanner",

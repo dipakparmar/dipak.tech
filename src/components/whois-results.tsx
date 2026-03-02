@@ -118,7 +118,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
   return (
     <div className="space-y-6">
       {/* Hero Card */}
-      <Card className="overflow-hidden border-2 shadow-lg">
+      <Card className="relative overflow-hidden border-2 shadow-lg">
         <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent" />
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between gap-4">
