@@ -8,6 +8,7 @@ import { ReleaseNotesForm } from "@/components/release-notes-form"
 import { AlertCircle, BookOpen, Filter, Github } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useHaptics } from "@/hooks/use-haptics"
 
 interface VersionRange {
   min: string
@@ -66,6 +67,7 @@ export function ReleaseNotesTool() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { trigger: hapticTrigger } = useHaptics()
   const prevUrlKey = useRef<string | null>(null)
 
   const [repoInput, setRepoInput] = useState("")
@@ -124,13 +126,15 @@ export function ReleaseNotesTool() {
           totalFetched: result.totalFetched,
           skippedRanges: result.skippedRanges,
         })
+        hapticTrigger("success")
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch release notes")
+        hapticTrigger("error")
       } finally {
         setLoading(false)
       }
     },
-    [updateUrlParams],
+    [updateUrlParams, hapticTrigger],
   )
 
   const handleFetch = async () => {

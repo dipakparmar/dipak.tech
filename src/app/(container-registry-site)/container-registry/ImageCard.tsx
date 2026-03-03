@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useHaptics } from "@/hooks/use-haptics";
 import {
   RegistryBackend,
   REGISTRY_BACKENDS,
@@ -48,6 +49,7 @@ function formatDate(dateStr: string): string {
 
 export function ImageCard({ image }: ImageCardProps) {
   const [copied, setCopied] = useState(false);
+  const { trigger } = useHaptics();
   const registryConfig = REGISTRY_BACKENDS[image.registry];
   const pullCommand = `docker pull cr.dipak.io/${image.registry}/${image.name}:latest`;
   const fullImageName = `${GITHUB_USERNAME}/${image.name}`;
@@ -60,6 +62,7 @@ export function ImageCard({ image }: ImageCardProps) {
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(pullCommand);
+    trigger("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

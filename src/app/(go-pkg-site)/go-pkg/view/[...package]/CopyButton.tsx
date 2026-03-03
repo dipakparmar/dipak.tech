@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useHaptics } from "@/hooks/use-haptics";
 
 export function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const { trigger } = useHaptics();
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
+    trigger("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
