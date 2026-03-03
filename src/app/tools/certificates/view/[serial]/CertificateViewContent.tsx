@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { BlurFade } from "@/components/magicui/blur-fade"
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"

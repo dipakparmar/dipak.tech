@@ -8,7 +8,7 @@ import { ArrowTopRightIcon } from '@radix-ui/react-icons';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Streamdown } from 'streamdown';
-import { Slider } from '@/components/ui/slider';
+import { HapticSlider as Slider } from '@/components/haptic-wrappers';
 
 enum DetailLevel {
   SUMMARY = 0,

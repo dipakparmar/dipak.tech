@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useCallback, useEffect, useRef } from "react"
+import { useHaptics } from "@/hooks/use-haptics"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Search, Eye, Shield, Calendar, Building, Globe, Share2, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +38,7 @@ interface CTLogsViewerProps {
 
 export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
   const pathname = usePathname()
+  const { trigger } = useHaptics()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [query, setQuery] = useState(initialDomain)
@@ -72,9 +74,10 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
     const resolvedPath = normalizePathname('tools', pathname, host)
     const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
     await navigator.clipboard.writeText(url)
+    trigger("success")
     setUrlCopied(true)
     setTimeout(() => setUrlCopied(false), 2000)
-  }, [query, pathname])
+  }, [query, pathname, trigger])
 
   const handleSearch = useCallback(async (searchQuery?: string) => {
     const q = searchQuery ?? query
@@ -126,12 +129,14 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
         issuers: issuers.slice(0, 5),
         names: names.slice(0, 20),
       })
+      trigger("success")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to search certificate logs")
+      trigger("error")
     } finally {
       setLoading(false)
     }
-  }, [query, updateUrlWithDomain])
+  }, [query, updateUrlWithDomain, trigger])
 
   // Auto-search if initial domain is provided
   useEffect(() => {

@@ -3,7 +3,8 @@
 import { useCallback, Suspense } from "react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { BlurFade } from "@/components/magicui/blur-fade"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
+import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { FileKey, FileText, Key, Search, Shield } from "lucide-react"
 
 import { CTLogsViewer } from "@/components/cert-tools/ct-logs-viewer"

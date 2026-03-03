@@ -4,9 +4,9 @@ import { Calendar, Download, ExternalLink, Eye, EyeOff, Printer, Tag } from "luc
 import { useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+import { HapticCheckbox as Checkbox } from "@/components/haptic-wrappers"
 import { Streamdown } from "streamdown"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"

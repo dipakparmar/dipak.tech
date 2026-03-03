@@ -5,11 +5,12 @@ import { AlertCircle, ArrowRight, Check, Globe, Hash, Network, Search, Share2 } 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Input } from "@/components/ui/input"
 import type React from "react"
 import { Spinner } from "@/components/ui/spinner"
 import { OsintResults } from "@/components/osint-results"
+import { useHaptics } from "@/hooks/use-haptics"
 
 const EXAMPLE_QUERIES = [
   { label: "google.com", icon: Globe, type: "domain" },
@@ -39,6 +40,7 @@ export function WhoisLookup() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { trigger: hapticTrigger } = useHaptics()
   const initialQuery = searchParams.get("q") || ""
 
   const [query, setQuery] = useState(initialQuery)
@@ -159,14 +161,18 @@ export function WhoisLookup() {
         const settled = await Promise.allSettled(taskPromises)
         if (settled.every((result) => result.status === "rejected")) {
           setError("No intelligence data available for this query")
+          hapticTrigger("error")
+        } else {
+          hapticTrigger("success")
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred")
+        hapticTrigger("error")
       } finally {
         setLoading(false)
       }
     },
-    [pathname, router, searchParams]
+    [pathname, router, searchParams, hapticTrigger]
   )
 
   // Sync state with URL search params (only on URL changes, not local edits)

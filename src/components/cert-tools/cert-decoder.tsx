@@ -2,12 +2,14 @@
 
 import { useState, useCallback } from "react"
 import { FileText, Copy, AlertCircle, Link, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useHaptics } from "@/hooks/use-haptics"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
+import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { Label } from "@/components/ui/label"
 import { CertificateDetails, CertificateData } from "./certificate-details"
 
@@ -410,6 +412,7 @@ function toCertificateData(decoded: DecodedCert, pem?: string): CertificateData 
 }
 
 export function CertDecoder() {
+  const { trigger: hapticTrigger } = useHaptics()
   const [mode, setMode] = useState<"paste" | "url">("paste")
   const [pem, setPem] = useState("")
   const [urlInput, setUrlInput] = useState("")
@@ -435,10 +438,12 @@ export function CertDecoder() {
     try {
       const result = await decodeCertificate(pem)
       setCertData(toCertificateData(result, pem))
+      hapticTrigger("success")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to decode certificate")
+      hapticTrigger("error")
     }
-  }, [pem])
+  }, [pem, hapticTrigger])
 
   const handleFetchFromUrl = useCallback(async () => {
     if (!urlInput.trim()) {
@@ -498,12 +503,14 @@ export function CertDecoder() {
       }
 
       setCertData(toCertificateData(result, data.pem))
+      hapticTrigger("success")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch certificate")
+      hapticTrigger("error")
     } finally {
       setLoading(false)
     }
-  }, [urlInput])
+  }, [urlInput, hapticTrigger])
 
   return (
     <div className="space-y-6">

@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useCallback } from "react"
+import { useHaptics } from "@/hooks/use-haptics"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import {
   Shield,
   Building,
@@ -57,9 +58,11 @@ export function parseDN(dn: string): Record<string, string> {
 
 export function CertificateDetails({ certificate, showPem = true, className = "" }: CertificateDetailsProps) {
   const [copied, setCopied] = useState<string | null>(null)
+  const { trigger } = useHaptics()
 
   const handleCopy = useCallback(async (text: string, id: string) => {
     await navigator.clipboard.writeText(text)
+    trigger("success")
     setCopied(id)
     setTimeout(() => setCopied(null), 2000)
   }, [])

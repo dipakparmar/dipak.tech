@@ -2,11 +2,13 @@
 
 import { useState, useCallback } from "react"
 import { usePathname } from "next/navigation"
+import { useHaptics } from "@/hooks/use-haptics"
 import { Key, Copy, Check, Download, Lock, Unlock, Share2, AlertCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { HapticSelectItem as SelectItem } from "@/components/haptic-wrappers"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { normalizePathname } from "@/lib/host-routing"
@@ -45,6 +47,7 @@ interface KeyGeneratorProps {
 
 export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
   const pathname = usePathname()
+  const { trigger } = useHaptics()
   const [settings, setSettings] = useState({
     algorithm: initialValues?.algorithm || "RSA",
     keySize: initialValues?.keySize || "2048",
@@ -65,9 +68,10 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
     const resolvedPath = normalizePathname('tools', pathname, host)
     const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
     await navigator.clipboard.writeText(url)
+    trigger("success")
     setUrlCopied(true)
     setTimeout(() => setUrlCopied(false), 2000)
-  }, [settings, pathname])
+  }, [settings, pathname, trigger])
 
   const handleGenerate = useCallback(async () => {
     setLoading(true)
@@ -112,8 +116,10 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
         keySize: settings.keySize,
         format: "PEM (PKCS#8 / SPKI)",
       })
+      trigger("success")
     } catch (err) {
       console.error("Key generation failed:", err)
+      trigger("error")
     } finally {
       setLoading(false)
     }
@@ -121,9 +127,10 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
 
   const handleCopy = useCallback(async (type: "public" | "private", content: string) => {
     await navigator.clipboard.writeText(content)
+    trigger("success")
     setCopied(type)
     setTimeout(() => setCopied(null), 2000)
-  }, [])
+  }, [trigger])
 
   const handleDownload = useCallback((filename: string, content: string) => {
     const blob = new Blob([content], { type: "text/plain" })

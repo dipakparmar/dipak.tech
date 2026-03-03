@@ -21,11 +21,13 @@ import {
   User,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
+import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { useCallback, useState } from "react"
+import { useHaptics } from "@/hooks/use-haptics"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 
 interface WhoisResultsProps {
   data: any
@@ -36,9 +38,11 @@ type QueryType = "domain" | "ipv4" | "ipv6" | "asn"
 
 function CopyButton({ value, className }: { value: string; className?: string }) {
   const [copied, setCopied] = useState(false)
+  const { trigger } = useHaptics()
 
   const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(value)
+    trigger("success")
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [value])

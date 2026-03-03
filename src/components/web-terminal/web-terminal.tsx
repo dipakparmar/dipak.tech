@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
-import { Button } from '@/components/ui/button';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,11 +22,11 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { HapticDropdownMenuCheckboxItem as DropdownMenuCheckboxItem } from '@/components/haptic-wrappers';
 import {
   Dialog,
   DialogContent,

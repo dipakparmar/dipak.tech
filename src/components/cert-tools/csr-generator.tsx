@@ -2,16 +2,19 @@
 
 import { useState, useCallback } from "react"
 import { usePathname } from "next/navigation"
+import { useHaptics } from "@/hooks/use-haptics"
 import { FileKey, Copy, Check, Download, AlertCircle, Shield, Share2, Plus, X, Key, Upload } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { HapticSelectItem as SelectItem } from "@/components/haptic-wrappers"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
+import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import * as pkijs from "pkijs"
 import * as asn1js from "asn1js"
 import { normalizePathname } from "@/lib/host-routing"
@@ -137,6 +140,7 @@ interface CSRGeneratorProps {
 
 export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
   const pathname = usePathname()
+  const { trigger } = useHaptics()
   const [keyMode, setKeyMode] = useState<"generate" | "existing">("generate")
   const [existingKey, setExistingKey] = useState("")
   const [formData, setFormData] = useState({
@@ -201,9 +205,10 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
     const resolvedPath = normalizePathname('tools', pathname, host)
     const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
     await navigator.clipboard.writeText(url)
+    trigger("success")
     setUrlCopied(true)
     setTimeout(() => setUrlCopied(false), 2000)
-  }, [formData, sans, pathname])
+  }, [formData, sans, pathname, trigger])
 
   const handleGenerate = useCallback(async () => {
     if (!formData.commonName.trim()) {
@@ -469,9 +474,11 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
         keySize: detectedKeySize,
         sans: uniqueSans,
       })
+      trigger("success")
     } catch (err) {
       console.error("CSR generation error:", err)
       setError(err instanceof Error ? err.message : "Failed to generate CSR")
+      trigger("error")
     } finally {
       setLoading(false)
     }
@@ -479,9 +486,10 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
 
   const handleCopy = useCallback(async (type: "csr" | "key", content: string) => {
     await navigator.clipboard.writeText(content)
+    trigger("success")
     setCopied(type)
     setTimeout(() => setCopied(null), 2000)
-  }, [])
+  }, [trigger])
 
   const handleDownload = useCallback((filename: string, content: string) => {
     const blob = new Blob([content], { type: "text/plain" })

@@ -2,7 +2,8 @@
 
 import { Activity, AlertTriangle, Globe, Info, Lock, Network, ShieldCheck } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
+import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"

@@ -3,7 +3,7 @@
 import { MoonIcon, SunIcon, DesktopIcon } from '@radix-ui/react-icons';
 import { useSyncExternalStore } from 'react';
 
-import { Button } from '@/components/ui/button';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { useTheme } from 'next-themes';
 
 const emptySubscribe = () => () => {};

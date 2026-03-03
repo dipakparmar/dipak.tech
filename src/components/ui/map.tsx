@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import {
     DropdownMenu,
-    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuLabel,
     DropdownMenuRadioGroup,
-    DropdownMenuRadioItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+    HapticDropdownMenuCheckboxItem as DropdownMenuCheckboxItem,
+    HapticDropdownMenuRadioItem as DropdownMenuRadioItem,
+} from "@/components/haptic-wrappers"
 import {
     PlaceAutocomplete,
     type PlaceAutocompleteProps,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useHaptics } from "@/hooks/use-haptics";
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   generatePassword,
@@ -29,25 +30,25 @@ import { useSceneEntropy } from '@/lib/password-generator/scene-context';
 import {
   Tabs,
   TabsList,
-  TabsTrigger,
   TabsContent,
 } from '@/components/ui/tabs';
+import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
 import {
   Card,
   CardContent,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
+import { HapticSlider as Slider } from '@/components/haptic-wrappers';
 import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { HapticSelectItem as SelectItem } from '@/components/haptic-wrappers';
+import { HapticCheckbox as Checkbox } from '@/components/haptic-wrappers';
 import {
   Copy,
   RefreshCw,
@@ -93,6 +94,7 @@ export function PasswordGenerator() {
   const pathname = usePathname();
   const prevUrlKey = useRef<string>('');
   const isInitialMount = useRef(true);
+  const { trigger: hapticTrigger } = useHaptics();
 
   const [mode, setMode] = useState<Mode>(
     () => (searchParams.get('mode') as Mode) || 'password'
@@ -386,27 +388,31 @@ export function PasswordGenerator() {
 
   const copyToClipboard = useCallback(async () => {
     await navigator.clipboard.writeText(results[0] || '');
+    hapticTrigger("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [results]);
+  }, [results, hapticTrigger]);
 
   const copySingle = useCallback(async (index: number) => {
     await navigator.clipboard.writeText(results[index] || '');
+    hapticTrigger("success");
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
-  }, [results]);
+  }, [results, hapticTrigger]);
 
   const copyAll = useCallback(async () => {
     await navigator.clipboard.writeText(results.join('\n'));
+    hapticTrigger("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [results]);
+  }, [results, hapticTrigger]);
 
   const shareConfig = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
+    hapticTrigger("success");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, []);
+  }, [hapticTrigger]);
 
   return (
     <div className="space-y-6">
