@@ -96,6 +96,7 @@ export const toolIcons: Record<string, string> = {
   'github-release-notes': '📋',
   whois: '🌐',
   'web-terminal': '📟',
+  'password-generator': '🔑',
   default: '🛠️',
 };
 

@@ -5,7 +5,7 @@ import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "s
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Wrench, Github, Terminal, Network, Search } from "lucide-react"
+import { Shield, Globe, Wrench, Github, Terminal, Network, Search, KeyRound } from "lucide-react"
 import { buildHref } from "@/lib/host-routing"
 import { ogUrls } from "@/lib/og-config"
 import { personSchema, personReference } from "@/lib/schema"
@@ -82,6 +82,13 @@ const tools = [
     path: "github-release-notes",
     icon: Github,
     color: "text-slate-600 dark:text-slate-300",
+  },
+  {
+    title: "Password Generator",
+    description: "Generate secure passwords, passphrases, PINs, salts, and API keys",
+    path: "password-generator",
+    icon: KeyRound,
+    color: "text-indigo-500",
   },
   {
     title: "Web Terminal",
