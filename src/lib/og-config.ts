@@ -97,6 +97,7 @@ export const toolIcons: Record<string, string> = {
   whois: '🌐',
   'web-terminal': '📟',
   'password-generator': '🔑',
+  'message-header-analyzer': '📧',
   default: '🛠️',
 };
 

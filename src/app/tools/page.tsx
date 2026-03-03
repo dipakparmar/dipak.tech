@@ -5,7 +5,7 @@ import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "s
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Wrench, Github, Terminal, Network, Search, KeyRound } from "lucide-react"
+import { Shield, Globe, Wrench, Github, Terminal, Network, Search, KeyRound, Mail } from "lucide-react"
 import { buildHref } from "@/lib/host-routing"
 import { ogUrls } from "@/lib/og-config"
 import { personSchema, personReference } from "@/lib/schema"
@@ -89,6 +89,13 @@ const tools = [
     path: "password-generator",
     icon: KeyRound,
     color: "text-indigo-500",
+  },
+  {
+    title: "Message Header Analyzer",
+    description: "Parse and analyze email headers, routing hops, and authentication",
+    path: "message-header-analyzer",
+    icon: Mail,
+    color: "text-orange-500",
   },
   {
     title: "Web Terminal",
