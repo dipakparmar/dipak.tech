@@ -130,12 +130,12 @@ const themes: Record<number, SceneTheme> = {
     bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(176,190,197,0.15) 0%, rgba(144,164,174,0.08) 40%, transparent 70%)',
     glowColor: 'rgba(255,255,255,0.12)',
     glowColorDark: 'rgba(176,190,197,0.08)',
-    gravity: 18,
-    windBase: 8,
-    windGust: 30,
+    gravity: 55,
+    windBase: 10,
+    windGust: 35,
     turbulence: 1.0,
     spawns: [
-      { type: 'snowflake', rate: 8, max: 80, settles: true },
+      { type: 'snowflake', rate: 10, max: 100, settles: true },
     ],
   },
   6: { // Cosmic - twinkling stars
@@ -1021,10 +1021,10 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
           case 'snowflake':
             p.vx += (wind + nx * 20) * dt;
             p.vy += (cfg.gravity + ny * 5) * dt;
-            p.vx *= 0.96;
-            p.vy *= 0.96;
+            p.vx *= 0.97;
+            p.vy *= 0.993;
             p.rotation += 0.3 * dt;
-            p.vx += Math.sin(t * 1.2 + p.seed) * 6 * dt;
+            p.vx += Math.sin(t * 1.2 + p.seed) * 8 * dt;
             // Settle on ground
             if (p.y >= groundY && settledCount < MAX_SETTLED) {
               p.settled = true;

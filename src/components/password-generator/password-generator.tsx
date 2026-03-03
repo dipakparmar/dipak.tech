@@ -154,8 +154,10 @@ export function PasswordGenerator() {
     return secPrefix;
   }, [secPrefix, secCustomPrefix]);
 
-  const results = useMemo(() => {
-    void regenKey; // used to trigger regeneration
+  const [results, setResults] = useState<string[]>([]);
+
+  // Generate results client-side only to avoid SSR hydration mismatch
+  useEffect(() => {
     const generated: string[] = [];
     for (let i = 0; i < count; i++) {
       switch (mode) {
@@ -204,7 +206,7 @@ export function PasswordGenerator() {
           break;
       }
     }
-    return generated;
+    setResults(generated);
   }, [
     mode, count, regenKey,
     pwLength, pwUpper, pwLower, pwNum, pwSym, pwSafe, pwNoAmbig, pwExclude,
