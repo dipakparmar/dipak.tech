@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { HapticButton as Button } from "@/components/haptic-wrappers"
@@ -16,6 +16,8 @@ import { RoutingTimeline } from "./routing-timeline"
 import { AuthResults } from "./auth-results"
 import { HeaderTable } from "./header-table"
 import { MessageViewer } from "./message-viewer"
+import { AnnotationProvider, useAnnotation } from "./annotation-provider"
+import { DesktopCommentCard, MobileCommentSheet, ConnectorLine } from "./annotation-components"
 import { FileText, AlertCircle, Clipboard, Trash2, ChevronDown, Share2, Check } from "lucide-react"
 import { useHaptics } from "@/hooks/use-haptics"
 
@@ -37,13 +39,21 @@ function decodeHeaders(encoded: string): string | null {
   }
 }
 
-export function HeaderAnalyzer() {
+function HeaderAnalyzerInner() {
   const [rawHeaders, setRawHeaders] = useState("")
   const [parsed, setParsed] = useState<ParsedHeaders | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [copied, setCopied] = useState(false)
   const { trigger: hapticTrigger } = useHaptics()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { setContainerEl } = useAnnotation()
+
+  // Set container ref for connector line positioning
+  useEffect(() => {
+    if (containerRef.current) setContainerEl(containerRef.current)
+    return () => setContainerEl(null)
+  }, [parsed, setContainerEl])
 
   // Load headers from URL hash on mount
   useEffect(() => {
@@ -175,7 +185,10 @@ export function HeaderAnalyzer() {
 
       {/* Results section - stacked for print-friendliness */}
       {parsed && (
-        <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+        <div
+          ref={containerRef}
+          className="relative mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6"
+        >
           {/* Share button */}
           <div className="flex justify-end">
             <Button
@@ -220,8 +233,23 @@ export function HeaderAnalyzer() {
           <AuthResults authentication={parsed.authentication} />
 
           <HeaderTable headers={parsed.headers} />
+
+          {/* Desktop annotation card + connector */}
+          <DesktopCommentCard />
+          <ConnectorLine />
+
+          {/* Mobile annotation sheet */}
+          <MobileCommentSheet />
         </div>
       )}
     </div>
+  )
+}
+
+export function HeaderAnalyzer() {
+  return (
+    <AnnotationProvider>
+      <HeaderAnalyzerInner />
+    </AnnotationProvider>
   )
 }

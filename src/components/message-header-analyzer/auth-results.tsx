@@ -11,15 +11,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle2, XCircle, AlertTriangle, MinusCircle, ShieldCheck } from "lucide-react"
 import type { AuthenticationResults, AuthResult } from "@/lib/email-header-parser"
+import { CommentMarker, AnnotatedRow } from "./annotation-components"
+import { getHeaderAnnotation, getCardAnnotation } from "@/lib/header-annotations"
 
 interface AuthResultsProps {
   authentication: AuthenticationResults
-}
-
-const METHOD_DESCRIPTIONS: Record<string, string> = {
-  spf: "SPF (Sender Policy Framework) verifies that the sending server is authorized to send email for the domain.",
-  dkim: "DKIM (DomainKeys Identified Mail) verifies the email was not altered in transit using a cryptographic signature.",
-  dmarc: "DMARC (Domain-based Message Authentication) builds on SPF and DKIM to define how unauthenticated emails should be handled.",
 }
 
 function getResultIcon(result: string) {
@@ -116,6 +112,7 @@ function getOverallVerdict(results: AuthResult[]): {
 
 export function AuthResults({ authentication }: AuthResultsProps) {
   const verdict = getOverallVerdict(authentication.results)
+  const authHeaderInfo = getHeaderAnnotation("authentication-results")
 
   return (
     <Card>
@@ -125,6 +122,7 @@ export function AuthResults({ authentication }: AuthResultsProps) {
             <ShieldCheck className="h-4 w-4 text-primary" />
           </div>
           Authentication Results
+          <CommentMarker id="auth-results-header" info={authHeaderInfo} />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -152,29 +150,37 @@ export function AuthResults({ authentication }: AuthResultsProps) {
         {/* Individual results */}
         {authentication.results.length > 0 && (
           <Accordion type="multiple" defaultValue={authentication.results.map((_, i) => String(i))}>
-            {authentication.results.map((result, i) => (
-              <AccordionItem key={i} value={String(i)}>
-                <AccordionTrigger>
-                  <div className="flex items-center gap-2">
-                    {getResultIcon(result.result)}
-                    <span className="font-mono font-medium uppercase">{result.method}</span>
-                    {getResultBadge(result.result)}
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-2">
-                    {METHOD_DESCRIPTIONS[result.method.toLowerCase()] && (
-                      <p className="text-muted-foreground">
-                        {METHOD_DESCRIPTIONS[result.method.toLowerCase()]}
-                      </p>
-                    )}
-                    <div className="rounded-md bg-muted/50 p-2">
-                      <code className="font-mono text-xs break-all">{result.detail}</code>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+            {authentication.results.map((result, i) => {
+              const cardInfo = getCardAnnotation(result.method)
+              return (
+                <AccordionItem key={i} value={String(i)}>
+                  <AnnotatedRow id={`auth-detail-${result.method}-${i}`}>
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        {getResultIcon(result.result)}
+                        <span className="font-mono font-medium uppercase">{result.method}</span>
+                        {getResultBadge(result.result)}
+                        {cardInfo && (
+                          <CommentMarker id={`auth-detail-${result.method}-${i}`} info={cardInfo} />
+                        )}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2">
+                        {cardInfo && (
+                          <p className="text-muted-foreground">
+                            {cardInfo.description}
+                          </p>
+                        )}
+                        <div className="rounded-md bg-muted/50 p-2">
+                          <code className="font-mono text-xs break-all">{result.detail}</code>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AnnotatedRow>
+                </AccordionItem>
+              )
+            })}
           </Accordion>
         )}
       </CardContent>

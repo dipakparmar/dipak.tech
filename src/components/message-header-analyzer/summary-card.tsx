@@ -4,12 +4,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Clock, Mail, MessageSquare, User, Calendar, AtSign, Send, FileType } from "lucide-react"
 import type { EmailSummary, AuthenticationResults } from "@/lib/email-header-parser"
+import { CommentMarker, AnnotatedRow } from "./annotation-components"
+import { getHeaderAnnotation, getCardAnnotation } from "@/lib/header-annotations"
 
 interface SummaryCardProps {
   summary: EmailSummary
   authentication: AuthenticationResults
   totalDeliveryTime: number | null
   formatDelay: (ms: number) => string
+}
+
+const FIELD_TO_HEADER: Record<string, string> = {
+  From: "from",
+  To: "to",
+  Subject: "subject",
+  Date: "date",
+  "Message-ID": "message-id",
+  "X-Mailer": "x-mailer",
+  "Reply-To": "reply-to",
+  "Content-Type": "content-type",
 }
 
 function getAuthBadge(method: string, results: AuthenticationResults["results"]) {
@@ -84,15 +97,22 @@ export function SummaryCard({ summary, authentication, totalDeliveryTime, format
       <CardContent className="space-y-4">
         {/* Primary fields */}
         <div className="grid gap-3 sm:grid-cols-2">
-          {fields.map((field) => (
-            <div key={field.label} className="space-y-1">
-              <div className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
-                <field.icon className="h-3 w-3" />
-                {field.label}
-              </div>
-              <p className="font-mono text-xs break-all">{field.value || "N/A"}</p>
-            </div>
-          ))}
+          {fields.map((field) => {
+            const headerKey = FIELD_TO_HEADER[field.label] || field.label.toLowerCase()
+            const info = getHeaderAnnotation(headerKey)
+            return (
+              <AnnotatedRow key={field.label} id={`summary-${headerKey}`}>
+                <div className="space-y-1 rounded px-2 py-1.5">
+                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+                    <field.icon className="h-3 w-3" />
+                    {field.label}
+                    <CommentMarker id={`summary-${headerKey}`} info={info} />
+                  </div>
+                  <p className="font-mono text-xs break-all">{field.value || "N/A"}</p>
+                </div>
+              </AnnotatedRow>
+            )
+          })}
         </div>
 
         {/* Extra fields */}
@@ -100,15 +120,22 @@ export function SummaryCard({ summary, authentication, totalDeliveryTime, format
           <>
             <div className="h-px bg-border" />
             <div className="grid gap-3 sm:grid-cols-2">
-              {extraFields.map((field) => (
-                <div key={field.label} className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
-                    <field.icon className="h-3 w-3" />
-                    {field.label}
-                  </div>
-                  <p className="font-mono text-xs break-all">{field.value}</p>
-                </div>
-              ))}
+              {extraFields.map((field) => {
+                const headerKey = FIELD_TO_HEADER[field.label] || field.label.toLowerCase()
+                const info = getHeaderAnnotation(headerKey)
+                return (
+                  <AnnotatedRow key={field.label} id={`summary-${headerKey}`}>
+                    <div className="space-y-1 rounded px-2 py-1.5">
+                      <div className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+                        <field.icon className="h-3 w-3" />
+                        {field.label}
+                        <CommentMarker id={`summary-${headerKey}`} info={info} />
+                      </div>
+                      <p className="font-mono text-xs break-all">{field.value}</p>
+                    </div>
+                  </AnnotatedRow>
+                )
+              })}
             </div>
           </>
         )}
@@ -122,9 +149,17 @@ export function SummaryCard({ summary, authentication, totalDeliveryTime, format
                 Authentication
               </div>
               <div className="flex flex-wrap gap-2">
-                {getAuthBadge("spf", authentication.results)}
-                {getAuthBadge("dkim", authentication.results)}
-                {getAuthBadge("dmarc", authentication.results)}
+                {["spf", "dkim", "dmarc"].map((method) => {
+                  const cardInfo = getCardAnnotation(method)
+                  return (
+                    <AnnotatedRow key={method} id={`auth-badge-${method}`} className="inline-flex items-center gap-1">
+                      {getAuthBadge(method, authentication.results)}
+                      {cardInfo && (
+                        <CommentMarker id={`auth-badge-${method}`} info={cardInfo} />
+                      )}
+                    </AnnotatedRow>
+                  )
+                })}
               </div>
             </div>
           </>

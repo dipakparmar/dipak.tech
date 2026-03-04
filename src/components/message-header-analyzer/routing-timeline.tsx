@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, Route } from "lucide-react"
 import type { Hop } from "@/lib/email-header-parser"
 import { formatDelay } from "@/lib/email-header-parser"
+import { CommentMarker, AnnotatedRow } from "./annotation-components"
+import { getHeaderAnnotation, getCardAnnotation } from "@/lib/header-annotations"
 
 interface RoutingTimelineProps {
   hops: Hop[]
@@ -32,6 +34,8 @@ function getSlowestHopIndex(hops: Hop[]): number {
 
 export function RoutingTimeline({ hops, totalDeliveryTime }: RoutingTimelineProps) {
   const slowestIndex = getSlowestHopIndex(hops)
+  const receivedInfo = getHeaderAnnotation("received")
+  const hopsCardInfo = getCardAnnotation("received-hops")
 
   if (hops.length === 0) {
     return (
@@ -52,6 +56,9 @@ export function RoutingTimeline({ hops, totalDeliveryTime }: RoutingTimelineProp
               <Route className="h-4 w-4 text-primary" />
             </div>
             Routing Timeline
+            {hopsCardInfo && (
+              <CommentMarker id="routing-hops-info" info={hopsCardInfo} />
+            )}
           </CardTitle>
           {totalDeliveryTime !== null && (
             <Badge variant="outline" className="gap-1.5 font-mono">
@@ -70,7 +77,7 @@ export function RoutingTimeline({ hops, totalDeliveryTime }: RoutingTimelineProp
             {hops.map((hop) => {
               const isSlowest = hop.index === slowestIndex
               return (
-                <div key={hop.index} className="relative">
+                <AnnotatedRow key={hop.index} id={`hop-${hop.index}`}>
                   {/* Delay badge between hops */}
                   {hop.delay !== null && (
                     <div className="relative flex items-center py-1.5 pl-6">
@@ -103,6 +110,9 @@ export function RoutingTimeline({ hops, totalDeliveryTime }: RoutingTimelineProp
                         <span className="text-[0.6875rem] font-medium text-muted-foreground">
                           Hop {hop.index + 1}
                         </span>
+                        {hop.index === 0 && (
+                          <CommentMarker id={`hop-${hop.index}`} info={receivedInfo} />
+                        )}
                         {isSlowest && (
                           <Badge variant="destructive" className="text-[0.5625rem]">
                             Slowest
@@ -139,7 +149,7 @@ export function RoutingTimeline({ hops, totalDeliveryTime }: RoutingTimelineProp
                       </div>
                     </div>
                   </div>
-                </div>
+                </AnnotatedRow>
               )
             })}
           </div>

@@ -13,6 +13,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, TableIcon } from "lucide-react"
 import type { HeaderEntry } from "@/lib/email-header-parser"
+import { CommentMarker, AnnotatedRow } from "./annotation-components"
+import { getHeaderAnnotation } from "@/lib/header-annotations"
 
 interface HeaderTableProps {
   headers: HeaderEntry[]
@@ -78,15 +80,23 @@ export function HeaderTable({ headers }: HeaderTableProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((header, idx) => (
-                  <TableRow key={idx}>
-                    <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
-                    <TableCell className="font-mono font-medium">{header.name}</TableCell>
-                    <TableCell className="font-mono break-all whitespace-normal max-w-[400px]">
-                      {header.value}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filtered.map((header, idx) => {
+                  const info = getHeaderAnnotation(header.name)
+                  return (
+                    <TableRow key={idx}>
+                      <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
+                      <TableCell className="font-mono font-medium">
+                        <AnnotatedRow id={`header-${idx}-${header.name.toLowerCase()}`} className="inline-flex items-center gap-1.5">
+                          <span>{header.name}</span>
+                          <CommentMarker id={`header-${idx}-${header.name.toLowerCase()}`} info={info} />
+                        </AnnotatedRow>
+                      </TableCell>
+                      <TableCell className="font-mono break-all whitespace-normal max-w-[400px]">
+                        {header.value}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
               )}
             </TableBody>
           </Table>
