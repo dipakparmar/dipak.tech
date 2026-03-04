@@ -155,16 +155,18 @@ export function AuthResults({ authentication }: AuthResultsProps) {
               return (
                 <AccordionItem key={i} value={String(i)}>
                   <AnnotatedRow id={`auth-detail-${result.method}-${i}`}>
-                    <AccordionTrigger>
-                      <div className="flex items-center gap-2">
-                        {getResultIcon(result.result)}
-                        <span className="font-mono font-medium uppercase">{result.method}</span>
-                        {getResultBadge(result.result)}
-                        {cardInfo && (
-                          <CommentMarker id={`auth-detail-${result.method}-${i}`} info={cardInfo} />
-                        )}
-                      </div>
-                    </AccordionTrigger>
+                    <div className="flex items-center gap-2">
+                      <AccordionTrigger className="flex-1">
+                        <div className="flex items-center gap-2">
+                          {getResultIcon(result.result)}
+                          <span className="font-mono font-medium uppercase">{result.method}</span>
+                          {getResultBadge(result.result)}
+                        </div>
+                      </AccordionTrigger>
+                      {cardInfo && (
+                        <CommentMarker id={`auth-detail-${result.method}-${i}`} info={cardInfo} />
+                      )}
+                    </div>
                     <AccordionContent>
                       <div className="space-y-2">
                         {cardInfo && (
