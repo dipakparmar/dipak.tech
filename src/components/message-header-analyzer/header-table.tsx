@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import {
   Table,
@@ -13,11 +13,61 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, TableIcon } from "lucide-react"
 import type { HeaderEntry } from "@/lib/email-header-parser"
-import { CommentMarker, AnnotatedRow } from "./annotation-components"
+import { CommentMarker } from "./annotation-components"
+import { useAnnotation } from "./annotation-provider"
 import { getHeaderAnnotation } from "@/lib/header-annotations"
 
 interface HeaderTableProps {
   headers: HeaderEntry[]
+}
+
+function AnnotatedHeaderRow({
+  header,
+  idx,
+}: {
+  header: HeaderEntry
+  idx: number
+}) {
+  const annotationId = `header-${idx}-${header.name.toLowerCase()}`
+  const info = getHeaderAnnotation(header.name)
+  const { openAnnotations, registerRow, cardSides } = useAnnotation()
+  const isOpen = openAnnotations.has(annotationId)
+  const side = cardSides.get(annotationId) ?? "left"
+
+  const refCallback = useCallback(
+    (el: HTMLTableRowElement | null) => {
+      registerRow(annotationId, isOpen ? el : null)
+    },
+    [annotationId, isOpen, registerRow]
+  )
+
+  return (
+    <TableRow
+      ref={refCallback}
+      className={
+        isOpen
+          ? `bg-amber-50 dark:bg-amber-950/20 relative ${
+              side === "left"
+                ? "border-l-[3px] border-l-amber-500"
+                : "border-r-[3px] border-r-amber-500"
+            }`
+          : ""
+      }
+    >
+      <TableCell className="font-mono text-muted-foreground">
+        {idx + 1}
+      </TableCell>
+      <TableCell className="font-mono font-medium">
+        <span className="inline-flex items-center gap-1.5">
+          <span>{header.name}</span>
+          <CommentMarker id={annotationId} info={info} />
+        </span>
+      </TableCell>
+      <TableCell className="font-mono break-all whitespace-normal max-w-[400px]">
+        {header.value}
+      </TableCell>
+    </TableRow>
+  )
 }
 
 export function HeaderTable({ headers }: HeaderTableProps) {
@@ -75,28 +125,23 @@ export function HeaderTable({ headers }: HeaderTableProps) {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                    {filter ? "No headers match your filter." : "No headers found."}
+                  <TableCell
+                    colSpan={3}
+                    className="text-center text-muted-foreground py-8"
+                  >
+                    {filter
+                      ? "No headers match your filter."
+                      : "No headers found."}
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((header, idx) => {
-                  const info = getHeaderAnnotation(header.name)
-                  return (
-                    <TableRow key={idx}>
-                      <TableCell className="font-mono text-muted-foreground">{idx + 1}</TableCell>
-                      <TableCell className="font-mono font-medium">
-                        <AnnotatedRow id={`header-${idx}-${header.name.toLowerCase()}`} className="inline-flex items-center gap-1.5">
-                          <span>{header.name}</span>
-                          <CommentMarker id={`header-${idx}-${header.name.toLowerCase()}`} info={info} />
-                        </AnnotatedRow>
-                      </TableCell>
-                      <TableCell className="font-mono break-all whitespace-normal max-w-[400px]">
-                        {header.value}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
+                filtered.map((header, idx) => (
+                  <AnnotatedHeaderRow
+                    key={idx}
+                    header={header}
+                    idx={idx}
+                  />
+                ))
               )}
             </TableBody>
           </Table>

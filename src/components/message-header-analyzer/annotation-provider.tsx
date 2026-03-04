@@ -1,63 +1,112 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react"
 import type { ReactNode } from "react"
 import type { AnnotationInfo } from "@/lib/header-annotations"
 
-export interface ActiveAnnotation extends AnnotationInfo {
-  id: string
-  viewportY: number
+export interface OpenAnnotationData extends AnnotationInfo {
+  markerX: number
 }
 
 interface AnnotationContextType {
-  activeAnnotation: ActiveAnnotation | null
-  activate: (annotation: ActiveAnnotation | null) => void
-  markerEl: HTMLElement | null
-  setMarkerEl: (el: HTMLElement | null) => void
-  cardEl: HTMLElement | null
-  setCardEl: (el: HTMLElement | null) => void
+  openAnnotations: Map<string, OpenAnnotationData>
+  lastOpenedId: string | null
+  toggle: (id: string, info: AnnotationInfo, markerX: number) => void
+  close: (id: string) => void
+  closeAll: () => void
+  registerRow: (id: string, el: HTMLElement | null) => void
+  getRowEl: (id: string) => HTMLElement | undefined
   containerEl: HTMLElement | null
   setContainerEl: (el: HTMLElement | null) => void
+  cardSides: Map<string, "left" | "right">
+  setCardSides: (sides: Map<string, "left" | "right">) => void
 }
 
 const AnnotationContext = createContext<AnnotationContextType | null>(null)
 
 export function AnnotationProvider({ children }: { children: ReactNode }) {
-  const [activeAnnotation, setActiveAnnotation] = useState<ActiveAnnotation | null>(null)
-  const [markerEl, setMarkerEl] = useState<HTMLElement | null>(null)
-  const [cardEl, setCardEl] = useState<HTMLElement | null>(null)
+  const [openAnnotations, setOpenAnnotations] = useState<
+    Map<string, OpenAnnotationData>
+  >(new Map())
+  const [lastOpenedId, setLastOpenedId] = useState<string | null>(null)
   const [containerEl, setContainerEl] = useState<HTMLElement | null>(null)
+  const [cardSides, setCardSides] = useState<Map<string, "left" | "right">>(
+    new Map()
+  )
+  const rowRefs = useRef(new Map<string, HTMLElement>())
 
-  const activate = useCallback((annotation: ActiveAnnotation | null) => {
-    setActiveAnnotation(annotation)
-    if (!annotation) {
-      setMarkerEl(null)
-      setCardEl(null)
-    }
+  const toggle = useCallback(
+    (id: string, info: AnnotationInfo, markerX: number) => {
+      setOpenAnnotations((prev) => {
+        const next = new Map(prev)
+        if (next.has(id)) {
+          next.delete(id)
+          setLastOpenedId(null)
+        } else {
+          next.set(id, { ...info, markerX })
+          setLastOpenedId(id)
+        }
+        return next
+      })
+    },
+    []
+  )
+
+  const close = useCallback((id: string) => {
+    setOpenAnnotations((prev) => {
+      const next = new Map(prev)
+      next.delete(id)
+      return next
+    })
+    setLastOpenedId((prev) => (prev === id ? null : prev))
   }, [])
 
-  // Close on Escape
+  const closeAll = useCallback(() => {
+    setOpenAnnotations(new Map())
+    setLastOpenedId(null)
+  }, [])
+
+  const registerRow = useCallback((id: string, el: HTMLElement | null) => {
+    if (el) rowRefs.current.set(id, el)
+    else rowRefs.current.delete(id)
+  }, [])
+
+  const getRowEl = useCallback((id: string) => {
+    return rowRefs.current.get(id)
+  }, [])
+
+  // Close all on Escape
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && activeAnnotation) {
-        activate(null)
+      if (e.key === "Escape" && openAnnotations.size > 0) {
+        closeAll()
       }
     }
     document.addEventListener("keydown", handleKey)
     return () => document.removeEventListener("keydown", handleKey)
-  }, [activeAnnotation, activate])
+  }, [openAnnotations.size, closeAll])
 
   return (
     <AnnotationContext.Provider
       value={{
-        activeAnnotation,
-        activate,
-        markerEl,
-        setMarkerEl,
-        cardEl,
-        setCardEl,
+        openAnnotations,
+        lastOpenedId,
+        toggle,
+        close,
+        closeAll,
+        registerRow,
+        getRowEl,
         containerEl,
         setContainerEl,
+        cardSides,
+        setCardSides,
       }}
     >
       {children}
@@ -67,6 +116,7 @@ export function AnnotationProvider({ children }: { children: ReactNode }) {
 
 export function useAnnotation() {
   const ctx = useContext(AnnotationContext)
-  if (!ctx) throw new Error("useAnnotation must be used within AnnotationProvider")
+  if (!ctx)
+    throw new Error("useAnnotation must be used within AnnotationProvider")
   return ctx
 }

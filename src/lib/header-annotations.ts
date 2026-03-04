@@ -130,13 +130,173 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     howToRead:
       "Compare with expected software for the sender. Bulk phishing tools sometimes leave distinctive X-Mailer values.",
   },
-  default: {
-    title: "Header Field",
+  "mime-version": {
+    title: "MIME-Version",
     description:
-      "A metadata field attached to the email by a server or client in the delivery chain.",
-    why: "Even lesser-known headers provide useful forensic context like the sending software, original IP, or scanning results.",
+      "Declares the MIME version used to format the message body and attachments.",
+    why: "Almost always '1.0'. Its absence or unusual values may indicate a misconfigured or very old sending system.",
     howToRead:
-      "Consider alongside neighboring headers for context. X-prefixed headers are non-standard extensions.",
+      "Should be '1.0'. Any other value is non-standard and worth noting.",
+  },
+  "content-type": {
+    title: "Content-Type",
+    description:
+      "Specifies the media type of the message body (e.g., text/plain, multipart/mixed).",
+    why: "Determines how the email client renders the message. Multipart types contain boundaries separating body parts and attachments.",
+    howToRead:
+      "text/plain = plain text, text/html = HTML, multipart/* = message has multiple parts (body + attachments).",
+  },
+  "content-transfer-encoding": {
+    title: "Content-Transfer-Encoding",
+    description:
+      "Specifies how the message body is encoded for safe transport (e.g., base64, quoted-printable).",
+    why: "Email transport is 7-bit ASCII. This header ensures binary or Unicode content survives delivery intact.",
+    howToRead:
+      "7bit/8bit = minimal encoding, quoted-printable = readable encoding for text, base64 = binary-safe encoding.",
+  },
+  "x-google-dkim-signature": {
+    title: "X-Google-DKIM-Signature",
+    description:
+      "Google's internal DKIM signature used for their own mail infrastructure tracking.",
+    why: "Provides an additional layer of authentication specific to Google's systems. Useful for verifying Google-originated mail.",
+    howToRead:
+      "Similar format to standard DKIM-Signature. The d= domain will be a Google internal domain.",
+  },
+  "x-gm-message-state": {
+    title: "X-Gm-Message-State",
+    description:
+      "Internal Gmail message state tracking token.",
+    why: "Used by Gmail infrastructure for message processing. Contains no user-readable information.",
+    howToRead:
+      "This is an opaque token. Its presence confirms the message was processed by Gmail servers.",
+  },
+  "x-google-smtp-source": {
+    title: "X-Google-SMTP-Source",
+    description:
+      "Identifies the Google SMTP source that processed this message.",
+    why: "Confirms the message passed through Google's SMTP infrastructure.",
+    howToRead:
+      "An opaque identifier. Its presence confirms Google SMTP processing.",
+  },
+  "x-received": {
+    title: "X-Received",
+    description:
+      "An internal received trace header added by major providers like Google.",
+    why: "Provides additional routing information within a provider's internal infrastructure.",
+    howToRead:
+      "Read like a standard Received header. Shows internal server-to-server handoffs within the provider.",
+  },
+  "x-ms-exchange-organization-authas": {
+    title: "X-MS-Exchange-Organization-AuthAs",
+    description:
+      "Microsoft Exchange authentication type for the message submission.",
+    why: "Indicates how the sender authenticated to the Exchange server (Anonymous, Internal, External).",
+    howToRead:
+      "Internal = authenticated Exchange user, Anonymous = unauthenticated submission.",
+  },
+  "x-ms-exchange-organization-authsource": {
+    title: "X-MS-Exchange-Organization-AuthSource",
+    description:
+      "The Exchange server that authenticated the sender.",
+    why: "Identifies which Microsoft Exchange server handled authentication. Useful for tracing within Exchange organizations.",
+    howToRead:
+      "Shows the FQDN of the authenticating Exchange server.",
+  },
+  "x-microsoft-antispam": {
+    title: "X-Microsoft-Antispam",
+    description:
+      "Microsoft's spam filtering verdict and scoring details.",
+    why: "Contains the Bulk Complaint Level (BCL) and other filtering signals used by Microsoft 365.",
+    howToRead:
+      "BCL:0 = not bulk, BCL:9 = highly likely bulk. Other fields show filtering categories.",
+  },
+  "x-forefront-antispam-report": {
+    title: "X-Forefront-Antispam-Report",
+    description:
+      "Detailed anti-spam analysis from Microsoft Forefront Protection.",
+    why: "Provides granular spam filtering details including country of origin, language, and spam confidence level.",
+    howToRead:
+      "SCL (Spam Confidence Level) ranges from -1 (trusted) to 9 (spam). CIP shows the connecting IP.",
+  },
+  "list-unsubscribe": {
+    title: "List-Unsubscribe",
+    description:
+      "Provides a mechanism for recipients to unsubscribe from mailing lists.",
+    why: "Legitimate bulk senders include this. Its absence in marketing email may indicate spam.",
+    howToRead:
+      "Contains a mailto: or https: URL. Email clients may show an 'Unsubscribe' button based on this.",
+  },
+  "list-id": {
+    title: "List-Id",
+    description:
+      "Identifies the mailing list that distributed this message.",
+    why: "Helps distinguish mailing list traffic from direct email. Used by email clients for filtering.",
+    howToRead:
+      "Shows the list name and domain. Useful for creating mail filters.",
+  },
+  "x-spam-status": {
+    title: "X-Spam-Status",
+    description:
+      "SpamAssassin or similar filter verdict with score and matched rules.",
+    why: "Shows whether the message was flagged as spam and which rules triggered.",
+    howToRead:
+      "Yes/No indicates spam verdict. Score shows confidence. Rules list explains why.",
+  },
+  "x-spam-score": {
+    title: "X-Spam-Score",
+    description:
+      "Numeric spam confidence score from the filtering system.",
+    why: "Higher scores indicate higher spam probability. Thresholds vary by system.",
+    howToRead:
+      "Typically 0-10+. Below 3 is usually clean, above 5 is likely spam. Exact thresholds depend on configuration.",
+  },
+  "x-virus-scanned": {
+    title: "X-Virus-Scanned",
+    description:
+      "Indicates the message was scanned by an antivirus system.",
+    why: "Confirms antivirus scanning occurred during delivery. Its absence doesn't mean no scanning happened.",
+    howToRead:
+      "Shows the scanning software name/version. The message passed if this header is present without a quarantine notice.",
+  },
+  "x-priority": {
+    title: "X-Priority",
+    description:
+      "The sender-declared priority level of the message.",
+    why: "Can be set to any value by the sender. High priority in unexpected contexts may be a social engineering tactic.",
+    howToRead:
+      "1 = Highest, 3 = Normal, 5 = Lowest. Often abused by spam to trigger urgency.",
+  },
+  importance: {
+    title: "Importance",
+    description:
+      "Another priority indicator, commonly used by Microsoft email clients.",
+    why: "Like X-Priority, this is sender-controlled and can be used to create false urgency.",
+    howToRead:
+      "Values: high, normal, low. Treat sender-declared importance with appropriate skepticism.",
+  },
+  "arc-seal": {
+    title: "ARC-Seal",
+    description:
+      "Cryptographic seal in the Authenticated Received Chain, binding ARC headers together.",
+    why: "Ensures ARC authentication results haven't been tampered with across forwarding hops.",
+    howToRead:
+      "Contains cv= (chain validation: pass/fail/none) and i= (instance number in the chain).",
+  },
+  "arc-message-signature": {
+    title: "ARC-Message-Signature",
+    description:
+      "A DKIM-like signature over the message as part of the ARC chain.",
+    why: "Preserves message integrity proof across forwards where standard DKIM would break.",
+    howToRead:
+      "Format matches DKIM-Signature. The i= value indicates which ARC hop created this signature.",
+  },
+  "feedback-id": {
+    title: "Feedback-ID",
+    description:
+      "An identifier used by email senders to track feedback loop reports.",
+    why: "Used by large senders (like Google, Amazon SES) to correlate spam complaints back to specific campaigns.",
+    howToRead:
+      "Colon-separated values identifying the campaign, sender, and sending infrastructure.",
   },
 }
 
@@ -175,9 +335,10 @@ export const INFO_BY_CARD: Record<string, AnnotationInfo> = {
   },
 }
 
-export function getHeaderAnnotation(headerName: string): AnnotationInfo {
-  const key = headerName.toLowerCase()
-  return INFO_BY_HEADER[key] || INFO_BY_HEADER.default
+export function getHeaderAnnotation(
+  headerName: string
+): AnnotationInfo | undefined {
+  return INFO_BY_HEADER[headerName.toLowerCase()]
 }
 
 export function getCardAnnotation(

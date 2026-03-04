@@ -17,7 +17,7 @@ import { AuthResults } from "./auth-results"
 import { HeaderTable } from "./header-table"
 import { MessageViewer } from "./message-viewer"
 import { AnnotationProvider, useAnnotation } from "./annotation-provider"
-import { DesktopCommentCard, MobileCommentSheet, ConnectorLine } from "./annotation-components"
+import { DesktopCommentCards, MobileCommentSheet, ConnectorLines } from "./annotation-components"
 import { FileText, AlertCircle, Clipboard, Trash2, ChevronDown, Share2, Check } from "lucide-react"
 import { useHaptics } from "@/hooks/use-haptics"
 
@@ -234,9 +234,9 @@ function HeaderAnalyzerInner() {
 
           <HeaderTable headers={parsed.headers} />
 
-          {/* Desktop annotation card + connector */}
-          <DesktopCommentCard />
-          <ConnectorLine />
+          {/* Desktop annotation cards + connectors */}
+          <DesktopCommentCards />
+          <ConnectorLines />
 
           {/* Mobile annotation sheet */}
           <MobileCommentSheet />
