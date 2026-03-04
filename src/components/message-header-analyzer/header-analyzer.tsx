@@ -1,10 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
-import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
@@ -17,14 +15,55 @@ import { SummaryCard } from "./summary-card"
 import { RoutingTimeline } from "./routing-timeline"
 import { AuthResults } from "./auth-results"
 import { HeaderTable } from "./header-table"
-import { FileText, Route, ShieldCheck, Table as TableIcon, AlertCircle, Clipboard, Trash2 } from "lucide-react"
+import { FileText, AlertCircle, Clipboard, Trash2, ChevronDown, Share2, Check } from "lucide-react"
 import { useHaptics } from "@/hooks/use-haptics"
+
+function encodeHeaders(raw: string): string {
+  const bytes = new TextEncoder().encode(raw)
+  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("")
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+}
+
+function decodeHeaders(encoded: string): string | null {
+  try {
+    const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/")
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4)
+    const binary = atob(padded)
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+    return new TextDecoder().decode(bytes)
+  } catch {
+    return null
+  }
+}
 
 export function HeaderAnalyzer() {
   const [rawHeaders, setRawHeaders] = useState("")
   const [parsed, setParsed] = useState<ParsedHeaders | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
+  const [copied, setCopied] = useState(false)
   const { trigger: hapticTrigger } = useHaptics()
+
+  // Load headers from URL hash on mount
+  useEffect(() => {
+    const hash = window.location.hash.slice(1)
+    if (!hash) return
+
+    const decoded = decodeHeaders(hash)
+    if (!decoded) return
+
+    setRawHeaders(decoded)
+    const result = parseEmailHeaders(decoded)
+    if (result.headers.length > 0) {
+      setParsed(result)
+      setCollapsed(true)
+    }
+  }, [])
+
+  const updateHash = useCallback((raw: string) => {
+    const encoded = encodeHeaders(raw)
+    window.history.replaceState(null, "", `#${encoded}`)
+  }, [])
 
   const handleAnalyze = () => {
     if (!rawHeaders.trim()) {
@@ -43,6 +82,8 @@ export function HeaderAnalyzer() {
 
     setError(null)
     setParsed(result)
+    setCollapsed(true)
+    updateHash(rawHeaders)
     hapticTrigger("success")
   }
 
@@ -55,7 +96,16 @@ export function HeaderAnalyzer() {
     setRawHeaders("")
     setParsed(null)
     setError(null)
+    setCollapsed(false)
+    window.history.replaceState(null, "", window.location.pathname)
     hapticTrigger("light")
+  }
+
+  const handleShare = async () => {
+    await navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
+    hapticTrigger("success")
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -63,42 +113,54 @@ export function HeaderAnalyzer() {
       {/* Input section */}
       <div className="mx-auto max-w-4xl space-y-4">
         <Card>
-          <CardContent className="space-y-4 pt-4">
-            <Textarea
-              rows={12}
-              value={rawHeaders}
-              onChange={(e) => setRawHeaders(e.target.value)}
-              placeholder={`Paste raw email headers here...\n\nTo get headers:\n- Gmail: Open email > "..." menu > "Show original"\n- Outlook: Open email > File > Properties > "Internet headers"\n- Apple Mail: View > Message > All Headers`}
-              className="font-mono text-xs resize-y min-h-[200px]"
-            />
+          {collapsed && parsed ? (
+            <button
+              onClick={() => setCollapsed(false)}
+              className="flex w-full items-center justify-between px-4 py-3 text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              <span className="font-medium">
+                Input Headers ({parsed.headers.length} headers parsed)
+              </span>
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          ) : (
+            <CardContent className="space-y-4 pt-4">
+              <Textarea
+                rows={12}
+                value={rawHeaders}
+                onChange={(e) => setRawHeaders(e.target.value)}
+                placeholder={`Paste raw email headers here...\n\nTo get headers:\n- Gmail: Open email > "..." menu > "Show original"\n- Outlook: Open email > File > Properties > "Internet headers"\n- Apple Mail: View > Message > All Headers`}
+                className="font-mono text-xs resize-y min-h-[200px]"
+              />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleAnalyze} size="sm" className="gap-2">
-                <FileText className="h-3.5 w-3.5" />
-                Analyze Headers
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePasteSample}
-                className="gap-2"
-              >
-                <Clipboard className="h-3.5 w-3.5" />
-                Paste Sample
-              </Button>
-              {(parsed || rawHeaders) && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button onClick={handleAnalyze} size="sm" className="gap-2">
+                  <FileText className="h-3.5 w-3.5" />
+                  Analyze Headers
+                </Button>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={handleClear}
+                  onClick={handlePasteSample}
                   className="gap-2"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Clear
+                  <Clipboard className="h-3.5 w-3.5" />
+                  Paste Sample
                 </Button>
-              )}
-            </div>
-          </CardContent>
+                {(parsed || rawHeaders) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClear}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         {/* Error display */}
@@ -110,53 +172,46 @@ export function HeaderAnalyzer() {
         )}
       </div>
 
-      {/* Results section */}
+      {/* Results section - stacked for print-friendliness */}
       {parsed && (
-        <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <Tabs defaultValue="summary" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="summary" className="gap-1.5">
-                <FileText className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Summary</span>
-              </TabsTrigger>
-              <TabsTrigger value="routing" className="gap-1.5">
-                <Route className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Routing</span>
-              </TabsTrigger>
-              <TabsTrigger value="auth" className="gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Auth</span>
-              </TabsTrigger>
-              <TabsTrigger value="headers" className="gap-1.5">
-                <TableIcon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Headers</span>
-              </TabsTrigger>
-            </TabsList>
+        <div className="mx-auto max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+          {/* Share button */}
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              className="gap-2"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  Link copied!
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-3.5 w-3.5" />
+                  Share
+                </>
+              )}
+            </Button>
+          </div>
 
-            <TabsContent value="summary" className="mt-4">
-              <SummaryCard
-                summary={parsed.summary}
-                authentication={parsed.authentication}
-                totalDeliveryTime={parsed.totalDeliveryTime}
-                formatDelay={formatDelay}
-              />
-            </TabsContent>
+          <SummaryCard
+            summary={parsed.summary}
+            authentication={parsed.authentication}
+            totalDeliveryTime={parsed.totalDeliveryTime}
+            formatDelay={formatDelay}
+          />
 
-            <TabsContent value="routing" className="mt-4">
-              <RoutingTimeline
-                hops={parsed.hops}
-                totalDeliveryTime={parsed.totalDeliveryTime}
-              />
-            </TabsContent>
+          <RoutingTimeline
+            hops={parsed.hops}
+            totalDeliveryTime={parsed.totalDeliveryTime}
+          />
 
-            <TabsContent value="auth" className="mt-4">
-              <AuthResults authentication={parsed.authentication} />
-            </TabsContent>
+          <AuthResults authentication={parsed.authentication} />
 
-            <TabsContent value="headers" className="mt-4">
-              <HeaderTable headers={parsed.headers} />
-            </TabsContent>
-          </Tabs>
+          <HeaderTable headers={parsed.headers} />
         </div>
       )}
     </div>

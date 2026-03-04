@@ -151,9 +151,9 @@ export function AuthResults({ authentication }: AuthResultsProps) {
 
         {/* Individual results */}
         {authentication.results.length > 0 && (
-          <Accordion type="multiple" defaultValue={authentication.results.map((r) => r.method)}>
-            {authentication.results.map((result) => (
-              <AccordionItem key={result.method} value={result.method}>
+          <Accordion type="multiple" defaultValue={authentication.results.map((_, i) => String(i))}>
+            {authentication.results.map((result, i) => (
+              <AccordionItem key={i} value={String(i)}>
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
                     {getResultIcon(result.result)}

@@ -73,6 +73,8 @@ export function parseRawHeaders(raw: string): HeaderEntry[] {
   const merged: string[] = [];
 
   for (const line of lines) {
+    // A blank line separates headers from the message body — stop parsing
+    if (line.length === 0 && merged.length > 0) break;
     if (line.length === 0) continue;
     // Continuation line: starts with whitespace
     if (/^\s/.test(line) && merged.length > 0) {

@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Table,
   TableBody,
@@ -62,7 +61,7 @@ export function HeaderTable({ headers }: HeaderTableProps) {
         </div>
 
         {/* Table */}
-        <ScrollArea className="max-h-[500px] rounded-md border">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -91,7 +90,7 @@ export function HeaderTable({ headers }: HeaderTableProps) {
               )}
             </TableBody>
           </Table>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   )
