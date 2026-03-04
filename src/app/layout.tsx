@@ -1,6 +1,7 @@
 import './globals.css';
 
 import { Inter, Karla } from 'next/font/google';
+import Script from "next/script";
 import { GoogleTagManager } from '@next/third-parties/google';
 
 import type { Metadata } from 'next';
@@ -97,6 +98,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={fontInter.variable}>
+      <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
+            strategy="lazyOnload"
+          />
+        )}
+      </head>
       {process.env.NEXT_PUBLIC_GA_TAG_ID &&
       process.env.NODE_ENV === 'production' ? (
         <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GA_TAG_ID} />

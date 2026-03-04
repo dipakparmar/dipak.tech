@@ -70,6 +70,7 @@
     "web-haptics": "^0.0.6"
   },
   "devDependencies": {
+    "@react-grab/mcp": "^0.1.21",
     "@tailwindcss/typography": "^0.5.13",
     "@types/geojson": "^7946.0.16",
     "@types/leaflet": "^1.9.21",
@@ -83,6 +84,7 @@
     "next-sitemap": "4.2.3",
     "postcss": "^8",
     "prettier": "^3.3.3",
+    "react-grab": "^0.1.21",
     "tailwindcss": "^4.1.18",
     "typescript": "^5"
   },
