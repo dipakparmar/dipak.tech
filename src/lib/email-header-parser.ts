@@ -6,6 +6,14 @@ export interface ParsedHeaders {
   hops: Hop[];
   authentication: AuthenticationResults;
   totalDeliveryTime: number | null;
+  body: EmailBody | null;
+}
+
+export interface EmailBody {
+  raw: string;
+  html: string | null;
+  plain: string | null;
+  hasBody: boolean;
 }
 
 export interface HeaderEntry {
@@ -53,6 +61,7 @@ export function parseEmailHeaders(rawHeaders: string): ParsedHeaders {
   const summary = extractSummary(headers);
   const hops = extractHops(headers);
   const authentication = parseAuthenticationResults(headers);
+  const body = extractBody(rawHeaders, summary.contentType);
 
   let totalDeliveryTime: number | null = null;
   if (hops.length >= 2) {
@@ -63,7 +72,7 @@ export function parseEmailHeaders(rawHeaders: string): ParsedHeaders {
     }
   }
 
-  return { headers, summary, hops, authentication, totalDeliveryTime };
+  return { headers, summary, hops, authentication, totalDeliveryTime, body };
 }
 
 // Parse raw header text into HeaderEntry array
@@ -212,6 +221,74 @@ export function parseAuthenticationResults(
   return { server, results };
 }
 
+// Extract email body from raw message
+
+export function extractBody(
+  raw: string,
+  contentType: string | null
+): EmailBody | null {
+  // Find the blank line separating headers from body
+  const separatorMatch = raw.match(/\r?\n\r?\n/);
+  if (!separatorMatch || separatorMatch.index === undefined) {
+    return null;
+  }
+
+  const bodyRaw = raw.slice(separatorMatch.index + separatorMatch[0].length);
+  if (!bodyRaw.trim()) {
+    return null;
+  }
+
+  let html: string | null = null;
+  let plain: string | null = null;
+
+  // Check if multipart
+  const boundaryMatch = contentType?.match(/boundary="?([^";\s]+)"?/i);
+
+  if (boundaryMatch) {
+    const boundary = boundaryMatch[1];
+    const parts = bodyRaw.split(`--${boundary}`);
+
+    for (const part of parts) {
+      if (part.trim() === "" || part.trim() === "--") continue;
+
+      // Split part headers from part body
+      const partSep = part.match(/\r?\n\r?\n/);
+      if (!partSep || partSep.index === undefined) continue;
+
+      const partHeaders = part.slice(0, partSep.index).toLowerCase();
+      const partBody = part.slice(partSep.index + partSep[0].length).trim();
+
+      if (!partBody) continue;
+
+      // Decode quoted-printable if needed
+      const decoded = partHeaders.includes("quoted-printable")
+        ? decodeQuotedPrintable(partBody)
+        : partBody;
+
+      if (partHeaders.includes("text/html")) {
+        html = decoded;
+      } else if (partHeaders.includes("text/plain")) {
+        plain = decoded;
+      }
+    }
+  } else if (contentType?.toLowerCase().includes("text/html")) {
+    html = bodyRaw.trim();
+  } else {
+    // Default to plain text
+    plain = bodyRaw.trim();
+  }
+
+  return { raw: bodyRaw, html, plain, hasBody: true };
+}
+
+function decodeQuotedPrintable(input: string): string {
+  return input
+    .replace(/=\r?\n/g, "") // soft line breaks
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
+      String.fromCharCode(parseInt(hex, 16))
+    );
+}
+
 // Format delay in milliseconds to human-readable string
 
 export function formatDelay(ms: number): string {
@@ -295,4 +372,43 @@ To: Jane Smith <recipient@example.com>
 Reply-To: John Doe <noreply@example.com>
 Content-Type: multipart/alternative; boundary="000000000000abc123def456"
 X-Mailer: Microsoft Outlook 16.0
-X-Spam-Status: No, score=-2.1 required=5.0 tests=BAYES_00,DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no version=3.4.6`;
+X-Spam-Status: No, score=-2.1 required=5.0 tests=BAYES_00,DKIM_SIGNED,DKIM_VALID,DKIM_VALID_AU,RCVD_IN_DNSWL_NONE,SPF_HELO_NONE,SPF_PASS autolearn=ham autolearn_force=no version=3.4.6
+
+--000000000000abc123def456
+Content-Type: text/plain; charset="UTF-8"
+
+Hi Jane,
+
+Please find the Q1 2026 quarterly report attached. Key highlights:
+
+- Revenue increased 15% YoY
+- Customer acquisition cost decreased by 8%
+- Net promoter score improved to 72
+
+Let me know if you have any questions.
+
+Best regards,
+John Doe
+Senior Analyst | Example Corp
+
+--000000000000abc123def456
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<html>
+<head><style>body { font-family: Arial, sans-serif; color: #333; }</style></head>
+<body>
+<p>Hi Jane,</p>
+<p>Please find the Q1 2026 quarterly report attached. Key highlights:</p>
+<ul>
+<li>Revenue increased <strong>15% YoY</strong></li>
+<li>Customer acquisition cost decreased by <strong>8%</strong></li>
+<li>Net promoter score improved to <strong>72</strong></li>
+</ul>
+<p>Let me know if you have any questions.</p>
+<p>Best regards,<br>
+<strong>John Doe</strong><br>
+Senior Analyst | Example Corp</p>
+</body>
+</html>
+--000000000000abc123def456--`;

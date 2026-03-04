@@ -15,6 +15,7 @@ import { SummaryCard } from "./summary-card"
 import { RoutingTimeline } from "./routing-timeline"
 import { AuthResults } from "./auth-results"
 import { HeaderTable } from "./header-table"
+import { MessageViewer } from "./message-viewer"
 import { FileText, AlertCircle, Clipboard, Trash2, ChevronDown, Share2, Check } from "lucide-react"
 import { useHaptics } from "@/hooks/use-haptics"
 
@@ -129,7 +130,7 @@ export function HeaderAnalyzer() {
                 rows={12}
                 value={rawHeaders}
                 onChange={(e) => setRawHeaders(e.target.value)}
-                placeholder={`Paste raw email headers here...\n\nTo get headers:\n- Gmail: Open email > "..." menu > "Show original"\n- Outlook: Open email > File > Properties > "Internet headers"\n- Apple Mail: View > Message > All Headers`}
+                placeholder={`Paste raw email headers or full email source here...\n\nTo get the source:\n- Gmail: Open email > "..." menu > "Show original"\n- Outlook: Open email > File > Properties > "Internet headers"\n- Apple Mail: View > Message > Raw Source\n\nSupports headers-only or full email with body.`}
                 className="font-mono text-xs resize-y min-h-[200px]"
               />
 
@@ -196,6 +197,13 @@ export function HeaderAnalyzer() {
               )}
             </Button>
           </div>
+
+          {parsed.body && (
+            <MessageViewer
+              summary={parsed.summary}
+              body={parsed.body}
+            />
+          )}
 
           <SummaryCard
             summary={parsed.summary}
