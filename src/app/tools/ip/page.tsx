@@ -4,17 +4,17 @@ import { Loader2 } from "lucide-react"
 import { ogUrls, siteConfig } from "@/lib/og-config"
 
 const ogImageUrl = ogUrls.tools({
-  tool: "IP Information",
-  description: "IP address lookup with geolocation data",
+  tool: "IP & Network Intelligence",
+  description: "IP, ASN, BGP prefix lookup with network intelligence",
   category: "ip",
 })
 
 export const metadata = {
-  title: "IP Information | Dipak Parmar",
-  description: "View your IP address details, lookup any IP, and get geolocation data including ISP, location, and network information.",
+  title: "IP & Network Intelligence | Dipak Parmar",
+  description: "Look up IP addresses, ASNs, BGP prefixes, and network block details with geolocation, routing, and peer data.",
   openGraph: {
-    title: "IP Information",
-    description: "IP address lookup with detailed geolocation, ISP, and network data",
+    title: "IP & Network Intelligence",
+    description: "IP, ASN, and BGP prefix lookup with network intelligence, geolocation, and routing data",
     url: siteConfig.ip.baseUrl,
     siteName: siteConfig.ip.domain,
     type: "website",
@@ -29,8 +29,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "IP Information | Dipak Parmar",
-    description: "IP address lookup with detailed geolocation, ISP, and network data",
+    title: "IP & Network Intelligence | Dipak Parmar",
+    description: "IP, ASN, and BGP prefix lookup with network intelligence, geolocation, and routing data",
     images: [ogImageUrl],
   },
   alternates: {
