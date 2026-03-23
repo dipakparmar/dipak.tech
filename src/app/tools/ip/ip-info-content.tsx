@@ -205,8 +205,8 @@ function ASNPeersCard({ detail }: { detail: ASNDetail }) {
               <p className="text-sm text-muted-foreground">No upstream peers</p>
             ) : (
               <div className="space-y-1">
-                {detail.upstreams.map((peer) => (
-                  <div key={peer.asn} className="flex items-center gap-2 text-sm">
+                {detail.upstreams.map((peer, i) => (
+                  <div key={`${peer.asn}-${i}`} className="flex items-center gap-2 text-sm">
                     <Badge variant="outline" className="font-mono text-xs">
                       AS{peer.asn}
                     </Badge>
@@ -226,8 +226,8 @@ function ASNPeersCard({ detail }: { detail: ASNDetail }) {
               <p className="text-sm text-muted-foreground">No downstream peers</p>
             ) : (
               <div className="space-y-1">
-                {detail.downstreams.map((peer) => (
-                  <div key={peer.asn} className="flex items-center gap-2 text-sm">
+                {detail.downstreams.map((peer, i) => (
+                  <div key={`${peer.asn}-${i}`} className="flex items-center gap-2 text-sm">
                     <Badge variant="outline" className="font-mono text-xs">
                       AS{peer.asn}
                     </Badge>
