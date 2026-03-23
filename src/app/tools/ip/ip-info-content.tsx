@@ -829,20 +829,8 @@ export default function IPInfoContent() {
   const handleCustomLookup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (customIp.trim()) {
-      const parsed = parseNetworkInput(customIp.trim())
-      setParsedInput(parsed)
-
-      try {
-        await router.push(`/tools/ip?ip=${encodeURIComponent(customIp.trim())}`)
-      } catch (error) {
-        console.error("Failed to update URL during lookup:", error)
-      }
-
-      if (parsed.type === "asn") {
-        fetchNetworkIntel(parsed.value)
-      } else {
-        fetchIPInfo(parsed.value)
-      }
+      // Just update the URL — the useEffect on searchParams will handle the fetch
+      router.push(`/tools/ip?ip=${encodeURIComponent(customIp.trim())}`)
     }
   }
 
