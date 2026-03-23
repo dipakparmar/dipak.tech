@@ -396,7 +396,7 @@ function NetworkIntelSections({
             {/* Network Block Info */}
             <AccordionItem value="network-block">
               <AccordionTrigger>Network Block Info</AccordionTrigger>
-              <AccordionContent>
+              <AccordionContent className="h-auto">
                 {loading ? (
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-3/4" />
@@ -463,7 +463,7 @@ function NetworkIntelSections({
             {/* BGP Routing */}
             <AccordionItem value="bgp-routing">
               <AccordionTrigger>BGP Routing</AccordionTrigger>
-              <AccordionContent>
+              <AccordionContent className="h-auto">
                 {loading ? (
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-3/4" />
@@ -482,7 +482,7 @@ function NetworkIntelSections({
             {/* BGP Peers */}
             <AccordionItem value="bgp-peers">
               <AccordionTrigger>BGP Peers</AccordionTrigger>
-              <AccordionContent>
+              <AccordionContent className="h-auto">
                 {loading ? (
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-full" />
@@ -523,7 +523,7 @@ function NetworkIntelSections({
             {/* Nameservers */}
             <AccordionItem value="nameservers">
               <AccordionTrigger>Nameservers</AccordionTrigger>
-              <AccordionContent>
+              <AccordionContent className="h-auto">
                 {loading ? (
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-1/2" />
