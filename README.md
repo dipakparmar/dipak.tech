@@ -42,7 +42,7 @@ Personal portfolio and multi-site platform built with Next.js.
 
 ```bash
 bun install
-bun dev
+bun run dev
 ```
 
 ---

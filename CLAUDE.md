@@ -13,19 +13,19 @@ Personal portfolio website (dipak.tech) built with Next.js 16, serving multiple 
 
 ```bash
 # Development
-bun dev          # Start dev server
+bun run dev          # Start dev server
 
 # Build & Production
-bun build        # Build for production
-bun start        # Start production server
+bun run build        # Build for production
+bun run start        # Start production server
 
 # Code Quality
-bun lint         # Run ESLint
-bun format       # Format with Prettier
+bun run lint         # Run ESLint
+bun run format       # Format with Prettier
 
 # Other
-bun analyze      # Bundle analysis
-bun upgrade      # Upgrade Next.js
+bun run analyze      # Bundle analysis
+bun run upgrade      # Upgrade Next.js
 ```
 
 ## Architecture
@@ -138,7 +138,7 @@ Key variables:
 - React 19
 - TypeScript (strict mode)
 - Tailwind CSS v4
-- Bun as package manager (Node.js 24 required)
+- Bun run as package manager (Node.js 24 required)
 - Apollo Client for GraphQL
 - motion library for animations
 - pkijs for X.509 certificate/CSR generation
