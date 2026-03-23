@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { HapticButton as Button } from "@/components/haptic-wrappers"
@@ -243,6 +243,182 @@ function ASNPeersCard({ detail }: { detail: ASNDetail }) {
   )
 }
 
+// --- AS Path Graph (SVG DAG) ---
+
+type GraphNode = { id: string; col: number; row: number }
+type GraphEdge = { from: string; to: string; pathCount: number }
+
+function buildASPathGraph(paths: string[][], originAsn: string) {
+  // Build a DAG from multiple AS paths
+  // Each path goes left-to-right: source → ... → origin
+  const nodes: Record<string, { cols: number[]; rows: number[] }> = {}
+  const edgeCounts: Record<string, number> = {}
+
+  for (let pi = 0; pi < paths.length; pi++) {
+    const path = paths[pi]
+    for (let i = 0; i < path.length; i++) {
+      const asn = path[i]
+      if (!nodes[asn]) {
+        nodes[asn] = { cols: [], rows: [] }
+      }
+      if (!nodes[asn].cols.includes(i)) nodes[asn].cols.push(i)
+      if (!nodes[asn].rows.includes(pi)) nodes[asn].rows.push(pi)
+
+      if (i < path.length - 1) {
+        const key = `${asn}->${path[i + 1]}`
+        edgeCounts[key] = (edgeCounts[key] || 0) + 1
+      }
+    }
+  }
+
+  // Position nodes: column = most common position, row = average row
+  const positioned: GraphNode[] = []
+  const nodePositions: Record<string, { x: number; y: number }> = {}
+
+  for (const [id, info] of Object.entries(nodes)) {
+    const col = Math.round(info.cols.reduce((a, b) => a + b, 0) / info.cols.length)
+    const row = info.rows.reduce((a, b) => a + b, 0) / info.rows.length
+    positioned.push({ id, col, row })
+  }
+
+  // Sort by column for layout
+  positioned.sort((a, b) => a.col - b.col || a.row - b.row)
+
+  // Assign final positions - group by column
+  const colGroups: Record<number, GraphNode[]> = {}
+  for (const node of positioned) {
+    if (!colGroups[node.col]) colGroups[node.col] = []
+    colGroups[node.col].push(node)
+  }
+
+  const nodeW = 72
+  const nodeH = 28
+  const colGap = 40
+  const rowGap = 16
+
+  let colIndex = 0
+  for (const col of Object.keys(colGroups).map(Number).sort((a, b) => a - b)) {
+    const group = colGroups[col]
+    group.sort((a, b) => a.row - b.row)
+    for (let ri = 0; ri < group.length; ri++) {
+      const x = colIndex * (nodeW + colGap)
+      const y = ri * (nodeH + rowGap)
+      nodePositions[group[ri].id] = { x, y }
+    }
+    colIndex++
+  }
+
+  const graphEdges: (GraphEdge & { fromPos: { x: number; y: number }; toPos: { x: number; y: number } })[] = []
+  for (const [key, count] of Object.entries(edgeCounts)) {
+    const [from, to] = key.split("->")
+    const fromPos = nodePositions[from]
+    const toPos = nodePositions[to]
+    if (fromPos && toPos) {
+      graphEdges.push({ from, to, pathCount: count, fromPos, toPos })
+    }
+  }
+
+  const allPositions = Object.values(nodePositions)
+  const width = allPositions.length > 0 ? Math.max(...allPositions.map((p) => p.x)) + nodeW + 8 : 200
+  const height = allPositions.length > 0 ? Math.max(...allPositions.map((p) => p.y)) + nodeH + 8 : 60
+
+  return { nodePositions, graphEdges, width, height, originAsn, nodeW, nodeH }
+}
+
+function ASPathGraph({ paths, originAsn }: { paths: string[][]; originAsn: string }) {
+  const graph = useMemo(() => buildASPathGraph(paths, originAsn), [paths, originAsn])
+  const { nodePositions, graphEdges, width, height, nodeW, nodeH } = graph
+
+  const nodeEntries = Object.entries(nodePositions)
+  if (nodeEntries.length === 0) return null
+
+  return (
+    <div className="overflow-x-auto rounded-md border bg-muted/20 p-3">
+      <svg
+        width={width}
+        height={height}
+        viewBox={`-4 -4 ${width + 8} ${height + 8}`}
+        className="min-w-full"
+      >
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="8"
+            markerHeight="6"
+            refX="8"
+            refY="3"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 8 3, 0 6"
+              className="fill-muted-foreground/50"
+            />
+          </marker>
+        </defs>
+
+        {/* Edges */}
+        {graphEdges.map((edge, i) => {
+          const x1 = edge.fromPos.x + nodeW
+          const y1 = edge.fromPos.y + nodeH / 2
+          const x2 = edge.toPos.x
+          const y2 = edge.toPos.y + nodeH / 2
+          const midX = (x1 + x2) / 2
+          const strokeWidth = Math.min(1 + edge.pathCount, 4)
+          const opacity = 0.3 + Math.min(edge.pathCount * 0.15, 0.5)
+
+          return (
+            <path
+              key={i}
+              d={`M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`}
+              fill="none"
+              className="stroke-muted-foreground"
+              strokeWidth={strokeWidth}
+              strokeOpacity={opacity}
+              markerEnd="url(#arrowhead)"
+            />
+          )
+        })}
+
+        {/* Nodes */}
+        {nodeEntries.map(([asn, pos]) => {
+          const isOrigin = asn === originAsn
+          return (
+            <g key={asn} transform={`translate(${pos.x}, ${pos.y})`}>
+              <rect
+                width={nodeW}
+                height={nodeH}
+                rx={6}
+                className={
+                  isOrigin
+                    ? "fill-green-500/20 stroke-green-500"
+                    : "fill-background stroke-border"
+                }
+                strokeWidth={isOrigin ? 2 : 1}
+              />
+              <text
+                x={nodeW / 2}
+                y={nodeH / 2}
+                textAnchor="middle"
+                dominantBaseline="central"
+                className={`font-mono text-[10px] ${isOrigin ? "fill-green-600 font-bold dark:fill-green-400" : "fill-foreground"}`}
+              >
+                AS{asn}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+      <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2.5 w-2.5 rounded border-2 border-green-500 bg-green-500/20" />
+          Origin
+        </span>
+        <span>Thicker lines = more routes through that link</span>
+      </div>
+    </div>
+  )
+}
+
 function BGPRoutingContent({ bgp }: { bgp: BGPRoutingInfo }) {
   const rpkiColor =
     bgp.rpki_status === "valid"
@@ -281,30 +457,14 @@ function BGPRoutingContent({ bgp }: { bgp: BGPRoutingInfo }) {
         </div>
       </div>
 
-      {/* AS Paths */}
+      {/* AS Path Graph */}
       {displayPaths.length > 0 && (
         <div>
-          <Label className="text-xs text-muted-foreground">AS Paths</Label>
-          <div className="mt-2 space-y-2">
-            {displayPaths.map((path, idx) => (
-              <div key={idx} className="flex flex-wrap items-center gap-1">
-                {path.map((asn, asnIdx) => (
-                  <span key={asnIdx} className="flex items-center gap-1">
-                    <Badge variant="outline" className="font-mono text-xs">
-                      AS{asn}
-                    </Badge>
-                    {asnIdx < path.length - 1 && (
-                      <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                    )}
-                  </span>
-                ))}
-              </div>
-            ))}
-            {(bgp.as_path?.length ?? 0) > 5 && (
-              <p className="text-xs text-muted-foreground">
-                ...and {(bgp.as_path?.length ?? 0) - 5} more paths
-              </p>
-            )}
+          <Label className="text-xs text-muted-foreground">
+            AS Paths ({bgp.as_path?.length ?? 0} observed)
+          </Label>
+          <div className="mt-2">
+            <ASPathGraph paths={displayPaths} originAsn={bgp.origin_asn} />
           </div>
         </div>
       )}
