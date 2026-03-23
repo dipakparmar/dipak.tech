@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { IPResponse } from "@/types/ip"
 import { captureAPIError } from "@/lib/sentry-utils"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
+import { parseNetworkInput } from "@/lib/network-input-parser"
 
 const RESPONSE_CACHE_TTL = 30 * 60 * 1000
 const RATE_LIMIT = 40
@@ -30,15 +31,29 @@ export async function GET(request: NextRequest) {
     // Determine IP: target param > auto-detect from headers
     let ip: string
     if (target) {
-      const normalized = target.trim()
-      // Check if target is an IP or domain
-      const isIp = isIPv4(normalized) || isIPv6(normalized)
+      const parsed = parseNetworkInput(target)
+
+      if (parsed.type === "asn") {
+        return NextResponse.json(
+          { error: "Use /api/ip/network?query=AS" + parsed.value + " for ASN lookups" },
+          { status: 400 }
+        )
+      }
+
+      // For CIDR, extract the network address
+      const normalizedTarget = parsed.type === "cidr"
+        ? parsed.value.split("/")[0]
+        : parsed.type === "unknown"
+          ? target.trim()
+          : parsed.value
+
+      const isIp = isIPv4(normalizedTarget) || isIPv6(normalizedTarget)
 
       if (isIp) {
-        ip = normalized
+        ip = normalizedTarget
       } else {
         // Resolve domain to IP
-        const resolvedIp = await resolveDomainToIP(normalized)
+        const resolvedIp = await resolveDomainToIP(normalizedTarget)
         if (!resolvedIp) {
           return NextResponse.json({ error: "Unable to resolve domain to IP address" }, { status: 404 })
         }
