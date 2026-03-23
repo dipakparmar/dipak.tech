@@ -6,9 +6,9 @@ import {
   getRIPEBGPState,
   getRIPERPKIValidation,
   getRIPEPeers,
-  getBGPViewASN,
-  getBGPViewASNPrefixes,
-  getBGPViewASNPeers,
+  getRIPEASOverview,
+  getRIPEASWhois,
+  getRIPEAnnouncedPrefixes,
 } from "@/lib/bgp"
 import { getCached, setCached, checkRateLimit, getClientId, buildRateLimitHeaders } from "@/lib/osint-cache"
 import { captureAPIError } from "@/lib/sentry-utils"
@@ -141,7 +141,7 @@ async function handleIPQuery(
         ? getRIPEPeers(bgpState.origin_asn)
         : Promise.resolve(null),
       bgpState.origin_asn
-        ? getBGPViewASN(bgpState.origin_asn)
+        ? getRIPEASOverview(bgpState.origin_asn)
         : Promise.resolve(null),
     ])
 
@@ -164,7 +164,7 @@ async function handleIPQuery(
     if (asnResult.status === "fulfilled" && asnResult.value) {
       bgp.origin_asname = asnResult.value.name
     } else if (asnResult.status === "rejected") {
-      errors.push({ source: "bgpview", message: "ASN name lookup failed" })
+      errors.push({ source: "ripestat", message: "ASN name lookup failed" })
     }
   }
 
@@ -187,65 +187,88 @@ async function handleIPQuery(
 async function handleASNQuery(query: string): Promise<NetworkIntelResponse> {
   const errors: NetworkIntelResponse["errors"] = []
 
-  // Step 1: BGPView ASN detail + prefixes + peers in parallel
-  const [asnResult, prefixesResult, peersResult] = await Promise.allSettled([
-    getBGPViewASN(query),
-    getBGPViewASNPrefixes(query),
-    getBGPViewASNPeers(query),
+  // Step 1: RIPEstat AS overview + whois + prefixes + peers in parallel
+  const [overviewResult, whoisResult, prefixesResult, peersResult] = await Promise.allSettled([
+    getRIPEASOverview(query),
+    getRIPEASWhois(query),
+    getRIPEAnnouncedPrefixes(query),
+    getRIPEPeers(query),
   ])
 
   let asnDetail: ASNDetail | undefined
 
-  const asnData = asnResult.status === "fulfilled" ? asnResult.value : null
+  const overviewData = overviewResult.status === "fulfilled" ? overviewResult.value : null
+  const whoisData = whoisResult.status === "fulfilled" ? whoisResult.value : null
   const prefixesData = prefixesResult.status === "fulfilled" ? prefixesResult.value : null
   const peersData = peersResult.status === "fulfilled" ? peersResult.value : null
 
-  if (asnResult.status === "rejected") {
-    errors.push({ source: "bgpview", message: asnResult.reason?.message || "ASN detail lookup failed" })
+  if (overviewResult.status === "rejected") {
+    errors.push({ source: "ripestat", message: "ASN overview lookup failed" })
   }
   if (prefixesResult.status === "rejected") {
-    errors.push({ source: "bgpview", message: prefixesResult.reason?.message || "ASN prefixes lookup failed" })
+    errors.push({ source: "ripestat", message: "ASN prefixes lookup failed" })
   }
   if (peersResult.status === "rejected") {
-    errors.push({ source: "bgpview", message: peersResult.reason?.message || "ASN peers lookup failed" })
+    errors.push({ source: "ripestat", message: "ASN peers lookup failed" })
   }
 
-  if (asnData || prefixesData || peersData) {
+  if (overviewData || prefixesData || peersData) {
+    // Split prefixes into v4 and v6
+    const prefixesV4: Array<{ prefix: string; name: string }> = []
+    const prefixesV6: Array<{ prefix: string; name: string }> = []
+    if (prefixesData) {
+      for (const p of prefixesData) {
+        if (p.prefix.includes(":")) {
+          prefixesV6.push({ prefix: p.prefix, name: "" })
+        } else {
+          prefixesV4.push({ prefix: p.prefix, name: "" })
+        }
+      }
+    }
+
+    // Separate peers into upstreams (left) and downstreams (right)
+    const upstreams: Array<{ asn: string; name: string }> = []
+    const downstreams: Array<{ asn: string; name: string }> = []
+    if (peersData) {
+      for (const p of peersData) {
+        if (p.type === "left") {
+          upstreams.push({ asn: p.asn, name: p.name })
+        } else {
+          downstreams.push({ asn: p.asn, name: p.name })
+        }
+      }
+    }
+
     asnDetail = {
-      asn: asnData ? String(asnData.asn) : query,
-      name: asnData?.name || "",
-      description: asnData?.description_short || "",
-      country: asnData?.country_code || "",
-      rir: asnData?.rir_allocation?.rir_name || "",
-      prefixes_v4: prefixesData?.ipv4_prefixes || [],
-      prefixes_v6: prefixesData?.ipv6_prefixes || [],
-      peers_count: peersData?.peers?.length || 0,
-      upstreams: (peersData?.upstreams || []).map((u) => ({ asn: String(u.asn), name: u.name })),
-      downstreams: (peersData?.downstreams || []).map((d) => ({ asn: String(d.asn), name: d.name })),
+      asn: query,
+      name: overviewData?.name || "",
+      description: overviewData?.description || "",
+      country: whoisData?.country || "",
+      rir: overviewData?.rir || whoisData?.rir || "",
+      prefixes_v4: prefixesV4,
+      prefixes_v6: prefixesV6,
+      peers_count: peersData?.length || 0,
+      upstreams,
+      downstreams,
     }
   }
 
   // Step 2: Get BGP routing data for first announced IPv4 prefix
   let bgp: BGPRoutingInfo | undefined
-  const firstV4Prefix = prefixesData?.ipv4_prefixes?.[0]?.prefix
-  if (firstV4Prefix) {
-    try {
-      const bgpState = await getRIPEBGPState(firstV4Prefix)
-      if (bgpState) {
-        bgp = {
-          prefix: bgpState.prefix,
-          origin_asn: bgpState.origin_asn,
-          origin_asname: asnData?.name || "",
-          as_path: bgpState.as_path,
-          visibility: bgpState.visibility,
-        }
-
-        // Get RPKI for this prefix
-        const rpki = await getRIPERPKIValidation(bgpState.origin_asn, bgpState.prefix).catch(() => null)
-        if (rpki) bgp.rpki_status = rpki.status
+  const firstV4 = asnDetail?.prefixes_v4?.[0]?.prefix
+  if (firstV4) {
+    const bgpState = await getRIPEBGPState(firstV4)
+    if (bgpState) {
+      bgp = {
+        prefix: bgpState.prefix,
+        origin_asn: bgpState.origin_asn,
+        origin_asname: overviewData?.name || "",
+        as_path: bgpState.as_path,
+        visibility: bgpState.visibility,
       }
-    } catch {
-      errors.push({ source: "ripestat", message: "BGP routing lookup for prefix failed" })
+
+      const rpki = await getRIPERPKIValidation(bgpState.origin_asn, bgpState.prefix)
+      if (rpki) bgp.rpki_status = rpki.status
     }
   }
 

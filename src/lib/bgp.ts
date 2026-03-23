@@ -1,5 +1,4 @@
 const RIPESTAT_BASE = "https://stat.ripe.net/data"
-const BGPVIEW_BASE = "https://api.bgpview.io"
 const TIMEOUT_MS = 8000
 
 function stripASPrefix(asn: string): string {
@@ -20,16 +19,8 @@ async function fetchJSON<T>(url: string): Promise<T | null> {
 }
 
 // ---------------------------------------------------------------------------
-// RIPEstat functions
+// BGP State
 // ---------------------------------------------------------------------------
-
-interface RIPEBGPStateResponse {
-  data: {
-    bgp_state: Array<{ path: string[]; target_prefix: string }>
-    nr_routes: number
-    resource: string
-  }
-}
 
 export interface BGPStateResult {
   prefix: string
@@ -42,26 +33,32 @@ export async function getRIPEBGPState(
   resource: string
 ): Promise<BGPStateResult | null> {
   const url = `${RIPESTAT_BASE}/bgp-state/data.json?resource=${encodeURIComponent(resource)}`
-  const data = await fetchJSON<RIPEBGPStateResponse>(url)
+  const data = await fetchJSON<{
+    data: {
+      bgp_state: Array<{ path: string[]; target_prefix: string }>
+      nr_routes: number
+      resource: string
+    }
+  }>(url)
   if (!data?.data?.bgp_state) return null
 
   const states = data.data.bgp_state
   if (states.length === 0) return null
 
-  const pathSet = new Set<string>()
+  const pathSet: Record<string, true> = {}
   const paths: string[][] = []
   for (const state of states) {
     if (!state.path || state.path.length === 0) continue
     const key = state.path.join(",")
-    if (!pathSet.has(key)) {
-      pathSet.add(key)
+    if (!pathSet[key]) {
+      pathSet[key] = true
       paths.push(state.path)
     }
     if (paths.length >= 10) break
   }
 
   const originAsn =
-    paths.length > 0 ? paths[0][paths.length > 0 ? paths[0].length - 1 : 0] : ""
+    paths.length > 0 ? paths[0][paths[0].length - 1] : ""
 
   const visibility =
     data.data.nr_routes > 0
@@ -78,12 +75,9 @@ export async function getRIPEBGPState(
   }
 }
 
-interface RIPERPKIResponse {
-  data: {
-    status: string
-    validating_roas: unknown[]
-  }
-}
+// ---------------------------------------------------------------------------
+// RPKI Validation
+// ---------------------------------------------------------------------------
 
 export interface RPKIValidationResult {
   status: "valid" | "invalid" | "not-found"
@@ -95,7 +89,7 @@ export async function getRIPERPKIValidation(
 ): Promise<RPKIValidationResult | null> {
   const cleanAsn = stripASPrefix(asn)
   const url = `${RIPESTAT_BASE}/rpki-validation/data.json?resource=${encodeURIComponent(cleanAsn)}&prefix=${encodeURIComponent(prefix)}`
-  const data = await fetchJSON<RIPERPKIResponse>(url)
+  const data = await fetchJSON<{ data: { status: string } }>(url)
   if (!data?.data) return null
 
   const status = data.data.status?.toLowerCase()
@@ -104,14 +98,9 @@ export async function getRIPERPKIValidation(
   return { status: "not-found" }
 }
 
-interface RIPEAnnouncedPrefixesResponse {
-  data: {
-    prefixes: Array<{
-      prefix: string
-      timelines: Array<{ starttime: string; endtime: string }>
-    }>
-  }
-}
+// ---------------------------------------------------------------------------
+// Announced Prefixes
+// ---------------------------------------------------------------------------
 
 export interface AnnouncedPrefix {
   prefix: string
@@ -123,7 +112,9 @@ export async function getRIPEAnnouncedPrefixes(
 ): Promise<AnnouncedPrefix[] | null> {
   const cleanAsn = stripASPrefix(asn)
   const url = `${RIPESTAT_BASE}/announced-prefixes/data.json?resource=AS${encodeURIComponent(cleanAsn)}`
-  const data = await fetchJSON<RIPEAnnouncedPrefixesResponse>(url)
+  const data = await fetchJSON<{
+    data: { prefixes: Array<{ prefix: string; timelines: Array<{ starttime: string; endtime: string }> }> }
+  }>(url)
   if (!data?.data?.prefixes) return null
 
   return data.data.prefixes.map((p) => ({
@@ -132,19 +123,14 @@ export async function getRIPEAnnouncedPrefixes(
   }))
 }
 
-interface RIPEASOverviewResponse {
-  data: {
-    holder: string
-    announced: boolean
-    block: { desc: string; name: string }
-    resource: string
-  }
-}
+// ---------------------------------------------------------------------------
+// AS Overview (name, holder, RIR block)
+// ---------------------------------------------------------------------------
 
 export interface ASOverviewResult {
   name: string
   description: string
-  country: string
+  rir: string
 }
 
 export async function getRIPEASOverview(
@@ -152,24 +138,68 @@ export async function getRIPEASOverview(
 ): Promise<ASOverviewResult | null> {
   const cleanAsn = stripASPrefix(asn)
   const url = `${RIPESTAT_BASE}/as-overview/data.json?resource=AS${encodeURIComponent(cleanAsn)}`
-  const data = await fetchJSON<RIPEASOverviewResponse>(url)
+  const data = await fetchJSON<{
+    data: {
+      holder: string
+      block: { desc: string; name: string }
+      resource: string
+    }
+  }>(url)
   if (!data?.data) return null
+
+  // Extract RIR from block.desc (e.g., "Assigned by ARIN")
+  const blockDesc = data.data.block?.desc || ""
+  const rirMatch = blockDesc.match(/(?:Assigned|Allocated) by (\S+)/i)
+  const rir = rirMatch ? rirMatch[1] : ""
 
   return {
     name: data.data.holder || "",
-    description: data.data.block?.desc || "",
-    country: "",
+    description: blockDesc,
+    rir,
   }
 }
 
-interface RIPEPeersResponse {
-  data: {
-    neighbours: Array<{
-      asn: number
-      type: "left" | "right"
-    }>
-  }
+// ---------------------------------------------------------------------------
+// ASN Whois (country, source/RIR)
+// ---------------------------------------------------------------------------
+
+export interface ASWhoisResult {
+  country: string
+  rir: string
 }
+
+export async function getRIPEASWhois(
+  asn: string
+): Promise<ASWhoisResult | null> {
+  const cleanAsn = stripASPrefix(asn)
+  const url = `${RIPESTAT_BASE}/whois/data.json?resource=AS${encodeURIComponent(cleanAsn)}`
+  const data = await fetchJSON<{
+    data: {
+      records: Array<Array<{ key: string; value: string }>>
+    }
+  }>(url)
+  if (!data?.data?.records) return null
+
+  let country = ""
+  let rir = ""
+
+  for (const record of data.data.records) {
+    for (const field of record) {
+      if (field.key === "Country" || field.key === "country") {
+        country = field.value
+      }
+      if (field.key === "source") {
+        rir = field.value
+      }
+    }
+  }
+
+  return { country, rir }
+}
+
+// ---------------------------------------------------------------------------
+// ASN Neighbours (peers/upstreams/downstreams)
+// ---------------------------------------------------------------------------
 
 export interface ASPeer {
   asn: string
@@ -180,7 +210,9 @@ export interface ASPeer {
 export async function getRIPEPeers(asn: string): Promise<ASPeer[] | null> {
   const cleanAsn = stripASPrefix(asn)
   const url = `${RIPESTAT_BASE}/asn-neighbours/data.json?resource=AS${encodeURIComponent(cleanAsn)}`
-  const data = await fetchJSON<RIPEPeersResponse>(url)
+  const data = await fetchJSON<{
+    data: { neighbours: Array<{ asn: number; type: "left" | "right" }> }
+  }>(url)
   if (!data?.data?.neighbours) return null
 
   return data.data.neighbours.map((n) => ({
@@ -190,19 +222,9 @@ export async function getRIPEPeers(asn: string): Promise<ASPeer[] | null> {
   }))
 }
 
-interface RIPELookingGlassResponse {
-  data: {
-    rrcs: Array<{
-      rrc: string
-      peers: Array<{
-        asn_origin: number
-        as_path: string
-        community: string
-        peer: string
-      }>
-    }>
-  }
-}
+// ---------------------------------------------------------------------------
+// Looking Glass
+// ---------------------------------------------------------------------------
 
 export interface LookingGlassEntry {
   rrc: string
@@ -214,7 +236,14 @@ export async function getRIPELookingGlass(
   prefix: string
 ): Promise<LookingGlassEntry[] | null> {
   const url = `${RIPESTAT_BASE}/looking-glass/data.json?resource=${encodeURIComponent(prefix)}`
-  const data = await fetchJSON<RIPELookingGlassResponse>(url)
+  const data = await fetchJSON<{
+    data: {
+      rrcs: Array<{
+        rrc: string
+        peers: Array<{ peer: string; as_path: string }>
+      }>
+    }
+  }>(url)
   if (!data?.data?.rrcs) return null
 
   const results: LookingGlassEntry[] = []
@@ -229,153 +258,4 @@ export async function getRIPELookingGlass(
     }
   }
   return results
-}
-
-// ---------------------------------------------------------------------------
-// BGPView functions
-// ---------------------------------------------------------------------------
-
-interface BGPViewResponse<T> {
-  status: string
-  data: T
-}
-
-export interface BGPViewASNResult {
-  asn: number
-  name: string
-  description_short: string
-  country_code: string
-  rir_allocation: { rir_name: string }
-}
-
-export async function getBGPViewASN(
-  asn: string
-): Promise<BGPViewASNResult | null> {
-  const cleanAsn = stripASPrefix(asn)
-  const url = `${BGPVIEW_BASE}/asn/${encodeURIComponent(cleanAsn)}`
-  const data = await fetchJSON<BGPViewResponse<BGPViewASNResult>>(url)
-  if (!data?.data) return null
-
-  return {
-    asn: data.data.asn,
-    name: data.data.name || "",
-    description_short: data.data.description_short || "",
-    country_code: data.data.country_code || "",
-    rir_allocation: {
-      rir_name: data.data.rir_allocation?.rir_name || "",
-    },
-  }
-}
-
-interface BGPViewPrefixEntry {
-  prefix: string
-  name: string
-}
-
-export interface BGPViewASNPrefixesResult {
-  ipv4_prefixes: Array<{ prefix: string; name: string }>
-  ipv6_prefixes: Array<{ prefix: string; name: string }>
-}
-
-export async function getBGPViewASNPrefixes(
-  asn: string
-): Promise<BGPViewASNPrefixesResult | null> {
-  const cleanAsn = stripASPrefix(asn)
-  const url = `${BGPVIEW_BASE}/asn/${encodeURIComponent(cleanAsn)}/prefixes`
-  const data = await fetchJSON<
-    BGPViewResponse<{
-      ipv4_prefixes: BGPViewPrefixEntry[]
-      ipv6_prefixes: BGPViewPrefixEntry[]
-    }>
-  >(url)
-  if (!data?.data) return null
-
-  return {
-    ipv4_prefixes: (data.data.ipv4_prefixes || []).map((p) => ({
-      prefix: p.prefix,
-      name: p.name || "",
-    })),
-    ipv6_prefixes: (data.data.ipv6_prefixes || []).map((p) => ({
-      prefix: p.prefix,
-      name: p.name || "",
-    })),
-  }
-}
-
-interface BGPViewPeerEntry {
-  asn: number
-  name: string
-}
-
-export interface BGPViewASNPeersResult {
-  peers: Array<{ asn: number; name: string }>
-  upstreams: Array<{ asn: number; name: string }>
-  downstreams: Array<{ asn: number; name: string }>
-}
-
-export async function getBGPViewASNPeers(
-  asn: string
-): Promise<BGPViewASNPeersResult | null> {
-  const cleanAsn = stripASPrefix(asn)
-
-  const [peersData, upstreamsData, downstreamsData] = await Promise.all([
-    fetchJSON<BGPViewResponse<{ ipv4_peers: BGPViewPeerEntry[]; ipv6_peers: BGPViewPeerEntry[] }>>(
-      `${BGPVIEW_BASE}/asn/${encodeURIComponent(cleanAsn)}/peers`
-    ),
-    fetchJSON<BGPViewResponse<{ ipv4_upstreams: BGPViewPeerEntry[]; ipv6_upstreams: BGPViewPeerEntry[] }>>(
-      `${BGPVIEW_BASE}/asn/${encodeURIComponent(cleanAsn)}/upstreams`
-    ),
-    fetchJSON<BGPViewResponse<{ ipv4_downstreams: BGPViewPeerEntry[]; ipv6_downstreams: BGPViewPeerEntry[] }>>(
-      `${BGPVIEW_BASE}/asn/${encodeURIComponent(cleanAsn)}/downstreams`
-    ),
-  ])
-
-  const mapEntries = (entries: BGPViewPeerEntry[] | undefined) =>
-    (entries || []).map((e) => ({ asn: e.asn, name: e.name || "" }))
-
-  const peers = [
-    ...mapEntries(peersData?.data?.ipv4_peers),
-    ...mapEntries(peersData?.data?.ipv6_peers),
-  ]
-
-  const upstreams = [
-    ...mapEntries(upstreamsData?.data?.ipv4_upstreams),
-    ...mapEntries(upstreamsData?.data?.ipv6_upstreams),
-  ]
-
-  const downstreams = [
-    ...mapEntries(downstreamsData?.data?.ipv4_downstreams),
-    ...mapEntries(downstreamsData?.data?.ipv6_downstreams),
-  ]
-
-  if (!peersData && !upstreamsData && !downstreamsData) return null
-
-  return { peers, upstreams, downstreams }
-}
-
-export interface BGPViewPrefixResult {
-  asns: Array<{ asn: number; name: string }>
-  name: string
-  description_short: string
-}
-
-export async function getBGPViewPrefix(
-  prefix: string,
-  length: number
-): Promise<BGPViewPrefixResult | null> {
-  const url = `${BGPVIEW_BASE}/prefix/${encodeURIComponent(prefix)}/${length}`
-  const data = await fetchJSON<
-    BGPViewResponse<{
-      asns: Array<{ asn: number; name: string; description: string }>
-      name: string
-      description_short: string
-    }>
-  >(url)
-  if (!data?.data) return null
-
-  return {
-    asns: (data.data.asns || []).map((a) => ({ asn: a.asn, name: a.name || "" })),
-    name: data.data.name || "",
-    description_short: data.data.description_short || "",
-  }
 }
