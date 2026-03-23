@@ -144,9 +144,8 @@ export function AppleSecretGenerator() {
         new TextEncoder().encode(signingInput)
       )
 
-      // Web Crypto returns DER-encoded signature, convert to raw r||s for JWT
-      const rawSignature = derToRaw(new Uint8Array(signature))
-      const signatureB64 = base64UrlEncode(rawSignature)
+      // Web Crypto in browsers returns raw r||s format (64 bytes for P-256), which is what JWT needs
+      const signatureB64 = base64UrlEncode(new Uint8Array(signature))
 
       const jwt = `${headerB64}.${payloadB64}.${signatureB64}`
 
@@ -406,44 +405,3 @@ export function AppleSecretGenerator() {
   )
 }
 
-/**
- * Convert a DER-encoded ECDSA signature to raw r||s format (64 bytes for P-256).
- * Web Crypto's ECDSA sign returns DER, but JWT expects raw concatenation.
- */
-function derToRaw(der: Uint8Array): Uint8Array {
-  // DER structure: 0x30 [total-length] 0x02 [r-length] [r] 0x02 [s-length] [s]
-  const raw = new Uint8Array(64)
-
-  let offset = 2 // skip 0x30 and total length
-  // Read r
-  if (der[offset] !== 0x02) throw new Error("Invalid DER signature")
-  offset++
-  const rLen = der[offset]
-  offset++
-  const rStart = offset
-  offset += rLen
-
-  // Read s
-  if (der[offset] !== 0x02) throw new Error("Invalid DER signature")
-  offset++
-  const sLen = der[offset]
-  offset++
-  const sStart = offset
-
-  // Copy r (right-aligned in 32 bytes, skip leading zero if present)
-  if (rLen <= 32) {
-    raw.set(der.slice(rStart, rStart + rLen), 32 - rLen)
-  } else {
-    // Leading zero byte for positive integer encoding
-    raw.set(der.slice(rStart + rLen - 32, rStart + rLen), 0)
-  }
-
-  // Copy s (right-aligned in 32 bytes)
-  if (sLen <= 32) {
-    raw.set(der.slice(sStart, sStart + sLen), 64 - sLen)
-  } else {
-    raw.set(der.slice(sStart + sLen - 32, sStart + sLen), 32)
-  }
-
-  return raw
-}
