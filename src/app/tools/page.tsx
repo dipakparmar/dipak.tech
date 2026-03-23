@@ -5,7 +5,7 @@ import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "s
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { JsonLd } from "@/components/seo/json-ld"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Globe, Wrench, Github, Terminal, Network, Search, KeyRound, Mail } from "lucide-react"
+import { Shield, Globe, Wrench, Github, Terminal, Network, Search, KeyRound, Mail, Apple } from "lucide-react"
 import { buildHref } from "@/lib/host-routing"
 import { ogUrls } from "@/lib/og-config"
 import { personSchema, personReference } from "@/lib/schema"
@@ -103,6 +103,13 @@ const tools = [
     path: "web-terminal",
     icon: Terminal,
     color: "text-violet-500",
+  },
+  {
+    title: "Apple Client Secret",
+    description: "Generate ES256-signed JWTs for Sign in with Apple authentication",
+    path: "apple-secret-generator",
+    icon: Apple,
+    color: "text-rose-500",
   },
 ]
 
