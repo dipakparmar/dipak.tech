@@ -1,8 +1,8 @@
 const RIPESTAT_BASE = "https://stat.ripe.net/data"
 const TIMEOUT_MS = 8000
 
-function stripASPrefix(asn: string): string {
-  return asn.replace(/^AS/i, "")
+function stripASPrefix(asn: string | number): string {
+  return String(asn).replace(/^AS/i, "")
 }
 
 async function fetchJSON<T>(url: string): Promise<T | null> {
