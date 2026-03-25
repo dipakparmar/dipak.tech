@@ -175,8 +175,8 @@ export default async function ToolsPage() {
                 Free Online Tools
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                A collection of useful developer tools. All client-side operations run in your browser -
-                your data stays private.
+                A collection of useful developer tools. Client-side tools run entirely in your browser.
+                Network lookups are proxied through our server — no data is stored.
               </p>
             </div>
           </BlurFade>
