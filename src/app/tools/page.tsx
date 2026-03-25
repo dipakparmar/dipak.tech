@@ -1,4 +1,4 @@
-import { Apple, Github, Globe, KeyRound, Mail, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
+import { Apple, GithubIcon, Globe, KeyRound, Mail, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
 import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "schema-dts"
 import { personReference, personSchema } from "@/lib/schema"
 
@@ -133,7 +133,7 @@ const tools: Tool[] = [
     title: "Release Notes",
     description: "Combine GitHub releases into a single, exportable changelog",
     path: "github-release-notes",
-    icon: Github,
+    icon: GithubIcon,
     color: "text-slate-600 dark:text-slate-300",
     borderColor: "hover:border-slate-500/30",
     iconBg: "bg-slate-500/10",
