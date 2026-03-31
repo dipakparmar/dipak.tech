@@ -4,7 +4,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 // This is a known Next.js limitation for static pages.
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.cloudflareinsights.com https://browser.sentry-cdn.com https://unpkg.com;
+  script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://static.cloudflareinsights.com https://browser.sentry-cdn.com https://unpkg.com;
   style-src 'self' 'unsafe-inline';
   child-src 'none';
   frame-src 'none';
