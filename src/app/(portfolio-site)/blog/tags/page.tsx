@@ -40,8 +40,8 @@ export default function TagsPage() {
       </div>
 
       {tags.length === 0 && (
-        <p className="text-sm text-muted-foreground py-8 text-center">
-          No tags yet.
+        <p className="text-sm text-muted-foreground italic py-12 text-center">
+          No tags yet — like an empty commit history. Give it time.
         </p>
       )}
     </main>

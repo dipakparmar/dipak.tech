@@ -11,8 +11,44 @@ interface BlogListProps {
   tags: { name: string; count: number }[];
 }
 
+const SEARCH_LINES = [
+  'Nothing matching "{{q}}" — but I like your curiosity.',
+  '"{{q}}"? Now you\'ve got me thinking...',
+  'No results for "{{q}}" — yet. You might be ahead of me.',
+  'Searched high and low for "{{q}}". Maybe buy me a coffee and ask again?',
+  '"{{q}}" walked into a blog and found... nothing. Awkward.',
+  'If "{{q}}" were a blog post, I\'d totally write it. Noted.',
+  '"{{q}}"? That\'s actually a great idea for a post.',
+  '404: "{{q}}" not found. But you are. Hi.',
+  'I\'ve looked everywhere for "{{q}}". Even under the couch cushions.',
+  '"{{q}}" is playing hard to get. Just like my deploy on Fridays.',
+  'No "{{q}}" here — but stick around, I\'m full of surprises.',
+  'Roses are red, violets are blue, "{{q}}" has no results, but I appreciate you.',
+];
+
+const EMPTY_LINES = [
+  '"The best time to write was yesterday. The second best time is now." — I\'m on it.',
+  'Plot twist: the blog posts were the friends we made along the way.',
+  'This page is like my coffee — brewing. Check back soon.',
+  'Nothing here yet, but great things take time... or so I tell myself.',
+  'Coming soon: words, code, and questionable opinions.',
+  'My thoughts are in staging. Waiting for approval to merge into production.',
+  'sudo write --blog-posts... permission denied. Still working on it.',
+  'git commit -m "add blog posts" — coming to a branch near you.',
+  'Currently compiling thoughts. Estimated build time: soon™.',
+  'The blog is empty but my terminal history isn\'t. That counts, right?',
+  'I promise I\'m more interesting than this empty page suggests.',
+  'New posts loading... have you tried turning it off and on again?',
+];
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 export function BlogList({ posts }: BlogListProps) {
   const [query, setQuery] = useState('');
+  const [emptySearchLine] = useState(() => pick(SEARCH_LINES));
+  const [emptyBlogLine] = useState(() => pick(EMPTY_LINES));
 
   const filtered = query
     ? posts.filter((post) => {
@@ -76,9 +112,13 @@ export function BlogList({ posts }: BlogListProps) {
       </div>
 
       {filtered.length === 0 && (
-        <p className="text-sm text-muted-foreground py-8 text-center">
-          No posts found.
-        </p>
+        <div className="py-12 text-center">
+          <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
+            {query
+              ? emptySearchLine.replace('{{q}}', query)
+              : emptyBlogLine}
+          </p>
+        </div>
       )}
     </main>
   );

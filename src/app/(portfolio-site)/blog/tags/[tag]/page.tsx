@@ -72,8 +72,8 @@ export default async function TagPage({ params }: TagPageProps) {
       </div>
 
       {posts.length === 0 && (
-        <p className="text-sm text-muted-foreground py-8 text-center">
-          No posts with this tag.
+        <p className="text-sm text-muted-foreground italic py-12 text-center">
+          Nothing tagged here yet — but every great repo starts with an empty folder.
         </p>
       )}
     </main>
