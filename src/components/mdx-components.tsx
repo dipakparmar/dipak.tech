@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import type { MDXComponents } from '@mdx-js/mdx';
+import type { MDXComponents } from 'mdx/types';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes } from 'react';
 
 function MdxLink(props: AnchorHTMLAttributes<HTMLAnchorElement>) {
@@ -24,7 +24,7 @@ function MdxLink(props: AnchorHTMLAttributes<HTMLAnchorElement>) {
 
 function MdxImage(props: ImgHTMLAttributes<HTMLImageElement>) {
   const { src, alt, width, height } = props;
-  if (!src) return null;
+  if (!src || typeof src !== 'string') return null;
 
   return (
     <Image

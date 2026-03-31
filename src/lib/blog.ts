@@ -5,6 +5,7 @@ import { compile, run } from '@mdx-js/mdx';
 import * as runtime from 'react/jsx-runtime';
 import { createHighlighter } from 'shiki';
 import type { ComponentType } from 'react';
+import type { MDXComponents } from 'mdx/types';
 
 const BLOG_DIR = path.join(process.cwd(), 'content/blog');
 const WORDS_PER_MINUTE = 200;
@@ -32,7 +33,7 @@ export interface TocEntry {
 
 export interface Post {
   meta: PostMeta;
-  content: ComponentType;
+  content: ComponentType<{ components?: MDXComponents }>;
   toc: TocEntry[];
 }
 
