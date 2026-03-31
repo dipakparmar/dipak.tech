@@ -1,7 +1,19 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { MDXComponents } from 'mdx/types';
-import type { AnchorHTMLAttributes, ImgHTMLAttributes } from 'react';
+import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
+import { CopyButton } from '@/components/blog/copy-button';
+
+function extractText(node: ReactNode): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (!node) return '';
+  if (Array.isArray(node)) return node.map(extractText).join('');
+  if (typeof node === 'object' && 'props' in node) {
+    return extractText(node.props.children);
+  }
+  return '';
+}
 
 function MdxLink(props: AnchorHTMLAttributes<HTMLAnchorElement>) {
   const { href, children, ...rest } = props;
@@ -37,7 +49,19 @@ function MdxImage(props: ImgHTMLAttributes<HTMLImageElement>) {
   );
 }
 
+function MdxPre(props: any) {
+  const code = extractText(props.children);
+
+  return (
+    <div className="relative group">
+      <CopyButton text={code} />
+      <pre {...props} />
+    </div>
+  );
+}
+
 export const mdxComponents: MDXComponents = {
   a: MdxLink,
   img: MdxImage,
+  pre: MdxPre,
 };

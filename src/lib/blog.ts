@@ -106,10 +106,67 @@ function rehypeShiki() {
       // codeToHast returns a root with a single <pre> child
       const preNode = hast.children[0] as any;
 
+      // For shell languages, mark each line as command or comment/empty
+      const shellLangs = ['shell', 'bash', 'sh', 'zsh', 'terminal'];
+      if (shellLangs.includes(lang)) {
+        const codeEl = preNode.children?.find((c: any) => c.tagName === 'code');
+        if (codeEl) {
+          for (const line of codeEl.children) {
+            if (line.tagName !== 'span' || !line.properties?.className?.includes('line')) continue;
+            const text = (line.children || [])
+              .map((c: any) => c.children?.[0]?.value || c.value || '')
+              .join('')
+              .trimStart();
+            const isCommand = text.length > 0 && !text.startsWith('#');
+            line.properties['data-line-type'] = isCommand ? 'command' : 'comment';
+          }
+        }
+      }
+
+      // Build header with icon + language label
+      const iconPath = `/icons/lang/${lang}.svg`;
+      const headerChildren: any[] = [];
+
+      // Shell languages get dot header, others get icon + label
+      if (shellLangs.includes(lang)) {
+        headerChildren.push({
+          type: 'element',
+          tagName: 'img',
+          properties: { src: iconPath, alt: lang, className: ['shiki-lang-icon'], width: '12', height: '12' },
+          children: [],
+        });
+        headerChildren.push({
+          type: 'element',
+          tagName: 'span',
+          properties: { className: ['shiki-lang-dots'] },
+          children: [{ type: 'text', value: '● ● ●' }],
+        });
+      } else {
+        headerChildren.push({
+          type: 'element',
+          tagName: 'img',
+          properties: { src: iconPath, alt: lang, className: ['shiki-lang-icon'], width: '12', height: '12' },
+          children: [],
+        });
+        headerChildren.push({
+          type: 'element',
+          tagName: 'span',
+          properties: {},
+          children: [{ type: 'text', value: lang }],
+        });
+      }
+
+      const headerNode = {
+        type: 'element',
+        tagName: 'div',
+        properties: { className: ['shiki-header'] },
+        children: headerChildren,
+      };
+
       // Wrap in a div with lang label
       node.tagName = 'div';
       node.properties = { className: ['shiki-wrapper'], 'data-lang': lang };
-      node.children = [preNode];
+      node.children = [headerNode, preNode];
 
       return SKIP;
     });

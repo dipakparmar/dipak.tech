@@ -414,19 +414,67 @@
   background-color: var(--shiki-dark-bg) !important;
 }
 
-.shiki-wrapper pre {
-  padding: 1rem;
+/* Code block base styles */
+.shiki-wrapper {
+  position: relative;
   border-radius: 0.5rem;
-  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
 }
 
-.shiki-wrapper [data-lang]::before {
-  content: attr(data-lang);
-  display: block;
-  text-align: right;
-  font-size: 0.7rem;
+.shiki-header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  color: var(--color-muted-foreground);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-muted);
+}
+
+.shiki-lang-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.dark .shiki-lang-icon {
+  filter: brightness(0) invert(1) opacity(0.7);
+}
+
+.shiki-header img {
+  margin: 0;
+  padding: 0;
+}
+
+.shiki-lang-dots {
+  letter-spacing: 0.2em;
+  font-size: 0.6rem;
+  opacity: 0.6;
+}
+
+.shiki-wrapper pre {
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
+/* Terminal/shell $ prompt */
+.shiki-wrapper[data-lang="shell"] .line[data-line-type="command"]::before,
+.shiki-wrapper[data-lang="bash"] .line[data-line-type="command"]::before,
+.shiki-wrapper[data-lang="sh"] .line[data-line-type="command"]::before,
+.shiki-wrapper[data-lang="zsh"] .line[data-line-type="command"]::before,
+.shiki-wrapper[data-lang="terminal"] .line[data-line-type="command"]::before {
+  content: "$ ";
   color: var(--color-muted-foreground);
   opacity: 0.5;
-  margin-bottom: -0.5rem;
-  padding-right: 0.5rem;
+  user-select: none;
 }
