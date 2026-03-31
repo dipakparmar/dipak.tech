@@ -1,7 +1,6 @@
 import './globals.css';
 
 import { Inter, Karla } from 'next/font/google';
-import Script from "next/script";
 import { GoogleTagManager } from '@next/third-parties/google';
 
 import type { Metadata } from 'next';
@@ -100,16 +99,16 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={fontInter.variable}>
       <head>
         {process.env.NODE_ENV === "development" && (
-          <Script
+          <script
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
-            strategy="beforeInteractive"
+            async
           />
         )}
         {process.env.NODE_ENV === "development" && (
-          <Script
+          <script
             src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
-            strategy="lazyOnload"
+            async
           />
         )}
       </head>
