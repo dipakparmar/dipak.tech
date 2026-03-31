@@ -7,26 +7,57 @@ tags: ["meta"]
 
 ## Welcome
 
-This is my first blog post. I'll be writing about software engineering, infrastructure, and DevSecOps.
+This is my first blog post. I'll be writing about **software engineering**, infrastructure, and DevSecOps. I've been building tools and automating workflows for over 6 years, and this blog is where I'll share what I've learned.
+
+> Writing helps me think more clearly about the problems I solve every day. I hope these posts are useful to you too.
 
 ### Code Example
 
-Here's a simple Go function:
+Here's a simple Go function that demonstrates a basic HTTP health check:
 
 ```go
+package main
+
+import (
+    "fmt"
+    "net/http"
+    "os"
+)
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusOK)
+    fmt.Fprintf(w, "ok")
+}
+
 func main() {
-    fmt.Println("Hello from the blog!")
-    os.Exit(0)
+    http.HandleFunc("/health", healthHandler)
+    fmt.Println("Server starting on :8080")
+    if err := http.ListenAndServe(":8080", nil); err != nil {
+        fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+        os.Exit(1)
+    }
 }
 ```
+
+You can also use inline code like `kubectl get pods` or reference environment variables like `$KUBECONFIG`.
 
 ### What to Expect
 
 I'll cover topics like:
 
-- Kubernetes and container orchestration
-- CI/CD pipeline design
-- Cloud infrastructure with AWS and Terraform
-- Open-source contributions
+- **Kubernetes** and container orchestration
+- CI/CD pipeline design with GitHub Actions
+- Cloud infrastructure with **AWS** and **Terraform**
+- Open-source contributions and tooling
+
+#### A Note on Frequency
+
+I'll aim to publish every couple of weeks. Each post will be focused and practical — no fluff.
+
+---
+
+### Links and Resources
+
+Check out my [GitHub profile](https://github.com/dipakparmar) for open-source projects, or reach out on [Twitter](https://twitter.com/iamdipakparmar).
 
 Stay tuned for more posts!

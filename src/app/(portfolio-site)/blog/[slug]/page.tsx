@@ -117,7 +117,7 @@ export default async function PostPage({ params }: PostPageProps) {
           </div>
         </header>
 
-        <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-pre:p-0 prose-pre:bg-transparent">
+        <div className="blog-prose max-w-none">
           <Content components={mdxComponents} />
         </div>
       </article>

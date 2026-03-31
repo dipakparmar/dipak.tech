@@ -82,7 +82,7 @@ function getHighlighter() {
 function rehypeShiki() {
   return async (tree: any) => {
     const highlighter = await getHighlighter();
-    const { visit } = await import('unist-util-visit');
+    const { visit, SKIP } = await import('unist-util-visit');
 
     visit(tree, 'element', (node: any) => {
       if (node.tagName !== 'pre') return;
@@ -98,14 +98,20 @@ function rehypeShiki() {
         .join('')
         .replace(/\n$/, '');
 
-      const html = highlighter.codeToHtml(code, {
+      const hast = highlighter.codeToHast(code, {
         lang,
         themes: { light: 'github-light', dark: 'github-dark' },
       });
 
-      node.tagName = 'shiki-code';
-      node.properties = { 'data-lang': lang, 'data-html': html };
-      node.children = [];
+      // codeToHast returns a root with a single <pre> child
+      const preNode = hast.children[0] as any;
+
+      // Wrap in a div with lang label
+      node.tagName = 'div';
+      node.properties = { className: ['shiki-wrapper'], 'data-lang': lang };
+      node.children = [preNode];
+
+      return SKIP;
     });
   };
 }
