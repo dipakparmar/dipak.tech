@@ -1,5 +1,5 @@
 import { Dock, DockIcon } from '@/components/magicui/dock';
-import { HomeIcon, NotebookIcon } from 'lucide-react';
+import { HomeIcon, NotebookIcon, PenLine } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -51,6 +51,24 @@ export default function Navbar() {
             </TooltipTrigger>
             <TooltipContent sideOffset={10}>
               <p>Docs Diary</p>
+            </TooltipContent>
+          </Tooltip>
+        </DockIcon>
+        <DockIcon>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/blog"
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'icon' }),
+                  'size-12'
+                )}
+              >
+                <PenLine className="size-4" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={10}>
+              <p>Blog</p>
             </TooltipContent>
           </Tooltip>
         </DockIcon>
