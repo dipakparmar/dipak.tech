@@ -103,9 +103,9 @@ function rehypeShiki() {
         themes: { light: 'github-light', dark: 'github-dark' },
       });
 
-      node.tagName = 'div';
-      node.properties = { className: ['shiki-wrapper'], 'data-lang': lang };
-      node.children = [{ type: 'raw', value: html }];
+      node.tagName = 'shiki-code';
+      node.properties = { 'data-lang': lang, 'data-html': html };
+      node.children = [];
     });
   };
 }
