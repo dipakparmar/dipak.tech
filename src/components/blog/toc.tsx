@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
 import type { TocEntry } from '@/lib/blog';
 
 interface TocProps {
@@ -31,8 +32,8 @@ export function Toc({ entries }: TocProps) {
   if (entries.length === 0) return null;
 
   return (
-    <nav className="hidden xl:block fixed right-[max(2rem,calc(50%-28rem-12rem))] top-24 w-56">
-      <p className="text-[0.65rem] font-medium text-muted-foreground/50 mb-4 uppercase tracking-widest">
+    <nav className="hidden xl:block fixed right-[max(2rem,calc(50%-24rem-15rem))] top-24 w-56">
+      <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
         On this page
       </p>
       <ul className="relative space-y-0.5 text-[0.8rem] border-l border-border">
