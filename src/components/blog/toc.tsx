@@ -31,7 +31,7 @@ export function Toc({ entries }: TocProps) {
   if (entries.length === 0) return null;
 
   return (
-    <nav className="hidden xl:block fixed right-[max(2rem,calc(50%-28rem-12rem))] top-24 w-56">
+    <nav className="hidden xl:block fixed right-[max(2rem,calc(50%-24rem-15rem))] top-24 w-56">
       <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
         On this page
       </p>
