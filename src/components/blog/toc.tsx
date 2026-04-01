@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import type { TocEntry } from '@/lib/blog';
 
@@ -9,14 +9,24 @@ interface TocProps {
 }
 
 export function Toc({ entries }: TocProps) {
-  const [activeId, setActiveId] = useState<string>('');
+  const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
 
   useEffect(() => {
+    const map = linkRefs.current;
+
+    function activate(id: string) {
+      for (const [entryId, el] of map) {
+        const isActive = entryId === id;
+        el.style.color = isActive ? 'var(--foreground)' : '';
+        el.style.fontWeight = isActive ? '500' : '';
+      }
+    }
+
     const observer = new IntersectionObserver(
       (observedEntries) => {
         for (const entry of observedEntries) {
           if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
+            activate(entry.target.id);
           }
         }
       },
@@ -27,7 +37,7 @@ export function Toc({ entries }: TocProps) {
     headings.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
-  }, []);
+  }, [entries]);
 
   if (entries.length === 0) return null;
 
@@ -36,31 +46,23 @@ export function Toc({ entries }: TocProps) {
       <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
         On this page
       </p>
-      <ul className="relative space-y-0.5 text-[0.8rem] border-l border-border">
-        {entries.map((entry) => {
-          const isActive = activeId === entry.id;
-          return (
-            <li
-              key={entry.id}
-              className="relative"
+      <ul className="space-y-1.5 text-sm">
+        {entries.map((entry) => (
+          <li
+            key={entry.id}
+            style={{ paddingLeft: `${(entry.level - 2) * 12}px` }}
+          >
+            <a
+              href={`#${entry.id}`}
+              ref={(el) => {
+                if (el) linkRefs.current.set(entry.id, el);
+              }}
+              className="block py-0.5 transition-colors text-muted-foreground/70 hover:text-foreground"
             >
-              {isActive && (
-                <span className="absolute left-0 top-0 bottom-0 w-px bg-foreground -translate-x-px" />
-              )}
-              <a
-                href={`#${entry.id}`}
-                className={`block py-1 transition-colors ${
-                  isActive
-                    ? 'text-foreground'
-                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                }`}
-                style={{ paddingLeft: `${8 + (entry.level - 2) * 12}px` }}
-              >
-                {entry.text}
-              </a>
-            </li>
-          );
-        })}
+              {entry.text}
+            </a>
+          </li>
+        ))}
       </ul>
     </nav>
   );

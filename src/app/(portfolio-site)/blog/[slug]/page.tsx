@@ -1,14 +1,15 @@
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { ArrowLeft, Calendar, Clock, RefreshCw } from 'lucide-react';
+import type { BlogPosting, WithContext } from 'schema-dts';
 import { getAllSlugs, getPostBySlug } from '@/lib/blog';
-import { mdxComponents } from '@/components/mdx-components';
-import { Toc } from '@/components/blog/toc';
-import { JsonLd } from '@/components/seo/json-ld';
-import { personReference } from '@/lib/schema';
+
 import { BlurFade } from '@/components/magicui/blur-fade';
+import { JsonLd } from '@/components/seo/json-ld';
+import Link from 'next/link';
 import type { Metadata } from 'next';
-import type { WithContext, BlogPosting } from 'schema-dts';
+import { Toc } from '@/components/blog/toc';
+import { mdxComponents } from '@/components/mdx-components';
+import { notFound } from 'next/navigation';
+import { personReference } from '@/lib/schema';
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;
@@ -76,16 +77,14 @@ export default async function PostPage({ params }: PostPageProps) {
     <>
       <JsonLd data={postSchema} />
       <Toc entries={toc} />
-      <article className="min-h-dvh">
-        <BlurFade delay={BLUR_FADE_DELAY}>
-          <Link
-            href="/blog"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-10 group"
-          >
-            <ArrowLeft className="size-3 transition-transform group-hover:-translate-x-0.5" />
-            Back to blog
-          </Link>
-        </BlurFade>
+      <article>
+        <Link
+          href="/blog"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ArrowLeft className="size-3" />
+          Back to blog
+        </Link>
 
         <header className="mb-10">
           <BlurFade delay={BLUR_FADE_DELAY * 2}>
