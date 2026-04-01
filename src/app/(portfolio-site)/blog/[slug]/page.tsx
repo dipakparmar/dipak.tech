@@ -1,8 +1,7 @@
-import { ArrowLeft, Calendar, Clock, RefreshCw } from 'lucide-react';
 import type { BlogPosting, WithContext } from 'schema-dts';
 import { getAllSlugs, getPostBySlug } from '@/lib/blog';
 
-import { BlurFade } from '@/components/magicui/blur-fade';
+import { ArrowLeft } from 'lucide-react';
 import { JsonLd } from '@/components/seo/json-ld';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -78,71 +77,52 @@ export default async function PostPage({ params }: PostPageProps) {
       <JsonLd data={postSchema} />
       <Toc entries={toc} />
       <article>
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-        >
-          <ArrowLeft className="size-3" />
-          Back to blog
-        </Link>
-
         <header className="mb-10">
-          <BlurFade delay={BLUR_FADE_DELAY * 2}>
-            <div className="flex gap-2 mb-4">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors mb-4"
+          >
+            <ArrowLeft className="size-3" />
+            <span>back to blog list</span>
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight mb-2">{meta.title}</h1>
+          <div className="flex items-center gap-2.5 text-xs text-muted-foreground/60">
+            <time dateTime={meta.date}>
+              {new Date(meta.date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </time>
+            <span>·</span>
+            <span>{meta.readingTime} min read</span>
+            {meta.updated && (
+              <>
+                <span>·</span>
+                <span>
+                  Updated{' '}
+                  {new Date(meta.updated).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </>
+            )}
+          </div>
+          {meta.tags.length > 0 && (
+            <div className="flex gap-1.5 mt-3">
               {meta.tags.map((tag) => (
                 <Link
                   key={tag}
                   href={`/blog/tags/${tag}`}
-                  className="text-[0.65rem] uppercase tracking-wider text-muted-foreground/70 hover:text-primary transition-colors"
+                  className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md hover:text-foreground transition-colors"
                 >
                   {tag}
                 </Link>
               ))}
             </div>
-          </BlurFade>
-
-          <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl leading-tight">
-              {meta.title}
-            </h1>
-          </BlurFade>
-
-          <BlurFade delay={BLUR_FADE_DELAY * 4}>
-            <p className="text-muted-foreground mt-3 text-pretty">
-              {meta.description}
-            </p>
-          </BlurFade>
-
-          <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <div className="flex items-center gap-4 mt-5 pt-5 border-t border-border">
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                <Calendar className="size-3" />
-                <time dateTime={meta.date}>
-                  {new Date(meta.date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </time>
-              </div>
-              {meta.updated && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                  <RefreshCw className="size-3" />
-                  <span>
-                    {new Date(meta.updated).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                <Clock className="size-3" />
-                <span>{meta.readingTime} min read</span>
-              </div>
-            </div>
-          </BlurFade>
+          )}
         </header>
 
         <BlurFade delay={BLUR_FADE_DELAY * 6}>
