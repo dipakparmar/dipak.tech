@@ -2,6 +2,7 @@ import type { BlogPosting, WithContext } from 'schema-dts';
 import { getAllSlugs, getPostBySlug } from '@/lib/blog';
 
 import { ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
 import { JsonLd } from '@/components/seo/json-ld';
 import Link from 'next/link';
 import type { Metadata } from 'next';
@@ -125,11 +126,22 @@ export default async function PostPage({ params }: PostPageProps) {
           )}
         </header>
 
-        <BlurFade delay={BLUR_FADE_DELAY * 6}>
-          <div className="blog-prose max-w-none">
-            <Content components={mdxComponents} />
+        {meta.image && (
+          <div className="mb-8">
+            <Image
+              src={meta.image}
+              alt={meta.title}
+              width={768}
+              height={400}
+              className="w-full rounded-lg object-cover"
+              unoptimized
+            />
           </div>
-        </BlurFade>
+        )}
+
+        <div className="blog-prose max-w-none">
+          <Content components={mdxComponents} />
+        </div>
       </article>
     </>
   );
