@@ -1,0 +1,78 @@
+---
+title: "Hello, World"
+description: "Welcome to my blog — a space for writing about software engineering, infrastructure, and the things I build."
+date: "2026-03-31"
+tags: ["meta"]
+---
+
+## Hello, World
+
+Every developer's journey starts with a `Hello, World` — and so does this blog.
+
+I'm Dipak, a DevSecOps engineer with over 6 years of experience building cloud infrastructure, automating pipelines, and shipping tools that make developers' lives easier. This blog is where I'll share what I learn along the way.
+
+> "The best way to learn is to teach." — Richard Feynman
+
+### What I'll Write About
+
+Expect posts on topics like:
+
+- **Kubernetes** — cluster management, security hardening, and production patterns
+- **CI/CD** — GitHub Actions workflows, deployment strategies, and pipeline design
+- **Cloud Infrastructure** — AWS, Terraform, and infrastructure as code
+- **Developer Tools** — building CLIs, container registries, and certificate utilities
+- **Open Source** — contributions, maintenance, and community
+
+### A Taste of Code
+
+Here's a simple health check endpoint in Go — the kind of thing I build every day:
+
+```go
+package main
+
+import (
+    "fmt"
+    "net/http"
+    "os"
+)
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusOK)
+    fmt.Fprintf(w, "ok")
+}
+
+func main() {
+    http.HandleFunc("/health", healthHandler)
+    fmt.Println("Server starting on :8080")
+    if err := http.ListenAndServe(":8080", nil); err != nil {
+        fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+        os.Exit(1)
+    }
+}
+```
+
+And deploying it is just a few lines of shell:
+
+```bash
+# Build and push the image
+docker build -t cr.dipak.io/health-check:latest .
+docker push cr.dipak.io/health-check:latest
+
+# Deploy to Kubernetes
+kubectl apply -f deployment.yaml
+kubectl rollout status deployment/health-check
+```
+
+You can also reference inline code like `kubectl get pods -n production` or environment variables like `$KUBECONFIG` in prose.
+
+### Why Blog?
+
+I've spent years writing documentation, READMEs, and internal wikis. A blog feels like the natural next step — a place to think in public, share deeper dives, and connect with others who care about building reliable systems.
+
+#### On Frequency
+
+I'll aim for quality over quantity. Each post will be focused, practical, and worth your time.
+
+---
+
+Thanks for reading. If you have questions or topics you'd like me to cover, reach out on [Twitter](https://dipak.to/x) or [LinkedIn](https://dipak.to/linkedin).
