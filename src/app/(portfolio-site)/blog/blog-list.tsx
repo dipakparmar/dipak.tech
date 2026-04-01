@@ -50,46 +50,31 @@ function pick<T>(arr: T[]): T {
 const BLUR_FADE_DELAY = 0.04;
 
 export function BlogList({ posts }: BlogListProps) {
-  const [query, setQuery] = useState('');
-  const [emptySearchLine] = useState(() => pick(SEARCH_LINES));
   const [emptyBlogLine] = useState(() => pick(EMPTY_LINES));
-
-  const filtered = query
-    ? posts.filter((post) => {
-        const q = query.toLowerCase();
-        return (
-          post.title.toLowerCase().includes(q) ||
-          post.description.toLowerCase().includes(q) ||
-          post.tags.some((tag) => tag.toLowerCase().includes(q))
-        );
-      })
-    : posts;
 
   return (
     <main className="min-h-dvh">
-      <BlurFade delay={BLUR_FADE_DELAY}>
-        <div className="flex items-start justify-between gap-4 mb-10">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tighter">Blog</h1>
-            <p className="text-sm text-muted-foreground mt-1.5 text-pretty">
-              Writings on software engineering, infrastructure, and DevSecOps.
-            </p>
-          </div>
-          <div className="flex items-center gap-1 shrink-0 mt-2">
-            <SearchToggle onSearch={setQuery} />
-            <Link
-              href="/blog/tags"
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
-              aria-label="View all tags"
-            >
-              <Tag className="size-4" />
-            </Link>
-          </div>
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Writings on software engineering, infrastructure, and DevSecOps.
+          </p>
         </div>
-      </BlurFade>
+        <div className="flex items-center gap-1 shrink-0 mt-1">
+          <SearchToggle posts={posts} />
+          <Link
+            href="/blog/tags"
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="View all tags"
+          >
+            <Tag className="size-4" />
+          </Link>
+        </div>
+      </div>
 
       <div className="divide-y divide-border">
-        {filtered.map((post) => (
+        {posts.map((post) => (
           <Link
             key={post.slug}
             href={`/blog/${post.slug}`}
@@ -131,16 +116,12 @@ export function BlogList({ posts }: BlogListProps) {
         ))}
       </div>
 
-      {filtered.length === 0 && (
-        <BlurFade delay={BLUR_FADE_DELAY * 3}>
-          <div className="py-16 text-center">
-            <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
-              {query
-                ? emptySearchLine.replace('{{q}}', query)
-                : emptyBlogLine}
-            </p>
-          </div>
-        </BlurFade>
+      {posts.length === 0 && (
+        <div className="py-12 text-center">
+          <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
+            {emptyBlogLine}
+          </p>
+        </div>
       )}
     </main>
   );

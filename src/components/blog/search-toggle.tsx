@@ -1,57 +1,82 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { useEffect, useState } from 'react';
+
+import type { PostMeta } from '@/lib/blog';
+import { Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface SearchToggleProps {
-  onSearch: (query: string) => void;
+  posts: PostMeta[];
 }
 
-export function SearchToggle({ onSearch }: SearchToggleProps) {
+export function SearchToggle({ posts }: SearchToggleProps) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    if (open && inputRef.current) {
-      inputRef.current.focus();
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setOpen((prev) => !prev);
+      }
     }
-  }, [open]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
-  function handleChange(value: string) {
-    setQuery(value);
-    onSearch(value);
-  }
-
-  function handleClose() {
+  function handleSelect(slug: string) {
     setOpen(false);
-    setQuery('');
-    onSearch('');
+    router.push(`/blog/${slug}`);
   }
 
   return (
-    <div className="flex items-center gap-1.5">
-      <div
-        className={`overflow-hidden transition-all duration-200 ease-out ${
-          open ? 'w-48 opacity-100' : 'w-0 opacity-0'
-        }`}
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder="Search posts..."
-          className="w-full bg-transparent border-b border-muted-foreground/20 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 transition-colors py-0.5"
-        />
-      </div>
+    <>
       <button
-        onClick={open ? handleClose : () => setOpen(true)}
-        className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
-        aria-label={open ? 'Close search' : 'Search posts'}
+        onClick={() => setOpen(true)}
+        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+        aria-label="Search posts"
       >
-        {open ? <X className="size-4" /> : <Search className="size-4" />}
+        <Search className="size-4" />
       </button>
-    </div>
+
+      <CommandDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Search posts"
+        description="Search blog posts by title, description, or tag"
+      >
+        <Command>
+          <CommandInput placeholder="Search posts..." />
+          <CommandList>
+            <CommandEmpty>No posts found.</CommandEmpty>
+            <CommandGroup heading="Posts">
+              {posts.map((post) => (
+                <CommandItem
+                  key={post.slug}
+                  value={`${post.title} ${post.description} ${post.tags.join(' ')}`}
+                  onSelect={() => handleSelect(post.slug)}
+                  className="flex-col items-start"
+                >
+                  <span className="font-medium">{post.title}</span>
+                  <span className="text-muted-foreground text-xs truncate w-full">
+                    {post.description}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </CommandDialog>
+    </>
   );
 }
