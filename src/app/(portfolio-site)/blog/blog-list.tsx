@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Tag } from 'lucide-react';
 import { SearchToggle } from '@/components/blog/search-toggle';
+import { BlurFade } from '@/components/magicui/blur-fade';
 import type { PostMeta } from '@/lib/blog';
 
 interface BlogListProps {
@@ -45,6 +46,8 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+const BLUR_FADE_DELAY = 0.04;
+
 export function BlogList({ posts }: BlogListProps) {
   const [query, setQuery] = useState('');
   const [emptySearchLine] = useState(() => pick(SEARCH_LINES));
@@ -63,62 +66,77 @@ export function BlogList({ posts }: BlogListProps) {
 
   return (
     <main className="min-h-dvh">
-      <div className="flex items-start justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Writings on software engineering, infrastructure, and DevSecOps.
-          </p>
-        </div>
-        <div className="flex items-center gap-1 shrink-0 mt-1">
-          <SearchToggle onSearch={setQuery} />
-          <Link
-            href="/blog/tags"
-            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="View all tags"
-          >
-            <Tag className="size-4" />
-          </Link>
-        </div>
-      </div>
-
-      <div className="divide-y divide-border">
-        {filtered.map((post) => (
-          <Link
-            key={post.slug}
-            href={`/blog/${post.slug}`}
-            className="block py-4 group"
-          >
-            <h2 className="text-base font-medium group-hover:text-primary transition-colors">
-              {post.title}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-              {post.description}
+      <BlurFade delay={BLUR_FADE_DELAY}>
+        <div className="flex items-start justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tighter">Blog</h1>
+            <p className="text-sm text-muted-foreground mt-1.5 text-pretty">
+              Writings on software engineering, infrastructure, and DevSecOps.
             </p>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-xs text-muted-foreground/70">
-                {new Date(post.date).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
-              <span className="text-xs text-muted-foreground/70">
-                {post.readingTime} min read
-              </span>
-            </div>
-          </Link>
+          </div>
+          <div className="flex items-center gap-1 shrink-0 mt-2">
+            <SearchToggle onSearch={setQuery} />
+            <Link
+              href="/blog/tags"
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
+              aria-label="View all tags"
+            >
+              <Tag className="size-4" />
+            </Link>
+          </div>
+        </div>
+      </BlurFade>
+
+      <div>
+        {filtered.map((post, i) => (
+          <BlurFade key={post.slug} delay={BLUR_FADE_DELAY * 2 + i * 0.05}>
+            <Link
+              href={`/blog/${post.slug}`}
+              className="block py-5 group border-b border-border last:border-none -mx-3 px-3 rounded-lg hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-baseline justify-between gap-4">
+                <h2 className="text-base font-medium group-hover:text-primary transition-colors">
+                  {post.title}
+                </h2>
+                <span className="text-xs text-muted-foreground/50 shrink-0 tabular-nums">
+                  {new Date(post.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2 text-pretty">
+                {post.description}
+              </p>
+              <div className="flex items-center gap-3 mt-2">
+                <span className="text-xs text-muted-foreground/50">
+                  {post.readingTime} min read
+                </span>
+                {post.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[0.65rem] text-muted-foreground/50 uppercase tracking-wider"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </Link>
+          </BlurFade>
         ))}
       </div>
 
       {filtered.length === 0 && (
-        <div className="py-12 text-center">
-          <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
-            {query
-              ? emptySearchLine.replace('{{q}}', query)
-              : emptyBlogLine}
-          </p>
-        </div>
+        <BlurFade delay={BLUR_FADE_DELAY * 3}>
+          <div className="py-16 text-center">
+            <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
+              {query
+                ? emptySearchLine.replace('{{q}}', query)
+                : emptyBlogLine}
+            </p>
+          </div>
+        </BlurFade>
       )}
     </main>
   );

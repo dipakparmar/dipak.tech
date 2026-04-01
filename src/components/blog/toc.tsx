@@ -32,27 +32,34 @@ export function Toc({ entries }: TocProps) {
 
   return (
     <nav className="hidden xl:block fixed right-[max(2rem,calc(50%-28rem-12rem))] top-24 w-56">
-      <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+      <p className="text-[0.65rem] font-medium text-muted-foreground/50 mb-4 uppercase tracking-widest">
         On this page
       </p>
-      <ul className="space-y-1.5 text-sm">
-        {entries.map((entry) => (
-          <li
-            key={entry.id}
-            style={{ paddingLeft: `${(entry.level - 2) * 12}px` }}
-          >
-            <a
-              href={`#${entry.id}`}
-              className={`block py-0.5 transition-colors ${
-                activeId === entry.id
-                  ? 'text-foreground font-medium'
-                  : 'text-muted-foreground/70 hover:text-foreground'
-              }`}
+      <ul className="relative space-y-0.5 text-[0.8rem] border-l border-border">
+        {entries.map((entry) => {
+          const isActive = activeId === entry.id;
+          return (
+            <li
+              key={entry.id}
+              className="relative"
             >
-              {entry.text}
-            </a>
-          </li>
-        ))}
+              {isActive && (
+                <span className="absolute left-0 top-0 bottom-0 w-px bg-foreground -translate-x-px" />
+              )}
+              <a
+                href={`#${entry.id}`}
+                className={`block py-1 transition-colors ${
+                  isActive
+                    ? 'text-foreground'
+                    : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+                style={{ paddingLeft: `${8 + (entry.level - 2) * 12}px` }}
+              >
+                {entry.text}
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

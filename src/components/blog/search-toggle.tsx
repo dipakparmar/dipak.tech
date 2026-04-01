@@ -29,34 +29,28 @@ export function SearchToggle({ onSearch }: SearchToggleProps) {
     onSearch('');
   }
 
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Search posts"
-      >
-        <Search className="size-4" />
-      </button>
-    );
-  }
-
   return (
-    <div className="flex items-center gap-2">
-      <input
-        ref={inputRef}
-        type="text"
-        value={query}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder="Search posts..."
-        className="bg-transparent border-b border-muted-foreground/30 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/50 transition-colors w-48"
-      />
-      <button
-        onClick={handleClose}
-        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Close search"
+    <div className="flex items-center gap-1.5">
+      <div
+        className={`overflow-hidden transition-all duration-200 ease-out ${
+          open ? 'w-48 opacity-100' : 'w-0 opacity-0'
+        }`}
       >
-        <X className="size-3" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => handleChange(e.target.value)}
+          placeholder="Search posts..."
+          className="w-full bg-transparent border-b border-muted-foreground/20 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-foreground/40 transition-colors py-0.5"
+        />
+      </div>
+      <button
+        onClick={open ? handleClose : () => setOpen(true)}
+        className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
+        aria-label={open ? 'Close search' : 'Search posts'}
+      >
+        {open ? <X className="size-4" /> : <Search className="size-4" />}
       </button>
     </div>
   );
