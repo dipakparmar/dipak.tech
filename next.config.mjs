@@ -7,10 +7,10 @@ const ContentSecurityPolicy = `
   script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'development' ? "'unsafe-eval'" : ''} https://www.googletagmanager.com https://static.cloudflareinsights.com https://browser.sentry-cdn.com https://unpkg.com;
   style-src 'self' 'unsafe-inline';
   child-src 'none';
-  frame-src 'none';
+  frame-src 'self' https://www.youtube.com https://youtube.com;
   worker-src 'self' blob:;
   connect-src 'self' https://www.cloudflare.com https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://*.doubleclick.net https://graph.dipak.io https://api.github.com https://ghcr.io https://registry-1.docker.io https://auth.docker.io https://hub.docker.com https://ct.certkit.io https://*.sentry.io https://stat.ripe.net;
-  img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com https://*.google.com https://*.google.ca https://*.basemaps.cartocdn.com data:;
+  img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com https://*.google.com https://*.google.ca https://*.basemaps.cartocdn.com https://upload.wikimedia.org data:;
   media-src 'self';
   font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
   object-src 'none';
