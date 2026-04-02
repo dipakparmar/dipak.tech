@@ -81,9 +81,6 @@ export const siteConfig = {
     defaults: {
       title: 'Blog',
       description: 'Writing about DevSecOps, Kubernetes, and developer tools.',
-      tags: '',
-      date: '',
-      readingTime: '',
     },
   },
 } as const;
