@@ -200,8 +200,10 @@ export const ogUrls = {
     tags?: string;
     date?: string;
     readingTime?: string;
+    baseUrl?: string;
   } = {}) => {
     const config = siteConfig.blog;
+    const resolvedBaseUrl = params.baseUrl || config.baseUrl;
     const p: Record<string, string> = {
       title: params.title || config.defaults.title,
       description: params.description || config.defaults.description,
@@ -209,6 +211,6 @@ export const ogUrls = {
     if (params.tags) p.tags = params.tags;
     if (params.date) p.date = params.date;
     if (params.readingTime) p.readingTime = params.readingTime;
-    return buildOGUrl(config.baseUrl, config.ogPath, p);
+    return buildOGUrl(resolvedBaseUrl, config.ogPath, p);
   },
 };
