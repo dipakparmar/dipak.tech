@@ -30,6 +30,7 @@ export const domains: Record<SiteType, string> = {
   'go-pkg': siteConfig.goPkg.domain,
   'container-registry': siteConfig.containerRegistry.domain,
   links: siteConfig.links.domain,
+  blog: siteConfig.blog.domain,
 };
 
 // =============================================================================
