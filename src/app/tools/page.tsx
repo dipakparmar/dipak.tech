@@ -1,4 +1,6 @@
-import { Apple, GithubIcon, Globe, KeyRound, Mail, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
+import React from "react"
+import { Apple, Globe, KeyRound, Mail, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
+import { GitHubIcon } from "@/components/icons"
 import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "schema-dts"
 import { personReference, personSchema } from "@/lib/schema"
 
@@ -50,7 +52,7 @@ type Tool = {
   title: string
   description: string
   path: string
-  icon: typeof Shield
+  icon: typeof Shield | React.FC<React.SVGProps<SVGSVGElement>>
   color: string
   borderColor: string
   iconBg: string
@@ -133,7 +135,7 @@ const tools: Tool[] = [
     title: "Release Notes",
     description: "Combine GitHub releases into a single, exportable changelog",
     path: "github-release-notes",
-    icon: GithubIcon,
+    icon: GitHubIcon,
     color: "text-slate-600 dark:text-slate-300",
     borderColor: "hover:border-slate-500/30",
     iconBg: "bg-slate-500/10",

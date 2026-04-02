@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ReleaseNotesDisplay } from "@/components/release-notes-display"
 import { ReleaseNotesForm } from "@/components/release-notes-form"
-import { AlertCircle, BookOpen, Filter, Github } from "lucide-react"
+import { AlertCircle, BookOpen, Filter } from "lucide-react"
+import { GitHubIcon } from "@/components/icons"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useHaptics } from "@/hooks/use-haptics"
@@ -192,7 +193,7 @@ export function ReleaseNotesTool() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Github className="h-4 w-4 text-muted-foreground" />
+              <GitHubIcon className="h-4 w-4 text-muted-foreground" />
               How this works
             </CardTitle>
           </CardHeader>
