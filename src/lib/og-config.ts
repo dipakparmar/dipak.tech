@@ -74,6 +74,18 @@ export const siteConfig = {
       handle: '@iamdipakparmar',
     },
   },
+  blog: {
+    domain: 'dipak.tech',
+    baseUrl: 'https://dipak.tech',
+    ogPath: '/api/og/blog',
+    defaults: {
+      title: 'Blog',
+      description: 'Writing about DevSecOps, Kubernetes, and developer tools.',
+      tags: '',
+      date: '',
+      readingTime: '',
+    },
+  },
 } as const;
 
 export type SiteKey = keyof typeof siteConfig;
@@ -85,6 +97,7 @@ export const gradients = {
   'go-pkg': 'linear-gradient(145deg, #00ADD8 0%, #007d9c 100%)',
   'container-registry': 'linear-gradient(145deg, #003f5c 0%, #2496ED 100%)',
   links: 'linear-gradient(145deg, #ec4899 0%, #8b5cf6 50%, #6366f1 100%)',
+  blog: 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)',
 } as const;
 
 export type GradientKey = keyof typeof gradients;
@@ -182,5 +195,23 @@ export const ogUrls = {
       title: params.title || config.defaults.title,
       handle: params.handle || config.defaults.handle,
     });
+  },
+
+  blog: (params: {
+    title?: string;
+    description?: string;
+    tags?: string;
+    date?: string;
+    readingTime?: string;
+  } = {}) => {
+    const config = siteConfig.blog;
+    const p: Record<string, string> = {
+      title: params.title || config.defaults.title,
+      description: params.description || config.defaults.description,
+    };
+    if (params.tags) p.tags = params.tags;
+    if (params.date) p.date = params.date;
+    if (params.readingTime) p.readingTime = params.readingTime;
+    return buildOGUrl(config.baseUrl, config.ogPath, p);
   },
 };
