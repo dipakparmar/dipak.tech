@@ -71,6 +71,12 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+    @media (prefers-reduced-motion: reduce) {
+      scroll-behavior: auto;
+    }
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -383,6 +389,15 @@
 .blog-prose img {
   border-radius: 0.5rem;
   margin: 1.75em 0;
+  max-width: 100%;
+  height: auto;
+}
+
+.blog-prose iframe {
+  border-radius: 0.5rem;
+  margin: 1.75em 0;
+  max-width: 100%;
+  border: 1px solid var(--color-border);
 }
 
 .blog-prose table {

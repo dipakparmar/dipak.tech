@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Tag } from 'lucide-react';
-import { SearchToggle } from '@/components/blog/search-toggle';
 import { BlurFade } from '@/components/magicui/blur-fade';
+import Image from 'next/image';
+import Link from 'next/link';
 import type { PostMeta } from '@/lib/blog';
+import { SearchToggle } from '@/components/blog/search-toggle';
+import { Tag } from 'lucide-react';
+import { useState } from 'react';
 
 interface BlogListProps {
   posts: PostMeta[];
@@ -49,94 +50,78 @@ function pick<T>(arr: T[]): T {
 const BLUR_FADE_DELAY = 0.04;
 
 export function BlogList({ posts }: BlogListProps) {
-  const [query, setQuery] = useState('');
-  const [emptySearchLine] = useState(() => pick(SEARCH_LINES));
   const [emptyBlogLine] = useState(() => pick(EMPTY_LINES));
-
-  const filtered = query
-    ? posts.filter((post) => {
-        const q = query.toLowerCase();
-        return (
-          post.title.toLowerCase().includes(q) ||
-          post.description.toLowerCase().includes(q) ||
-          post.tags.some((tag) => tag.toLowerCase().includes(q))
-        );
-      })
-    : posts;
 
   return (
     <main className="min-h-dvh">
-      <BlurFade delay={BLUR_FADE_DELAY}>
-        <div className="flex items-start justify-between gap-4 mb-10">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tighter">Blog</h1>
-            <p className="text-sm text-muted-foreground mt-1.5 text-pretty">
-              Writings on software engineering, infrastructure, and DevSecOps.
-            </p>
-          </div>
-          <div className="flex items-center gap-1 shrink-0 mt-2">
-            <SearchToggle onSearch={setQuery} />
-            <Link
-              href="/blog/tags"
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted"
-              aria-label="View all tags"
-            >
-              <Tag className="size-4" />
-            </Link>
-          </div>
+      <div className="flex items-start justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Writings on software engineering, infrastructure, and DevSecOps.
+          </p>
         </div>
-      </BlurFade>
+        <div className="flex items-center gap-1 shrink-0 mt-1">
+          <SearchToggle posts={posts} />
+          <Link
+            href="/blog/tags"
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="View all tags"
+          >
+            <Tag className="size-4" />
+          </Link>
+        </div>
+      </div>
 
-      <div>
-        {filtered.map((post, i) => (
-          <BlurFade key={post.slug} delay={BLUR_FADE_DELAY * 2 + i * 0.05}>
-            <Link
-              href={`/blog/${post.slug}`}
-              className="block py-5 group border-b border-border last:border-none -mx-3 px-3 rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-baseline justify-between gap-4">
-                <h2 className="text-base font-medium group-hover:text-primary transition-colors">
-                  {post.title}
-                </h2>
-                <span className="text-xs text-muted-foreground/50 shrink-0 tabular-nums">
+      <div className="divide-y divide-border">
+        {posts.map((post) => (
+          <Link
+            key={post.slug}
+            href={`/blog/${post.slug}`}
+            className="flex items-start gap-4 py-4 group"
+          >
+            {post.image && (
+              <div className="shrink-0 w-20 self-stretch rounded-md overflow-hidden bg-muted">
+                <Image
+                  src={post.image}
+                  alt={post.title}
+                  width={80}
+                  height={120}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                />
+              </div>
+            )}
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <h2 className="text-base font-medium break-words group-hover:text-primary transition-colors">
+                {post.title}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1 break-words">
+                {post.description}
+              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                <span className="text-xs text-muted-foreground/70">
                   {new Date(post.date).toLocaleDateString('en-US', {
                     year: 'numeric',
-                    month: 'short',
+                    month: 'long',
                     day: 'numeric',
                   })}
                 </span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2 text-pretty">
-                {post.description}
-              </p>
-              <div className="flex items-center gap-3 mt-2">
-                <span className="text-xs text-muted-foreground/50">
+                <span className="text-xs text-muted-foreground/70">
                   {post.readingTime} min read
                 </span>
-                {post.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[0.65rem] text-muted-foreground/50 uppercase tracking-wider"
-                  >
-                    {tag}
-                  </span>
-                ))}
               </div>
-            </Link>
-          </BlurFade>
+            </div>
+          </Link>
         ))}
       </div>
 
-      {filtered.length === 0 && (
-        <BlurFade delay={BLUR_FADE_DELAY * 3}>
-          <div className="py-16 text-center">
-            <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
-              {query
-                ? emptySearchLine.replace('{{q}}', query)
-                : emptyBlogLine}
-            </p>
-          </div>
-        </BlurFade>
+      {posts.length === 0 && (
+        <div className="py-12 text-center">
+          <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
+            {emptyBlogLine}
+          </p>
+        </div>
       )}
     </main>
   );

@@ -1,12 +1,12 @@
 import './globals.css';
 
 import { Inter, Karla } from 'next/font/google';
-import { GoogleTagManager } from '@next/third-parties/google';
+import { LOGO_URL, ogUrls } from '@/lib/og-config';
 
+import { GoogleTagManager } from '@next/third-parties/google';
 import type { Metadata } from 'next';
 import type { Viewport } from 'next';
 import { cn } from '@/lib/utils';
-import { ogUrls, LOGO_URL } from '@/lib/og-config';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -98,14 +98,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={fontInter.variable}>
       <head>
-        {process.env.NODE_ENV === "development" && (
+        {process.env.NEXT_PUBLIC_REACT_GRAB === "1" && (
           <script
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             async
           />
         )}
-        {process.env.NODE_ENV === "development" && (
+        {process.env.NEXT_PUBLIC_REACT_GRAB === "1" && (
           <script
             src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
             async
