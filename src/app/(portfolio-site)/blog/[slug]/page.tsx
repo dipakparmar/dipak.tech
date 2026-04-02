@@ -10,6 +10,7 @@ import { Toc } from '@/components/blog/toc';
 import { mdxComponents } from '@/components/mdx-components';
 import { notFound } from 'next/navigation';
 import { personReference } from '@/lib/schema';
+import { ogUrls } from '@/lib/og-config';
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;
@@ -38,7 +39,15 @@ export async function generateMetadata({
         publishedTime: meta.date,
         modifiedTime: meta.updated,
         tags: meta.tags,
-        ...(meta.image && { images: [meta.image] }),
+        images: [
+          ogUrls.blog({
+            title: meta.title,
+            description: meta.description,
+            tags: meta.tags.join(','),
+            date: meta.date,
+            readingTime: String(meta.readingTime),
+          }),
+        ],
       },
     };
   } catch {
