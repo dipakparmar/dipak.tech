@@ -8,9 +8,10 @@ import {
   OGWrapper,
   createErrorResponse,
   createOGResponse,
+  gradients,
+  siteConfig,
   verifyOGRequest,
 } from '@/lib/og-utils';
-import { gradients, siteConfig } from '@/lib/og-config';
 
 import { NextRequest } from 'next/server';
 
@@ -62,8 +63,10 @@ function BlogOG({
               lineHeight: 1.15,
               margin: 0,
               maxWidth: '900px',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              maxHeight: '130px',
               textShadow: '0 2px 10px rgba(0,0,0,0.2)',
             }}
           >
@@ -76,17 +79,19 @@ function BlogOG({
               margin: 0,
               maxWidth: '820px',
               lineHeight: 1.4,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              maxHeight: '74px',
             }}
           >
             {description}
           </p>
           {tags.length > 0 && (
             <div style={{ display: 'flex', gap: '10px' }}>
-              {tags.slice(0, 5).map((tag) => (
+              {tags.slice(0, 5).map((tag, i) => (
                 <div
-                  key={tag}
+                  key={`${tag}-${i}`}
                   style={{
                     background: 'rgba(251,146,60,0.15)',
                     border: '1px solid rgba(251,146,60,0.4)',
