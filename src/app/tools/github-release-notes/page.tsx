@@ -1,6 +1,7 @@
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { ReleaseNotesTool } from "@/components/release-notes-tool"
-import { FileText, Filter, Github, Layers } from "lucide-react"
+import { FileText, Filter, Layers } from "lucide-react"
+import { GitHubIcon } from "@/components/icons"
 import { Suspense } from "react"
 import { ogUrls } from "@/lib/og-config"
 
@@ -53,7 +54,7 @@ export default function GitHubReleaseNotesPage() {
           <BlurFade delay={BLUR_FADE_DELAY}>
             <div className="space-y-6 text-center">
               <div className="inline-flex items-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5 text-sm font-medium">
-                <Github className="h-4 w-4" />
+                <GitHubIcon className="h-4 w-4" />
                 GitHub Release Notes
               </div>
               <div className="space-y-3">
