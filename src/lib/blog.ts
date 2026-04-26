@@ -3,6 +3,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import { compile, run } from '@mdx-js/mdx';
 import * as runtime from 'react/jsx-runtime';
+import remarkGfm from 'remark-gfm';
 import { createHighlighter } from 'shiki';
 import type { ComponentType } from 'react';
 import type { MDXComponents } from 'mdx/types';
@@ -45,6 +46,17 @@ function slugify(text: string): string {
     .trim();
 }
 
+function createUniqueSlugger() {
+  const counts = new Map<string, number>();
+
+  return (text: string) => {
+    const base = slugify(text);
+    const count = counts.get(base) ?? 0;
+    counts.set(base, count + 1);
+    return count === 0 ? base : `${base}-${count}`;
+  };
+}
+
 function computeReadingTime(content: string): number {
   const words = content.split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.ceil(words / WORDS_PER_MINUTE));
@@ -53,10 +65,11 @@ function computeReadingTime(content: string): number {
 function extractToc(content: string): TocEntry[] {
   const headingRegex = /^(#{2,4})\s+(.+)$/gm;
   const entries: TocEntry[] = [];
+  const getUniqueSlug = createUniqueSlugger();
   let match;
   while ((match = headingRegex.exec(content)) !== null) {
     entries.push({
-      id: slugify(match[2]),
+      id: getUniqueSlug(match[2]),
       text: match[2],
       level: match[1].length,
     });
@@ -176,6 +189,7 @@ function rehypeShiki() {
 function rehypeSlug() {
   return async (tree: any) => {
     const { visit } = await import('unist-util-visit');
+    const getUniqueSlug = createUniqueSlugger();
     visit(tree, 'element', (node: any) => {
       if (!['h2', 'h3', 'h4'].includes(node.tagName)) return;
       const text = node.children
@@ -183,7 +197,7 @@ function rehypeSlug() {
         .join('');
       if (text) {
         node.properties = node.properties || {};
-        node.properties.id = slugify(text);
+        node.properties.id = getUniqueSlug(text);
       }
     });
   };
@@ -252,6 +266,7 @@ export async function getPostBySlug(slug: string): Promise<Post> {
 
   const compiled = await compile(content, {
     outputFormat: 'function-body',
+    remarkPlugins: [remarkGfm],
     rehypePlugins: [rehypeSlug, rehypeShiki],
   });
 

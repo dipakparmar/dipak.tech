@@ -49,6 +49,51 @@ function MdxImage(props: ImgHTMLAttributes<HTMLImageElement>) {
   );
 }
 
+interface FigureImageProps {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  caption?: ReactNode;
+  sourceHref?: string;
+  sourceLabel?: string;
+}
+
+function FigureImage({
+  src,
+  alt,
+  width = 800,
+  height = 400,
+  caption,
+  sourceHref,
+  sourceLabel,
+}: FigureImageProps) {
+  return (
+    <figure className="mdx-figure">
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className="rounded-lg"
+      />
+      {(caption || (sourceHref && sourceLabel)) && (
+        <figcaption className="mdx-figcaption">
+          {caption && <span className="mdx-figcaption-label">{caption}</span>}
+          {sourceHref && sourceLabel && (
+            <span className="mdx-figcaption-source">
+              <span className="mdx-figcaption-source-prefix">Source:</span>
+              <a href={sourceHref} target="_blank" rel="noopener noreferrer">
+                {sourceLabel}
+              </a>
+            </span>
+          )}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
 function MdxPre(props: any) {
   const code = extractText(props.children);
 
@@ -64,4 +109,5 @@ export const mdxComponents: MDXComponents = {
   a: MdxLink,
   img: MdxImage,
   pre: MdxPre,
+  FigureImage,
 };

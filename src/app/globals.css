@@ -393,6 +393,61 @@
   height: auto;
 }
 
+.blog-prose .mdx-figure {
+  margin: 2rem 0;
+}
+
+.blog-prose .mdx-figure img {
+  margin: 0;
+}
+
+.blog-prose .mdx-figcaption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  margin-top: 0.625rem;
+  padding-top: 0;
+  border-top: none;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--color-muted-foreground);
+}
+
+.blog-prose .mdx-figcaption-label {
+  display: block;
+  font-size: inherit;
+  font-weight: 400;
+  color: inherit;
+}
+
+.blog-prose .mdx-figcaption-source {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.blog-prose .mdx-figcaption-source-prefix {
+  font-size: inherit;
+  font-weight: 400;
+  color: inherit;
+}
+
+.blog-prose .mdx-figcaption-source a {
+  color: inherit;
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-muted-foreground) 45%, transparent);
+  text-underline-offset: 0.18em;
+}
+
+.blog-prose .mdx-figcaption-source a:hover {
+  color: var(--color-foreground);
+  text-decoration-color: currentColor;
+}
+
 .blog-prose iframe {
   border-radius: 0.5rem;
   margin: 1.75em 0;
