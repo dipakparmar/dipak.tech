@@ -448,6 +448,31 @@
   text-decoration-color: currentColor;
 }
 
+.blog-prose .mdx-cite {
+  margin-left: 0.12rem;
+  font-size: 0.72em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.blog-prose .mdx-cite a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.blog-prose .mdx-cite a:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.blog-prose .mdx-references li {
+  scroll-margin-top: 6rem;
+}
+
+.blog-prose .mdx-references li:target {
+  font-weight: 600;
+}
+
 .blog-prose iframe {
   border-radius: 0.5rem;
   margin: 1.75em 0;

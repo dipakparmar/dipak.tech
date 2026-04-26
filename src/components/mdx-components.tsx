@@ -94,6 +94,48 @@ function FigureImage({
   );
 }
 
+interface CiteProps {
+  n: number | string;
+}
+
+function Cite({ n }: CiteProps) {
+  const refId = `ref-${n}`;
+
+  return (
+    <sup className="mdx-cite">
+      <a href={`#${refId}`} aria-label={`Jump to reference ${n}`}>
+        [{n}]
+      </a>
+    </sup>
+  );
+}
+
+interface ReferenceItem {
+  href: string;
+  label: ReactNode;
+}
+
+interface ReferencesProps {
+  items: ReferenceItem[];
+}
+
+function References({ items }: ReferencesProps) {
+  return (
+    <ol className="mdx-references">
+      {items.map((item, index) => {
+        const n = index + 1;
+        return (
+          <li key={`${n}-${item.href}`} id={`ref-${n}`}>
+            <a href={item.href} target="_blank" rel="noopener noreferrer">
+              {item.label}
+            </a>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function MdxPre(props: any) {
   const code = extractText(props.children);
 
@@ -109,5 +151,7 @@ export const mdxComponents: MDXComponents = {
   a: MdxLink,
   img: MdxImage,
   pre: MdxPre,
+  Cite,
   FigureImage,
+  References,
 };
