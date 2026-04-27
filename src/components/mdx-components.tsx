@@ -57,6 +57,7 @@ interface FigureImageProps {
   caption?: ReactNode;
   sourceHref?: string;
   sourceLabel?: string;
+  priority?: boolean;
 }
 
 function FigureImage({
@@ -67,6 +68,7 @@ function FigureImage({
   caption,
   sourceHref,
   sourceLabel,
+  priority = false,
 }: FigureImageProps) {
   return (
     <figure className="mdx-figure">
@@ -76,6 +78,7 @@ function FigureImage({
         width={width}
         height={height}
         className="rounded-lg"
+        priority={priority}
       />
       {(caption || (sourceHref && sourceLabel)) && (
         <figcaption className="mdx-figcaption">
