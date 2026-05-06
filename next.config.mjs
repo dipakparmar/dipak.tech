@@ -92,6 +92,19 @@ const nextConfig = {
           destination: 'https://ip.dipak.io',
           permanent: true
         },
+        // Redirect /tools/whois to whois.dipak.io from production domains only
+        // (skip localhost and Vercel previews)
+        {
+          source: '/tools/whois',
+          has: [
+            {
+              type: 'host',
+              value: '(?!localhost|.*\\.vercel\\.app$|whois\\.dipak\\.io$).*'
+            }
+          ],
+          destination: 'https://whois.dipak.io',
+          permanent: true
+        },
         // Redirect /tools/* to tools.dipak.io from production domains only
         {
           source: '/tools/:path*',
@@ -280,6 +293,17 @@ const nextConfig = {
           }
         ],
         destination: '/api/:path*'
+      },
+      // whois.dipak.io routes
+      {
+        source: '/',
+        has: [
+          {
+            type: 'host',
+            value: 'whois.dipak.io'
+          }
+        ],
+        destination: '/tools/whois'
       },
       // tools.dipak.io routes
       {

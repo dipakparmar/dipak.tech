@@ -5,6 +5,7 @@ This file provides guidance to AI Tools when working with code in this repositor
 Personal portfolio website (dipak.tech) built with Next.js 16, serving multiple sites through host-based routing:
 - **dipak.tech** → Portfolio site (`/home`, `/resume`)
 - **tools.dipak.io** → Developer tools (`/tools`)
+- **whois.dipak.io** → WHOIS lookup (`/tools/whois`)
 - **go.pkg.dipak.io** → Go package vanity imports (`/go-pkg`)
 - **cr.dipak.io** → Container registry proxy (`/container-registry`)
 - **dipak.bio** → Links page (`/links`)
@@ -44,6 +45,7 @@ Each route group has its own layout with ThemeProvider and ModeToggle for theme 
 
 `next.config.mjs` defines rewrites that route requests based on hostname:
 - `tools.dipak.io/*` → `/tools/*` (developer tools)
+- `whois.dipak.io` → `/tools/whois`
 - `go.pkg.dipak.io/:package` → `/go-pkg/:package`
 - `cr.dipak.io/v2/*` → `/container-registry/v2/*` (Docker Registry V2 API)
 - `cr.dipak.io` → `/container-registry` (landing page)
@@ -120,7 +122,7 @@ Key files:
 - `src/app/api/resolve-ips/route.ts` - IP geolocation API
 - `src/lib/dns-scanner.ts` - DNS record resolution logic
 
-#### WHOIS Lookup (`/tools/whois`)
+#### WHOIS Lookup (`whois.dipak.io`, legacy path `/tools/whois`)
 - Domain registration information lookup
 - `src/components/whois-lookup.tsx` - WHOIS lookup component
 - `src/app/api/whois/route.ts` - WHOIS API endpoint

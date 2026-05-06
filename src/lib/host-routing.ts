@@ -8,6 +8,7 @@ export const hosts = {
   portfolio: siteConfig.portfolio.domain,
   tools: siteConfig.tools.domain,
   ip: siteConfig.ip.domain,
+  whois: siteConfig.whois.domain,
   goPkg: siteConfig.goPkg.domain,
   containerRegistry: siteConfig.containerRegistry.domain,
   links: siteConfig.links.domain,
@@ -20,6 +21,7 @@ export const routePrefixes: Record<HostKey, string> = {
   portfolio: '',
   tools: '/tools',
   ip: '/tools/ip',
+  whois: '/tools/whois',
   goPkg: '/go-pkg',
   containerRegistry: '/container-registry',
   links: '/links',
@@ -118,4 +120,3 @@ export function normalizePathname(
   if (pathname.startsWith(prefix)) return pathname;
   return `${prefix}${pathname.startsWith('/') ? '' : '/'}${pathname}`;
 }
-

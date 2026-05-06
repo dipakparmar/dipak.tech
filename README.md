@@ -9,6 +9,7 @@ Personal portfolio and multi-site platform built with Next.js.
 - Theme switching (light/dark mode)
 
 ### Developer Tools
+- **tools.dipak.io** - Developer tools hub
 - **Certificate Tools** (`/tools/certificates`) - SSL/TLS certificate utilities:
   - CT Log Search - Search Certificate Transparency logs
   - Certificate Decoder - Decode PEM certificates or fetch from URL
@@ -21,7 +22,7 @@ Personal portfolio and multi-site platform built with Next.js.
   - IP geolocation lookup
   - Visual DNS map with color-coded connections
 
-- **WHOIS Lookup** (`/tools/whois`) - Domain registration info
+- **whois.dipak.io** - WHOIS lookup for domain, IP, and ASN registration info
 
 ### Go Package Hosting (go.pkg.dipak.io)
 - Vanity import URLs for Go packages

@@ -46,6 +46,16 @@ export const siteConfig = {
       category: 'default',
     },
   },
+  whois: {
+    domain: 'whois.dipak.io',
+    baseUrl: 'https://whois.dipak.io',
+    ogPath: '/api/og/tools',
+    defaults: {
+      tool: 'WHOIS Lookup',
+      description: 'Domain, IP, and ASN registration lookup via RDAP',
+      category: 'whois',
+    },
+  },
   goPkg: {
     domain: 'go.pkg.dipak.io',
     baseUrl: 'https://go.pkg.dipak.io',
@@ -160,6 +170,15 @@ export const ogUrls = {
 
   tools: (params: { tool?: string; description?: string; category?: string } = {}) => {
     const config = siteConfig.tools;
+    return buildOGUrl(config.baseUrl, config.ogPath, {
+      tool: params.tool || config.defaults.tool,
+      description: params.description || config.defaults.description,
+      category: params.category || config.defaults.category,
+    });
+  },
+
+  whois: (params: { tool?: string; description?: string; category?: string } = {}) => {
+    const config = siteConfig.whois;
     return buildOGUrl(config.baseUrl, config.ogPath, {
       tool: params.tool || config.defaults.tool,
       description: params.description || config.defaults.description,

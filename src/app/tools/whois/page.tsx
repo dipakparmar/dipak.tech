@@ -3,9 +3,9 @@ import { Globe, Hash, Network } from "lucide-react"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Suspense } from "react"
 import { WhoisTool } from "@/components/whois-tool"
-import { ogUrls } from "@/lib/og-config"
+import { ogUrls, siteConfig } from "@/lib/og-config"
 
-const ogImageUrl = ogUrls.tools({
+const ogImageUrl = ogUrls.whois({
   tool: "WHOIS Lookup",
   description: "Domain, IP, and ASN registration lookup via RDAP",
   category: "whois",
@@ -17,8 +17,8 @@ export const metadata = {
   openGraph: {
     title: "WHOIS Lookup",
     description: "Domain, IP, and ASN registration lookup via RDAP protocol",
-    url: "https://tools.dipak.io/whois",
-    siteName: "tools.dipak.io",
+    url: siteConfig.whois.baseUrl,
+    siteName: siteConfig.whois.domain,
     type: "website",
     images: [
       {
@@ -36,7 +36,7 @@ export const metadata = {
     images: [ogImageUrl],
   },
   alternates: {
-    canonical: "https://tools.dipak.io/whois",
+    canonical: siteConfig.whois.baseUrl,
   },
 }
 
