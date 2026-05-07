@@ -2,7 +2,7 @@ import { Socket } from 'node:net';
 
 const IANA_WHOIS_SERVER = 'whois.iana.org';
 const WHOIS_PORT = 43;
-const WHOIS_TIMEOUT_MS = 8000;
+const WHOIS_TIMEOUT_MS = 12000;
 const MAX_WHOIS_RESPONSE_BYTES = 256 * 1024;
 
 export interface WhoisFallbackResult extends Record<string, unknown> {
@@ -18,6 +18,7 @@ export interface WhoisFallbackResult extends Record<string, unknown> {
   referralServer: string | null;
   sourceServer: string;
   sourceChain: string[];
+  referralError: string | null;
   parsedWhois: ParsedWhoisData;
 }
 
@@ -307,6 +308,9 @@ export async function queryWhoisServer(server: string, query: string): Promise<s
     const chunks: Buffer[] = [];
     let totalBytes = 0;
     let settled = false;
+    let sawData = false;
+
+    const buildResponse = () => Buffer.concat(chunks).toString('utf8').trim();
 
     const finish = (handler: () => void) => {
       if (settled) return;
@@ -323,6 +327,7 @@ export async function queryWhoisServer(server: string, query: string): Promise<s
     });
 
     socket.on('data', (chunk: Buffer) => {
+      sawData = true;
       totalBytes += chunk.length;
       if (totalBytes > MAX_WHOIS_RESPONSE_BYTES) {
         finish(() => reject(new Error(`WHOIS response from ${server} exceeded size limit`)));
@@ -332,6 +337,10 @@ export async function queryWhoisServer(server: string, query: string): Promise<s
     });
 
     socket.on('timeout', () => {
+      if (sawData) {
+        finish(() => resolve(buildResponse()));
+        return;
+      }
       finish(() => reject(new Error(`WHOIS query to ${server} timed out`)));
     });
 
@@ -340,7 +349,13 @@ export async function queryWhoisServer(server: string, query: string): Promise<s
     });
 
     socket.on('end', () => {
-      finish(() => resolve(Buffer.concat(chunks).toString('utf8').trim()));
+      finish(() => resolve(buildResponse()));
+    });
+
+    socket.on('close', () => {
+      if (sawData) {
+        finish(() => resolve(buildResponse()));
+      }
     });
 
     socket.connect(WHOIS_PORT, server);
@@ -376,26 +391,50 @@ export async function queryDomainWhoisFallback(
       referralServer: null,
       sourceServer: IANA_WHOIS_SERVER,
       sourceChain: [IANA_WHOIS_SERVER],
+      referralError: null,
       parsedWhois
     };
   }
 
-  const rawWhois = await queryWhoisServer(referralServer, normalizedDomain);
-  const parsedWhois = parseWhoisText(rawWhois);
+  try {
+    const rawWhois = await queryWhoisServer(referralServer, normalizedDomain);
+    const parsedWhois = parseWhoisText(rawWhois);
 
-  return {
-    _query: normalizedDomain,
-    _queryType: 'domain',
-    _source: 'whois',
-    _format: 'text',
-    _fallbackReason: fallbackReason,
-    objectClassName: 'whois',
-    name: normalizedDomain,
-    rawWhois,
-    ianaResponse,
-    referralServer,
-    sourceServer: referralServer,
-    sourceChain: [IANA_WHOIS_SERVER, referralServer],
-    parsedWhois
-  };
+    return {
+      _query: normalizedDomain,
+      _queryType: 'domain',
+      _source: 'whois',
+      _format: 'text',
+      _fallbackReason: fallbackReason,
+      objectClassName: 'whois',
+      name: normalizedDomain,
+      rawWhois,
+      ianaResponse,
+      referralServer,
+      sourceServer: referralServer,
+      sourceChain: [IANA_WHOIS_SERVER, referralServer],
+      referralError: null,
+      parsedWhois
+    };
+  } catch (error) {
+    const degradedReason = error instanceof Error ? error.message : `WHOIS query to ${referralServer} failed`;
+    const parsedWhois = parseWhoisText(ianaResponse);
+
+    return {
+      _query: normalizedDomain,
+      _queryType: 'domain',
+      _source: 'whois',
+      _format: 'text',
+      _fallbackReason: `${fallbackReason}. Referral WHOIS degraded: ${degradedReason}`,
+      objectClassName: 'whois',
+      name: normalizedDomain,
+      rawWhois: ianaResponse,
+      ianaResponse,
+      referralServer,
+      sourceServer: IANA_WHOIS_SERVER,
+      sourceChain: [IANA_WHOIS_SERVER, referralServer],
+      referralError: degradedReason,
+      parsedWhois
+    };
+  }
 }

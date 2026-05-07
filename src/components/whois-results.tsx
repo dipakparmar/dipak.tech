@@ -175,6 +175,21 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
               </div>
             </div>
 
+            {data.referralError && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                  <Info className="h-3.5 w-3.5" />
+                  Referral WHOIS Degraded
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {data.referralServer
+                    ? `The referred WHOIS server ${data.referralServer} did not return a usable response. Showing IANA registry data instead.`
+                    : "The referred WHOIS server did not return a usable response."}
+                </p>
+                <p className="mt-2 font-mono text-xs text-muted-foreground">{data.referralError}</p>
+              </div>
+            )}
+
             {Array.isArray(data.sourceChain) && data.sourceChain.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
