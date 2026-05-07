@@ -9,10 +9,90 @@ import {
   findRDAPServerForIP,
   findRDAPServerForASN,
 } from "@/lib/rdap"
+import { queryDomainWhoisFallback } from "@/lib/whois"
+
+export const runtime = "nodejs"
 
 const RESPONSE_CACHE_TTL = 6 * 60 * 60 * 1000
 const RATE_LIMIT = 30
 const RATE_WINDOW_MS = 60 * 1000
+
+function formatNoRdapMessage(queryType: string, query: string): string {
+  return queryType === "domain"
+    ? `No RDAP server found for TLD: ${query.split(".").pop()}`
+    : queryType === "asn"
+      ? `No RDAP server found for ASN: ${query}`
+      : `No RDAP server found for IP: ${query}`
+}
+
+async function fetchRdapPayload(
+  normalizedQuery: string,
+  queryType: ReturnType<typeof detectQueryType>
+): Promise<Record<string, unknown>> {
+  let rdapServer: string | null = null
+  let rdapPath: string
+
+  switch (queryType) {
+    case "ipv4": {
+      const bootstrap = await getRDAPBootstrap("ipv4")
+      rdapServer = findRDAPServerForIP(normalizedQuery, bootstrap, false)
+      rdapPath = `ip/${normalizedQuery}`
+      break
+    }
+    case "ipv6": {
+      const bootstrap = await getRDAPBootstrap("ipv6")
+      rdapServer = findRDAPServerForIP(normalizedQuery, bootstrap, true)
+      rdapPath = `ip/${normalizedQuery}`
+      break
+    }
+    case "asn": {
+      const asnNumber = parseASN(normalizedQuery)
+      const bootstrap = await getRDAPBootstrap("asn")
+      rdapServer = findRDAPServerForASN(asnNumber, bootstrap)
+      rdapPath = `autnum/${asnNumber}`
+      break
+    }
+    case "domain":
+    default: {
+      const normalized = normalizedQuery.toLowerCase()
+      const bootstrap = await getRDAPBootstrap("dns")
+      rdapServer = findRDAPServerForDomain(normalized, bootstrap)
+      rdapPath = `domain/${normalized}`
+      break
+    }
+  }
+
+  if (!rdapServer) {
+    throw new Error(formatNoRdapMessage(queryType, normalizedQuery))
+  }
+
+  const rdapUrl = `${rdapServer}${rdapPath}`
+
+  console.log("Querying RDAP server:", rdapUrl)
+
+  const response = await fetch(rdapUrl, {
+    headers: {
+      Accept: "application/rdap+json",
+    },
+  })
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      const typeLabel = queryType === "domain" ? "Domain" : queryType === "asn" ? "ASN" : "IP address"
+      throw new Error(`${typeLabel} not found`)
+    }
+    throw new Error(`RDAP server returned ${response.status}`)
+  }
+
+  const data = await response.json()
+
+  return {
+    ...data,
+    _queryType: queryType,
+    _query: normalizedQuery,
+    _source: "rdap",
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     // Normalize and detect query type
     const normalizedQuery = query.trim()
-    const cacheKey = `rdap:${normalizedQuery.toLowerCase()}`
+    const cacheKey = `whois:${normalizedQuery.toLowerCase()}`
     const cached = getCached<Record<string, unknown>>(cacheKey)
     if (cached) {
       return NextResponse.json(cached, { headers: { "X-Cache": "HIT" } })
@@ -47,76 +127,20 @@ export async function GET(request: NextRequest) {
     }
 
     const queryType = detectQueryType(normalizedQuery)
+    let payload: Record<string, unknown>
 
-    let rdapServer: string | null = null
-    let rdapPath: string
-
-    switch (queryType) {
-      case "ipv4": {
-        const bootstrap = await getRDAPBootstrap("ipv4")
-        rdapServer = findRDAPServerForIP(normalizedQuery, bootstrap, false)
-        rdapPath = `ip/${normalizedQuery}`
-        break
+    try {
+      payload = await fetchRdapPayload(normalizedQuery, queryType)
+    } catch (rdapError) {
+      if (queryType !== "domain") {
+        const message = rdapError instanceof Error ? rdapError.message : "WHOIS lookup failed"
+        const status = message.includes("not found") || message.includes("No RDAP server found") ? 404 : 500
+        return NextResponse.json({ error: message }, { status })
       }
-      case "ipv6": {
-        const bootstrap = await getRDAPBootstrap("ipv6")
-        rdapServer = findRDAPServerForIP(normalizedQuery, bootstrap, true)
-        rdapPath = `ip/${normalizedQuery}`
-        break
-      }
-      case "asn": {
-        const asnNumber = parseASN(normalizedQuery)
-        const bootstrap = await getRDAPBootstrap("asn")
-        rdapServer = findRDAPServerForASN(asnNumber, bootstrap)
-        rdapPath = `autnum/${asnNumber}`
-        break
-      }
-      case "domain":
-      default: {
-        const normalized = normalizedQuery.toLowerCase()
-        const bootstrap = await getRDAPBootstrap("dns")
-        rdapServer = findRDAPServerForDomain(normalized, bootstrap)
-        rdapPath = `domain/${normalized}`
-        break
-      }
-    }
 
-    if (!rdapServer) {
-      const typeLabel =
-        queryType === "domain"
-          ? `TLD: ${normalizedQuery.split(".").pop()}`
-          : queryType === "asn"
-            ? `ASN: ${normalizedQuery}`
-            : `IP: ${normalizedQuery}`
-      return NextResponse.json({ error: `No RDAP server found for ${typeLabel}` }, { status: 404 })
-    }
-
-    // Query RDAP server
-    const rdapUrl = `${rdapServer}${rdapPath}`
-
-    console.log("Querying RDAP server:", rdapUrl)
-
-    const response = await fetch(rdapUrl, {
-      headers: {
-        Accept: "application/rdap+json",
-      },
-    })
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        const typeLabel = queryType === "domain" ? "Domain" : queryType === "asn" ? "ASN" : "IP address"
-        return NextResponse.json({ error: `${typeLabel} not found` }, { status: 404 })
-      }
-      throw new Error(`RDAP server returned ${response.status}`)
-    }
-
-    const data = await response.json()
-
-    // Add query type metadata to response
-    const payload = {
-      ...data,
-      _queryType: queryType,
-      _query: normalizedQuery,
+      const fallbackReason =
+        rdapError instanceof Error ? rdapError.message : "RDAP lookup failed, falling back to WHOIS"
+      payload = await queryDomainWhoisFallback(normalizedQuery, fallbackReason)
     }
 
     setCached(cacheKey, payload, RESPONSE_CACHE_TTL)

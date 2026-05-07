@@ -61,6 +61,8 @@ function CopyButton({ value, className }: { value: string; className?: string })
 
 export function WhoisResults({ data, query }: WhoisResultsProps) {
   const queryType: QueryType = data._queryType || "domain"
+  const source = data._source || "rdap"
+  const isWhoisFallback = source === "whois"
   const [showRawJson, setShowRawJson] = useState(false)
 
   const formatDate = (dateString: string) => {
@@ -118,6 +120,388 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
   }
 
   const displayName = data.name || data.handle || data.ldhName || query
+  const parsedWhois = data.parsedWhois || null
+
+  if (isWhoisFallback) {
+    return (
+      <div className="space-y-6">
+        <Card className="relative overflow-hidden border-2 shadow-lg">
+          <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent" />
+          <CardHeader className="pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="group flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Globe className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="truncate text-xl font-bold sm:text-2xl">{displayName}</CardTitle>
+                      <CopyButton value={displayName} />
+                    </div>
+                    <CardDescription className="text-sm">
+                      Domain WHOIS fallback response via port 43
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+              <Badge variant="secondary" className="shrink-0 font-mono text-xs uppercase">
+                WHOIS
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Server className="h-3.5 w-3.5" />
+                  Source Server
+                </div>
+                <p className="mt-1 font-mono text-sm font-semibold">{data.sourceServer || "whois.iana.org"}</p>
+              </div>
+              <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <LinkIcon className="h-3.5 w-3.5" />
+                  Referral Server
+                </div>
+                <p className="mt-1 font-mono text-sm font-semibold">{data.referralServer || "None"}</p>
+              </div>
+              <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Info className="h-3.5 w-3.5" />
+                  Fallback Reason
+                </div>
+                <p className="mt-1 text-sm font-semibold">{data._fallbackReason || "RDAP unavailable"}</p>
+              </div>
+            </div>
+
+            {Array.isArray(data.sourceChain) && data.sourceChain.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Network className="h-3.5 w-3.5" />
+                  Lookup Chain
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {data.sourceChain.map((server: string, idx: number) => (
+                    <Badge key={`${server}-${idx}`} variant="outline" className="font-mono text-xs">
+                      {server}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {parsedWhois && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                Best-Effort Parsed Fields
+              </CardTitle>
+              <CardDescription>Heuristic extraction from raw WHOIS text</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {parsedWhois.registrar && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Building className="h-3.5 w-3.5" />
+                      Registrar
+                    </div>
+                    <p className="mt-1 text-sm font-semibold">{parsedWhois.registrar}</p>
+                  </div>
+                )}
+                {parsedWhois.registrarUrl && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <LinkIcon className="h-3.5 w-3.5" />
+                      Registrar URL
+                    </div>
+                    <p className="mt-1 break-all text-sm font-semibold">{parsedWhois.registrarUrl}</p>
+                  </div>
+                )}
+                {parsedWhois.registrarIanaId && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Hash className="h-3.5 w-3.5" />
+                      Registrar IANA ID
+                    </div>
+                    <p className="mt-1 font-mono text-sm font-semibold">{parsedWhois.registrarIanaId}</p>
+                  </div>
+                )}
+                {parsedWhois.registrant && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <User className="h-3.5 w-3.5" />
+                      Registrant
+                    </div>
+                    <p className="mt-1 text-sm font-semibold">{parsedWhois.registrant}</p>
+                  </div>
+                )}
+                {parsedWhois.registryDomainId && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Hash className="h-3.5 w-3.5" />
+                      Registry Domain ID
+                    </div>
+                    <p className="mt-1 break-all font-mono text-sm font-semibold">{parsedWhois.registryDomainId}</p>
+                  </div>
+                )}
+                {parsedWhois.registrarWhoisServer && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Server className="h-3.5 w-3.5" />
+                      Registrar WHOIS
+                    </div>
+                    <p className="mt-1 font-mono text-sm font-semibold">{parsedWhois.registrarWhoisServer}</p>
+                  </div>
+                )}
+                {parsedWhois.creationDate && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Created
+                    </div>
+                    <p className="mt-1 text-sm font-semibold">{parsedWhois.creationDate}</p>
+                  </div>
+                )}
+                {parsedWhois.updatedDate && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Updated
+                    </div>
+                    <p className="mt-1 text-sm font-semibold">{parsedWhois.updatedDate}</p>
+                  </div>
+                )}
+                {parsedWhois.expirationDate && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Expires
+                    </div>
+                    <p className="mt-1 text-sm font-semibold">{parsedWhois.expirationDate}</p>
+                  </div>
+                )}
+                {parsedWhois.dnssec && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Lock className="h-3.5 w-3.5" />
+                      DNSSEC
+                    </div>
+                    <p className="mt-1 text-sm font-semibold">{parsedWhois.dnssec}</p>
+                  </div>
+                )}
+                {(parsedWhois.registrantCity || parsedWhois.registrantState || parsedWhois.registrantCountry) && (
+                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
+                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Registrant Location
+                    </div>
+                    <p className="mt-1 text-sm font-semibold">
+                      {[parsedWhois.registrantCity, parsedWhois.registrantState, parsedWhois.registrantCountry]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {parsedWhois.status?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <Shield className="h-3.5 w-3.5" />
+                    Parsed Status
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {parsedWhois.status.map((status: string, idx: number) => (
+                      <Badge key={`${status}-${idx}`} variant="outline" className="font-mono text-xs">
+                        {status}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {parsedWhois.nameservers?.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <Server className="h-3.5 w-3.5" />
+                    Parsed Nameservers
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {parsedWhois.nameservers.map((nameserver: string) => (
+                      <div
+                        key={nameserver}
+                        className="group flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:border-primary/30"
+                      >
+                        <p className="truncate font-mono text-sm font-medium">{nameserver}</p>
+                        <CopyButton value={nameserver} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(parsedWhois.abuseEmail || parsedWhois.abusePhone) && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {parsedWhois.abuseEmail && (
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <Mail className="h-3.5 w-3.5" />
+                        Abuse Email
+                      </div>
+                      <p className="mt-1 break-all text-sm font-semibold">{parsedWhois.abuseEmail}</p>
+                    </div>
+                  )}
+                  {parsedWhois.abusePhone && (
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5" />
+                        Abuse Phone
+                      </div>
+                      <p className="mt-1 text-sm font-semibold">{parsedWhois.abusePhone}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(parsedWhois.registrantId || parsedWhois.adminId || parsedWhois.techId) && (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {parsedWhois.registrantId && (
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <Hash className="h-3.5 w-3.5" />
+                        Registrant ID
+                      </div>
+                      <p className="mt-1 break-all font-mono text-sm font-semibold">{parsedWhois.registrantId}</p>
+                    </div>
+                  )}
+                  {parsedWhois.adminId && (
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <Hash className="h-3.5 w-3.5" />
+                        Admin ID
+                      </div>
+                      <p className="mt-1 break-all font-mono text-sm font-semibold">{parsedWhois.adminId}</p>
+                    </div>
+                  )}
+                  {parsedWhois.techId && (
+                    <div className="rounded-lg border bg-card p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        <Hash className="h-3.5 w-3.5" />
+                        Tech ID
+                      </div>
+                      <p className="mt-1 break-all font-mono text-sm font-semibold">{parsedWhois.techId}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {parsedWhois.contacts && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <User className="h-3.5 w-3.5" />
+                    Parsed Contacts
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {[
+                      { key: "registrant", label: "Registrant" },
+                      { key: "admin", label: "Admin" },
+                      { key: "tech", label: "Tech" },
+                    ].map(({ key, label }) => {
+                      const contact = parsedWhois.contacts[key]
+                      const hasData = contact && Object.values(contact).some(Boolean)
+                      if (!hasData) return null
+
+                      return (
+                        <div key={key} className="space-y-3 rounded-lg border bg-card p-4">
+                          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            <User className="h-3.5 w-3.5" />
+                            {label}
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            {contact.name && <p className="font-semibold">{contact.name}</p>}
+                            {contact.organization && <p className="text-muted-foreground">{contact.organization}</p>}
+                            {contact.email && <p className="break-all">{contact.email}</p>}
+                            {contact.phone && <p>{contact.phone}</p>}
+                            {(contact.city || contact.state || contact.country) && (
+                              <p>{[contact.city, contact.state, contact.country].filter(Boolean).join(", ")}</p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {data.referralServer && data.ianaResponse && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Info className="h-5 w-5 text-primary" />
+                IANA Referral Response
+              </CardTitle>
+              <CardDescription>Raw response used to locate the authoritative WHOIS server</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="max-h-72 overflow-auto rounded-lg border bg-muted/50 p-4 font-mono text-xs whitespace-pre-wrap break-words">
+                {data.ianaResponse}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5 text-primary" />
+              Raw WHOIS Response
+            </CardTitle>
+            <CardDescription>Unstructured text returned by the WHOIS server</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/50 p-4 font-mono text-xs whitespace-pre-wrap break-words">
+              {data.rawWhois}
+            </pre>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader
+            className="cursor-pointer select-none"
+            onClick={() => setShowRawJson(!showRawJson)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => e.key === "Enter" && setShowRawJson(!showRawJson)}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Raw API Response</CardTitle>
+                <CardDescription>Complete fallback payload returned by the server</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <ChevronDown className={`h-4 w-4 transition-transform ${showRawJson ? "rotate-180" : ""}`} />
+              </Button>
+            </div>
+          </CardHeader>
+          {showRawJson && (
+            <CardContent>
+              <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/50 p-4 font-mono text-xs">
+                {JSON.stringify(data, null, 2)}
+              </pre>
+            </CardContent>
+          )}
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
