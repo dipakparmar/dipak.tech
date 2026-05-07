@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { useCallback, useState } from "react"
 import { useHaptics } from "@/hooks/use-haptics"
@@ -35,6 +36,242 @@ interface WhoisResultsProps {
 }
 
 type QueryType = "domain" | "ipv4" | "ipv6" | "asn"
+
+type EppStatusInfo = {
+  label: string
+  summary: string
+  action: string
+}
+
+type StatusTone =
+  | "success"
+  | "warning"
+  | "danger"
+  | "clientLock"
+  | "serverLock"
+  | "period"
+  | "inactive"
+  | "neutral"
+
+const EPP_STATUS_INFO: Record<string, EppStatusInfo> = {
+  addperiod: {
+    label: "Add Period",
+    summary: "Grace period right after initial registration.",
+    action: "No action needed unless you intended to cancel the new registration.",
+  },
+  autorenewperiod: {
+    label: "Auto Renew Period",
+    summary: "Registry auto-renewed the domain after expiry for a limited grace period.",
+    action: "Contact your registrar quickly if you do not want to keep or pay for the renewal.",
+  },
+  inactive: {
+    label: "Inactive",
+    summary: "The domain has no active delegation data and will not resolve in DNS.",
+    action: "Check nameserver setup or registrar verification requirements if this persists.",
+  },
+  ok: {
+    label: "OK",
+    summary: "Normal active status with no pending operations or restrictions.",
+    action: "Consider transfer, update, and delete protection if you want stronger anti-hijack safeguards.",
+  },
+  pendingcreate: {
+    label: "Pending Create",
+    summary: "A create request exists and the registry is still processing it.",
+    action: "Monitor the registration or contact the registrar if you did not initiate it.",
+  },
+  pendingdelete: {
+    label: "Pending Delete",
+    summary: "The domain is near final deletion and will soon drop from the registry.",
+    action: "Contact your registrar immediately if you want to keep the domain.",
+  },
+  pendingrenew: {
+    label: "Pending Renew",
+    summary: "A renewal request has been submitted and is still processing.",
+    action: "Contact your registrar if you did not authorize the renewal.",
+  },
+  pendingrestore: {
+    label: "Pending Restore",
+    summary: "The registrar requested restoration and the registry is waiting on documentation or completion.",
+    action: "Watch closely and contact the registrar if the domain falls back to redemption period.",
+  },
+  pendingtransfer: {
+    label: "Pending Transfer",
+    summary: "A registrar transfer request is in progress.",
+    action: "Contact your registrar immediately if you did not request the transfer.",
+  },
+  pendingupdate: {
+    label: "Pending Update",
+    summary: "A domain update request is being processed.",
+    action: "Contact your registrar if you did not request the update.",
+  },
+  redemptionperiod: {
+    label: "Redemption Period",
+    summary: "The domain was deleted by the registrar and is in the restore window before permanent removal.",
+    action: "Contact your registrar immediately if you want to restore the domain.",
+  },
+  renewperiod: {
+    label: "Renew Period",
+    summary: "Short grace period after an explicit registrar-driven renewal.",
+    action: "Contact your registrar if the renewal was not expected.",
+  },
+  serverdeleteprohibited: {
+    label: "Server Delete Prohibited",
+    summary: "Registry-level lock prevents deletion, often due to dispute, policy, or enhanced lock service.",
+    action: "Contact your registrar if you need the reason or want the lock removed.",
+  },
+  serverhold: {
+    label: "Server Hold",
+    summary: "Registry disabled DNS activation, so the domain will not resolve.",
+    action: "Contact your registrar because this usually indicates a registry-side issue or restriction.",
+  },
+  serverrenewprohibited: {
+    label: "Server Renew Prohibited",
+    summary: "Registry is blocking renewal of the domain.",
+    action: "Contact your registrar promptly to understand and resolve the restriction.",
+  },
+  servertransferprohibited: {
+    label: "Server Transfer Prohibited",
+    summary: "Registry-level lock prevents transfer to another registrar.",
+    action: "Contact your registrar if you need the transfer unlocked or explained.",
+  },
+  serverupdateprohibited: {
+    label: "Server Update Prohibited",
+    summary: "Registry-level lock prevents updates to domain data.",
+    action: "Contact your registrar if you need changes made or need the restriction explained.",
+  },
+  transferperiod: {
+    label: "Transfer Period",
+    summary: "Grace period after a successful registrar transfer.",
+    action: "Contact your previous or current registrar if the transfer was not expected.",
+  },
+  clientdeleteprohibited: {
+    label: "Client Delete Prohibited",
+    summary: "Registrar lock preventing deletion of the domain.",
+    action: "Ask your registrar to remove the lock if you intentionally want to delete the domain.",
+  },
+  clienthold: {
+    label: "Client Hold",
+    summary: "Registrar disabled DNS activation, so the domain will not resolve.",
+    action: "Contact your registrar because this often indicates billing, policy, or compliance issues.",
+  },
+  clientrenewprohibited: {
+    label: "Client Renew Prohibited",
+    summary: "Registrar is blocking renewal of the domain.",
+    action: "Contact your registrar if you want to renew or need the restriction removed.",
+  },
+  clienttransferprohibited: {
+    label: "Client Transfer Prohibited",
+    summary: "Registrar lock preventing transfer to another registrar.",
+    action: "This is usually protective. Ask your registrar to remove it only if you intend to transfer the domain.",
+  },
+  clientupdateprohibited: {
+    label: "Client Update Prohibited",
+    summary: "Registrar lock preventing updates to the domain.",
+    action: "Contact your registrar if you need to change nameservers or registrant settings.",
+  },
+}
+
+function normalizeStatusKey(status: string): string {
+  return status.toLowerCase().replace(/[\s_-]+/g, "")
+}
+
+function getStatusTone(status: string): StatusTone {
+  const key = normalizeStatusKey(status)
+
+  if (key === "ok" || key === "active") return "success"
+  if (key === "inactive") return "inactive"
+  if (key.includes("hold")) return "danger"
+  if (key === "redemptionperiod" || key === "pendingdelete") return "danger"
+  if (key.startsWith("pending")) return "warning"
+  if (key.startsWith("client") && key.endsWith("prohibited")) return "clientLock"
+  if (key.startsWith("server") && key.endsWith("prohibited")) return "serverLock"
+  if (key.endsWith("period")) return "period"
+
+  return "neutral"
+}
+
+function getStatusBadgeClassName(status: string): string {
+  switch (getStatusTone(status)) {
+    case "success":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+    case "warning":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+    case "danger":
+      return "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300"
+    case "clientLock":
+      return "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300"
+    case "serverLock":
+      return "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300"
+    case "period":
+      return "border-stone-500/30 bg-stone-500/10 text-stone-700 dark:text-stone-300"
+    case "inactive":
+      return "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300"
+    default:
+      return "border-muted-foreground/20 bg-muted/50 text-foreground"
+  }
+}
+
+function getStatusInfo(status: string): EppStatusInfo | null {
+  return EPP_STATUS_INFO[normalizeStatusKey(status)] || null
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const info = getStatusInfo(status)
+  const badge = (
+    <Badge variant="outline" className={`font-mono text-xs ${getStatusBadgeClassName(status)}`}>
+      {status}
+    </Badge>
+  )
+
+  if (!info) {
+    return badge
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{badge}</TooltipTrigger>
+      <TooltipContent
+        sideOffset={8}
+        className="max-w-sm rounded-xl border border-border/70 bg-popover/95 p-0 text-sm text-popover-foreground shadow-2xl shadow-black/15 backdrop-blur-md"
+      >
+        <div className="space-y-0">
+          <div className="border-b border-border/70 bg-muted/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${getStatusTone(status) === "success"
+                ? "bg-emerald-400"
+                : getStatusTone(status) === "warning"
+                  ? "bg-amber-400"
+                  : getStatusTone(status) === "danger"
+                    ? "bg-rose-400"
+                    : getStatusTone(status) === "clientLock"
+                      ? "bg-sky-400"
+                      : getStatusTone(status) === "serverLock"
+                        ? "bg-violet-400"
+                        : getStatusTone(status) === "period"
+                          ? "bg-stone-400"
+                          : getStatusTone(status) === "inactive"
+                            ? "bg-slate-400"
+                      : "bg-zinc-400"
+                }`} />
+              <p className="font-semibold tracking-tight text-popover-foreground">{info.label}</p>
+            </div>
+            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{status}</p>
+          </div>
+          <div className="space-y-3 px-4 py-3">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Meaning</p>
+              <p className="mt-1 leading-relaxed text-popover-foreground/90">{info.summary}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">What To Do</p>
+              <p className="mt-1 leading-relaxed text-popover-foreground">{info.action}</p>
+            </div>
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 function CopyButton({ value, className }: { value: string; className?: string }) {
   const [copied, setCopied] = useState(false)
@@ -332,9 +569,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {parsedWhois.status.map((status: string, idx: number) => (
-                      <Badge key={`${status}-${idx}`} variant="outline" className="font-mono text-xs">
-                        {status}
-                      </Badge>
+                      <StatusBadge key={`${status}-${idx}`} status={status} />
                     ))}
                   </div>
                 </div>
@@ -574,9 +809,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
             <div className="flex flex-wrap gap-2">
               {getStatus().length > 0 ? (
                 getStatus().map((status: string, idx: number) => (
-                  <Badge key={idx} variant="outline" className="font-mono text-xs">
-                    {status}
-                  </Badge>
+                  <StatusBadge key={idx} status={status} />
                 ))
               ) : (
                 <p className="text-sm text-muted-foreground">No status available</p>
