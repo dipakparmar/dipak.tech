@@ -17,6 +17,19 @@ const RESPONSE_CACHE_TTL = 6 * 60 * 60 * 1000
 const RATE_LIMIT = 30
 const RATE_WINDOW_MS = 60 * 1000
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "WHOIS lookup failed"
+}
+
+function shouldFallbackToWhois(queryType: ReturnType<typeof detectQueryType>, error: unknown): boolean {
+  if (queryType !== "domain") return false
+
+  const message = getErrorMessage(error)
+  if (message === "Domain not found") return false
+
+  return true
+}
+
 function formatNoRdapMessage(queryType: string, query: string): string {
   return queryType === "domain"
     ? `No RDAP server found for TLD: ${query.split(".").pop()}`
@@ -132,15 +145,20 @@ export async function GET(request: NextRequest) {
     try {
       payload = await fetchRdapPayload(normalizedQuery, queryType)
     } catch (rdapError) {
-      if (queryType !== "domain") {
-        const message = rdapError instanceof Error ? rdapError.message : "WHOIS lookup failed"
+      if (!shouldFallbackToWhois(queryType, rdapError)) {
+        const message = getErrorMessage(rdapError)
         const status = message.includes("not found") || message.includes("No RDAP server found") ? 404 : 500
         return NextResponse.json({ error: message }, { status })
       }
 
-      const fallbackReason =
-        rdapError instanceof Error ? rdapError.message : "RDAP lookup failed, falling back to WHOIS"
-      payload = await queryDomainWhoisFallback(normalizedQuery, fallbackReason)
+      const fallbackReason = getErrorMessage(rdapError)
+      try {
+        payload = await queryDomainWhoisFallback(normalizedQuery, fallbackReason)
+      } catch (whoisError) {
+        const message = getErrorMessage(whoisError)
+        const status = message.includes("not found") ? 404 : 500
+        return NextResponse.json({ error: message }, { status })
+      }
     }
 
     setCached(cacheKey, payload, RESPONSE_CACHE_TTL)

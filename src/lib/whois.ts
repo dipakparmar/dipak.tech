@@ -141,6 +141,26 @@ export function extractWhoisReferralServer(rawWhois: string): string | null {
   return match?.[1]?.trim() || null;
 }
 
+export function isWhoisDomainNotFound(rawWhois: string): boolean {
+  const normalized = rawWhois.toLowerCase();
+
+  const patterns = [
+    /\bno match for\b/,
+    /\bnot found\b/,
+    /\bno entries found\b/,
+    /\bno data found\b/,
+    /\bno object found\b/,
+    /\bdomain you requested is not known\b/,
+    /\bstatus:\s*available\b/,
+    /\bstatus:\s*free\b/,
+    /\bno such domain\b/,
+    /\bno domain records were found\b/,
+    /\bno matching record\b/
+  ];
+
+  return patterns.some((pattern) => pattern.test(normalized));
+}
+
 function matchFirst(rawWhois: string, patterns: readonly RegExp[]): string | null {
   for (const pattern of patterns) {
     const match = rawWhois.match(pattern);
@@ -173,6 +193,10 @@ function normalizeWhoisStatus(value: string): string {
     .replace(/\s+https?:\/\/\S+$/i, '')
     .replace(/\s+\[[^\]]+\]\s*$/i, '')
     .trim();
+}
+
+function isDomainNotFoundError(error: unknown): boolean {
+  return error instanceof Error && error.message === 'Domain not found';
 }
 
 function emptyContact(): ParsedWhoisContact {
@@ -398,6 +422,9 @@ export async function queryDomainWhoisFallback(
 
   try {
     const rawWhois = await queryWhoisServer(referralServer, normalizedDomain);
+    if (isWhoisDomainNotFound(rawWhois)) {
+      throw new Error('Domain not found');
+    }
     const parsedWhois = parseWhoisText(rawWhois);
 
     return {
@@ -417,6 +444,10 @@ export async function queryDomainWhoisFallback(
       parsedWhois
     };
   } catch (error) {
+    if (isDomainNotFoundError(error)) {
+      throw error;
+    }
+
     const degradedReason = error instanceof Error ? error.message : `WHOIS query to ${referralServer} failed`;
     const parsedWhois = parseWhoisText(ianaResponse);
 
