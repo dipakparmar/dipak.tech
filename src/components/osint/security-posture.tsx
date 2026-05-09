@@ -114,10 +114,14 @@ export function SecurityPosture({ securityData, emailSecurity, waf, pending, err
           </div>
           {emailSecurity ? (
             <>
-              <StatusBadge
-                pass={spfPolicy !== "none" && spfPolicy !== "neutral"}
-                label={spfPolicy === "fail" ? "Hard Fail" : spfPolicy === "softfail" ? "Soft Fail" : spfPolicy === "none" ? "Not Set" : "Neutral"}
-              />
+              {spfPolicy === "softfail" ? (
+                <WarnBadge label="Soft Fail" />
+              ) : (
+                <StatusBadge
+                  pass={spfPolicy === "fail"}
+                  label={spfPolicy === "fail" ? "Hard Fail" : spfPolicy === "none" ? "Not Set" : "Neutral"}
+                />
+              )}
               {emailSecurity.spf.record && (
                 <div className="mt-2 truncate rounded bg-muted/40 px-2 py-1 font-mono text-xs text-muted-foreground">
                   {emailSecurity.spf.record}
@@ -179,7 +183,7 @@ export function SecurityPosture({ securityData, emailSecurity, waf, pending, err
           <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
             <div
               className={`h-full rounded-full transition-all ${securityData.blocklist.clean === securityData.blocklist.total ? "bg-emerald-500" : securityData.blocklist.clean > securityData.blocklist.total / 2 ? "bg-amber-500" : "bg-red-500"}`}
-              style={{ width: `${(securityData.blocklist.clean / securityData.blocklist.total) * 100}%` }}
+              style={{ width: `${securityData.blocklist.total > 0 ? (securityData.blocklist.clean / securityData.blocklist.total) * 100 : 0}%` }}
             />
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
