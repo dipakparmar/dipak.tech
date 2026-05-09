@@ -10,6 +10,7 @@ import { captureAPIError } from "@/lib/sentry-utils"
 import { detectWAF } from "@/lib/waf-detector"
 import { detectTechStack } from "@/lib/tech-stack"
 import { parseSocialTags } from "@/lib/social-tags"
+import { signImageUrl } from "@/lib/osint-image-sign"
 import type { CookieInfo, RedirectHop } from "@/lib/osint-types"
 
 const HEADER_ALLOWLIST = [
@@ -89,6 +90,9 @@ export async function GET(request: Request) {
     const waf = detectWAF(allHeaders)
     const techStack = detectTechStack(allHeaders, html)
     const socialTags = parseSocialTags(html)
+    if (socialTags.og.image) {
+      socialTags.og.imageToken = await signImageUrl(socialTags.og.image)
+    }
 
     const payload = {
       url: response.url,

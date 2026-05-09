@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { verifyImageUrl } from "@/lib/osint-image-sign"
 
 const ALLOWED_CONTENT_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/x-icon", "image/avif"]
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
@@ -6,8 +7,12 @@ const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const url = searchParams.get("url")
+  const token = searchParams.get("token")
 
-  if (!url) return NextResponse.json({ error: "url parameter is required" }, { status: 400 })
+  if (!url || !token) return NextResponse.json({ error: "url and token parameters are required" }, { status: 400 })
+
+  const valid = await verifyImageUrl(url, token)
+  if (!valid) return NextResponse.json({ error: "Invalid token" }, { status: 403 })
 
   let parsed: URL
   try {
