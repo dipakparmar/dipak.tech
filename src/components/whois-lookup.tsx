@@ -55,6 +55,9 @@ export function WhoisLookup() {
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const [certDnsData, setCertDnsData] = useState<Record<string, any> | null>(null)
   const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>({})
+  const [securityData, setSecurityData] = useState<any>(null)
+  const [identityData, setIdentityData] = useState<any>(null)
+  const [threatData, setThreatData] = useState<any>(null)
   const [copied, setCopied] = useState(false)
   const hasAutoSearched = useRef(false)
   const prevUrlQuery = useRef(initialQuery)
@@ -83,6 +86,9 @@ export function WhoisLookup() {
       setPending({})
       setCertDnsData(null)
       setCertDnsPending({})
+      setSecurityData(null)
+      setIdentityData(null)
+      setThreatData(null)
 
       // Update URL with query parameter
       if (updateUrl) {
@@ -117,6 +123,9 @@ export function WhoisLookup() {
             { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
             { key: "certs", promise: fetchJson(`/api/osint/certificates?target=${encodeURIComponent(trimmed)}`) },
             { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
+            { key: "security", promise: fetchJson(`/api/osint/security?target=${encodeURIComponent(trimmed)}`) },
+            { key: "identity", promise: fetchJson(`/api/osint/identity?target=${encodeURIComponent(trimmed)}`) },
+            { key: "threat", promise: fetchJson(`/api/osint/threat?target=${encodeURIComponent(trimmed)}`) },
           )
         }
 
@@ -124,6 +133,8 @@ export function WhoisLookup() {
           tasks.push(
             { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
             { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
+            { key: "security", promise: fetchJson(`/api/osint/security?target=${encodeURIComponent(trimmed)}`) },
+            { key: "threat", promise: fetchJson(`/api/osint/threat?target=${encodeURIComponent(trimmed)}`) },
           )
         }
 
@@ -146,6 +157,9 @@ export function WhoisLookup() {
               if (task.key === "http") setHttpData(value)
               if (task.key === "certs") setCertData(value)
               if (task.key === "ip") setIpData(value)
+              if (task.key === "security") setSecurityData(value)
+              if (task.key === "identity") setIdentityData(value)
+              if (task.key === "threat") setThreatData(value)
             })
             .catch((err) => {
               setOsintErrors((prev) => ({
@@ -201,6 +215,9 @@ export function WhoisLookup() {
         setPending({})
         setCertDnsData(null)
         setCertDnsPending({})
+        setSecurityData(null)
+        setIdentityData(null)
+        setThreatData(null)
         setError(null)
       }
     }
@@ -362,6 +379,9 @@ export function WhoisLookup() {
             httpData={httpData}
             certData={certData}
             ipData={ipData}
+            securityData={securityData}
+            identityData={identityData}
+            threatData={threatData}
             query={query}
             errors={osintErrors}
             pending={pending}
