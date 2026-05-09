@@ -46,7 +46,7 @@ async function fetchSecurityTxt(domain: string): Promise<IdentityData["securityT
       })
       if (res.ok) {
         const text = await res.text()
-        if (text.includes("Contact:")) return parseSecurityTxt(text)
+        if (/^contact:/im.test(text)) return parseSecurityTxt(text)
       }
     } catch {
       continue

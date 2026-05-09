@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     if (!isIP) {
       const dsRecords = await dohQuery(normalized, "DS")
       if (dsRecords.length > 0) {
-        const algoNum = parseInt(dsRecords[0].split(" ")[2] ?? "0", 10)
+        const algoNum = parseInt(dsRecords[0].split(" ")[1] ?? "0", 10)
         const algorithms: Record<number, string> = {
           5: "RSA/SHA-1", 7: "RSASHA1-NSEC3-SHA1", 8: "RSA/SHA-256",
           10: "RSA/SHA-512", 13: "ECDSA P-256/SHA-256", 14: "ECDSA P-384/SHA-384",

@@ -45,8 +45,8 @@ async function fetchWayback(domain: string): Promise<ThreatData["wayback"]> {
 
     const [availRes, firstRes, countRes] = await Promise.allSettled([
       fetch(`https://archive.org/wayback/available?url=${encodeURIComponent(domain)}`, { signal: controller.signal }),
-      fetch(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&fl=timestamp&limit=1&from=19960101`),
-      fetch(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&fl=timestamp&collapse=timestamp:8&showNumPages=true`),
+      fetch(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&fl=timestamp&limit=1&from=19960101`, { signal: controller.signal }),
+      fetch(`https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(domain)}&output=json&fl=timestamp&collapse=timestamp:8&showNumPages=true`, { signal: controller.signal }),
     ])
 
     let latestUrl: string | null = null
