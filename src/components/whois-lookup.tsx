@@ -11,6 +11,7 @@ import type React from "react"
 import { Spinner } from "@/components/ui/spinner"
 import { OsintResults } from "@/components/osint-results"
 import { useHaptics } from "@/hooks/use-haptics"
+import type { SecurityData, IdentityData, ThreatData } from "@/lib/osint-types"
 
 const EXAMPLE_QUERIES = [
   { label: "google.com", icon: Globe, type: "domain" },
@@ -55,6 +56,9 @@ export function WhoisLookup() {
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const [certDnsData, setCertDnsData] = useState<Record<string, any> | null>(null)
   const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>({})
+  const [securityData, setSecurityData] = useState<SecurityData | null>(null)
+  const [identityData, setIdentityData] = useState<IdentityData | null>(null)
+  const [threatData, setThreatData] = useState<ThreatData | null>(null)
   const [copied, setCopied] = useState(false)
   const hasAutoSearched = useRef(false)
   const prevUrlQuery = useRef(initialQuery)
@@ -83,6 +87,9 @@ export function WhoisLookup() {
       setPending({})
       setCertDnsData(null)
       setCertDnsPending({})
+      setSecurityData(null)
+      setIdentityData(null)
+      setThreatData(null)
 
       // Update URL with query parameter
       if (updateUrl) {
@@ -117,6 +124,9 @@ export function WhoisLookup() {
             { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
             { key: "certs", promise: fetchJson(`/api/osint/certificates?target=${encodeURIComponent(trimmed)}`) },
             { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
+            { key: "security", promise: fetchJson(`/api/osint/security?target=${encodeURIComponent(trimmed)}`) },
+            { key: "identity", promise: fetchJson(`/api/osint/identity?target=${encodeURIComponent(trimmed)}`) },
+            { key: "threat", promise: fetchJson(`/api/osint/threat?target=${encodeURIComponent(trimmed)}`) },
           )
         }
 
@@ -124,6 +134,8 @@ export function WhoisLookup() {
           tasks.push(
             { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
             { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
+            { key: "security", promise: fetchJson(`/api/osint/security?target=${encodeURIComponent(trimmed)}`) },
+            { key: "threat", promise: fetchJson(`/api/osint/threat?target=${encodeURIComponent(trimmed)}`) },
           )
         }
 
@@ -135,6 +147,9 @@ export function WhoisLookup() {
         if (!requestedKeys.has("http")) baselineErrors.http = "Not applicable for this query type"
         if (!requestedKeys.has("certs")) baselineErrors.certs = "Not applicable for this query type"
         if (!requestedKeys.has("ip")) baselineErrors.ip = "Not applicable for this query type"
+        if (!requestedKeys.has("security")) baselineErrors.security = "Not applicable for this query type"
+        if (!requestedKeys.has("identity")) baselineErrors.identity = "Not applicable for this query type"
+        if (!requestedKeys.has("threat")) baselineErrors.threat = "Not applicable for this query type"
         setOsintErrors(baselineErrors)
 
         const taskPromises = tasks.map((task) => task.promise)
@@ -146,6 +161,9 @@ export function WhoisLookup() {
               if (task.key === "http") setHttpData(value)
               if (task.key === "certs") setCertData(value)
               if (task.key === "ip") setIpData(value)
+              if (task.key === "security") setSecurityData(value)
+              if (task.key === "identity") setIdentityData(value)
+              if (task.key === "threat") setThreatData(value)
             })
             .catch((err) => {
               setOsintErrors((prev) => ({
@@ -201,6 +219,9 @@ export function WhoisLookup() {
         setPending({})
         setCertDnsData(null)
         setCertDnsPending({})
+        setSecurityData(null)
+        setIdentityData(null)
+        setThreatData(null)
         setError(null)
       }
     }
@@ -263,7 +284,7 @@ export function WhoisLookup() {
     performLookup(example)
   }
 
-  const hasResults = Boolean(rdapData || dnsData || httpData || certData || ipData)
+  const hasResults = Boolean(rdapData || dnsData || httpData || certData || ipData || securityData || identityData || threatData)
 
   return (
     <div className="space-y-8">
@@ -362,6 +383,9 @@ export function WhoisLookup() {
             httpData={httpData}
             certData={certData}
             ipData={ipData}
+            securityData={securityData}
+            identityData={identityData}
+            threatData={threatData}
             query={query}
             errors={osintErrors}
             pending={pending}

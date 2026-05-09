@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
 import { captureAPIError } from "@/lib/sentry-utils"
+import { parseEmailSecurity } from "@/lib/email-security"
 
 const RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA"] as const
 const RESPONSE_CACHE_TTL = 5 * 60 * 1000
@@ -51,7 +52,10 @@ export async function GET(request: Request) {
         },
       )
     }
-    const results = await Promise.allSettled(RECORD_TYPES.map((type) => queryDNS(normalized, type)))
+    const [mainResults, dmarcResult] = await Promise.all([
+      Promise.allSettled(RECORD_TYPES.map((type) => queryDNS(normalized, type))),
+      queryDNS(`_dmarc.${normalized}`, "TXT").catch(() => null),
+    ])
 
     const records: Record<RecordType, string[]> = {
       A: [],
@@ -63,16 +67,20 @@ export async function GET(request: Request) {
       SOA: [],
     }
 
-    results.forEach((result, index) => {
+    mainResults.forEach((result, index) => {
       const type = RECORD_TYPES[index]
       if (result.status === "fulfilled" && result.value.Answer) {
         records[type] = result.value.Answer.map((record) => record.data)
       }
     })
 
+    const dmarcTxt = dmarcResult?.Answer?.map((r) => r.data) ?? []
+    const emailSecurity = parseEmailSecurity([...records.TXT, ...dmarcTxt])
+
     const payload = {
       target: normalized,
       records,
+      emailSecurity,
     }
 
     setCached(cacheKey, payload, RESPONSE_CACHE_TTL)
