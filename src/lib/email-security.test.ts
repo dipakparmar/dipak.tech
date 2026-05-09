@@ -1,4 +1,3 @@
-// src/lib/email-security.test.ts
 import { describe, test, expect } from "bun:test"
 import { parseEmailSecurity } from "./email-security"
 

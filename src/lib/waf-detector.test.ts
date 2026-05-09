@@ -1,4 +1,3 @@
-// src/lib/waf-detector.test.ts
 import { describe, test, expect } from "bun:test"
 import { detectWAF } from "./waf-detector"
 

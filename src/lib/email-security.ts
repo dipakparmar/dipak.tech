@@ -1,4 +1,3 @@
-// src/lib/email-security.ts
 import type { EmailSecurityResult } from "./osint-types"
 
 function stripTxtQuotes(r: string): string {

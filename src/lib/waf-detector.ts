@@ -1,4 +1,3 @@
-// src/lib/waf-detector.ts
 import type { WAFResult } from "./osint-types"
 
 interface WAFSignature {
