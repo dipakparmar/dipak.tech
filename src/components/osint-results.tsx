@@ -1,6 +1,6 @@
 "use client"
 
-import { Activity, AlertTriangle, Globe, Info, Lock, Network, ShieldCheck } from "lucide-react"
+import { Activity, AlertTriangle, Globe, Info, Network, ShieldCheck } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
 import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
@@ -8,6 +8,11 @@ import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { WhoisResults } from "@/components/whois-results"
+import { SecurityPosture } from "@/components/osint/security-posture"
+import { SiteIdentity } from "@/components/osint/site-identity"
+import { ThreatHistory } from "@/components/osint/threat-history"
+import { RedirectChain } from "@/components/osint/redirect-chain"
+import type { SecurityData, IdentityData, ThreatData } from "@/lib/osint-types"
 
 // Known security headers to filter out from regular headers
 const SECURITY_HEADER_KEYS = new Set([
@@ -36,10 +41,16 @@ interface OsintResultsProps {
     http?: string
     certs?: string
     ip?: string
+    security?: string
+    identity?: string
+    threat?: string
   }
   pending: Record<string, boolean>
   certDnsData?: Record<string, any> | null
   certDnsPending?: Record<string, boolean>
+  securityData?: SecurityData | null
+  identityData?: IdentityData | null
+  threatData?: ThreatData | null
 }
 
 export function OsintResults({
@@ -53,6 +64,9 @@ export function OsintResults({
   pending,
   certDnsData,
   certDnsPending,
+  securityData,
+  identityData,
+  threatData,
 }: OsintResultsProps) {
   // Determine which cards have content to show
   const hasHttp = httpData || pending.http
@@ -495,43 +509,53 @@ export function OsintResults({
                     </div>
                   )}
 
-                  {/* Regular Headers (excluding security headers) */}
-                  {(() => {
-                    const regularHeaders = getRegularHeaders(httpData.headers)
-                    return Object.keys(regularHeaders).length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Headers</p>
+                  <Tabs defaultValue="headers" className="w-full">
+                    <TabsList className="mb-4 flex h-auto flex-wrap gap-1 bg-transparent p-0">
+                      <TabsTrigger value="headers" className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400">
+                        Headers
+                      </TabsTrigger>
+                      <TabsTrigger value="security-headers" className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400">
+                        Security Headers
+                      </TabsTrigger>
+                      <TabsTrigger value="redirect-chain" className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400">
+                        Redirect Chain
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="headers" className="mt-0">
+                      {(() => {
+                        const regularHeaders = getRegularHeaders(httpData.headers)
+                        return Object.keys(regularHeaders).length > 0 ? (
+                          <div className="space-y-1">
+                            {Object.entries(regularHeaders).map(([key, value]) => (
+                              <div key={key} className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs">
+                                <span className="text-muted-foreground">{key}:</span>{" "}
+                                <span className="break-all font-mono">{value as string}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="py-4 text-center text-sm text-muted-foreground">No headers found</p>
+                        )
+                      })()}
+                    </TabsContent>
+                    <TabsContent value="security-headers" className="mt-0">
+                      {Object.keys(httpData.securityHeaders || {}).length > 0 ? (
                         <div className="space-y-1">
-                          {Object.entries(regularHeaders).map(([key, value]) => (
-                            <div key={key} className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs">
-                              <span className="text-muted-foreground">{key}:</span>{" "}
+                          {Object.entries(httpData.securityHeaders || {}).map(([key, value]) => (
+                            <div key={key} className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1.5 text-xs">
+                              <span className="text-emerald-600 dark:text-emerald-400">{key}:</span>{" "}
                               <span className="break-all font-mono">{value as string}</span>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )
-                  })()}
-
-                  {/* Security Headers */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Lock className="h-3 w-3" />
-                      Security Headers
-                    </div>
-                    {Object.keys(httpData.securityHeaders || {}).length > 0 ? (
-                      <div className="space-y-1">
-                        {Object.entries(httpData.securityHeaders || {}).map(([key, value]) => (
-                          <div key={key} className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1.5 text-xs">
-                            <span className="text-emerald-600 dark:text-emerald-400">{key}:</span>{" "}
-                            <span className="break-all font-mono">{value as string}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">No security headers detected</p>
-                    )}
-                  </div>
+                      ) : (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">No security headers detected</p>
+                      )}
+                    </TabsContent>
+                    <TabsContent value="redirect-chain" className="mt-4">
+                      <RedirectChain chain={httpData.redirectChain ?? []} />
+                    </TabsContent>
+                  </Tabs>
                 </div>
               ) : pending.http ? (
                 <div className="space-y-3">
@@ -614,6 +638,71 @@ export function OsintResults({
                   {errors.certs || "Certificate data not available"}
                 </p>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Security Posture */}
+        {(securityData || pending.security || dnsData || pending.dns) && (
+          <Card className="md:col-span-2 xl:col-span-3">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Security Posture
+              </CardTitle>
+              <CardDescription>WAF, DNSSEC, email authentication, and blocklist status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SecurityPosture
+                securityData={securityData ?? null}
+                emailSecurity={dnsData?.emailSecurity ?? null}
+                waf={httpData?.waf ?? null}
+                pending={Boolean(pending.security)}
+                error={errors.security}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Site Identity */}
+        {(identityData || httpData?.techStack || pending.identity || pending.http) && (
+          <Card className="md:col-span-2 xl:col-span-3">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Globe className="h-4 w-4 text-primary" />
+                Site Identity
+              </CardTitle>
+              <CardDescription>Technology stack, social tags, cookies, and security disclosure</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SiteIdentity
+                techStack={httpData?.techStack ?? null}
+                socialTags={httpData?.socialTags ?? null}
+                cookies={httpData?.cookies ?? null}
+                identityData={identityData ?? null}
+                pending={Boolean(pending.identity)}
+                error={errors.identity}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Threat & History */}
+        {(threatData || pending.threat) && (
+          <Card className="md:col-span-2 xl:col-span-3">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <Activity className="h-4 w-4 text-primary" />
+                Threat & History
+              </CardTitle>
+              <CardDescription>Open ports, CVEs, archive history, and crawl rules</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ThreatHistory
+                threatData={threatData ?? null}
+                pending={Boolean(pending.threat)}
+                error={errors.threat}
+              />
             </CardContent>
           </Card>
         )}
