@@ -11,7 +11,7 @@ export function detectTechStack(
   if (h("cf-ray") || h("server").includes("cloudflare")) result.cdn.push("Cloudflare")
   if (h("x-vercel-id") || h("x-vercel-cache")) result.cdn.push("Vercel")
   if (h("x-amz-cf-id") || h("via").includes("cloudfront")) result.cdn.push("AWS CloudFront")
-  if (h("x-served-by") && !result.cdn.includes("Fastly")) result.cdn.push("Fastly")
+  if (h("x-served-by") || h("fastly-restarts")) result.cdn.push("Fastly")
   if (h("x-github-request-id")) result.cdn.push("GitHub Pages")
   if (h("x-netlify-cache") || h("x-nf-request-id")) result.cdn.push("Netlify")
 
@@ -42,7 +42,12 @@ export function detectTechStack(
     }
   }
 
-  // CMS
+  // CMS — x-generator header + meta generator tag
+  const xGenerator = h("x-generator").toLowerCase()
+  if (xGenerator.includes("wordpress")) result.cms.push("WordPress")
+  else if (xGenerator.includes("drupal")) result.cms.push("Drupal")
+  else if (xGenerator.includes("joomla")) result.cms.push("Joomla")
+
   const generator = html.match(/<meta[^>]+name=["']generator["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? ""
   if (generator) {
     if (generator.toLowerCase().includes("wordpress")) result.cms.push("WordPress")
@@ -57,7 +62,7 @@ export function detectTechStack(
 
   // Analytics
   if (html.includes("google-analytics.com") || html.includes("gtag(") || html.includes("GoogleAnalyticsObject")) result.analytics.push("Google Analytics")
-  if (html.includes("plausible.io") || html.includes('data-domain')) result.analytics.push("Plausible")
+  if (html.includes("plausible.io")) result.analytics.push("Plausible")
   if (html.includes("fathom") && html.includes("cdn.usefathom.com")) result.analytics.push("Fathom")
   if (html.includes("hotjar.com")) result.analytics.push("Hotjar")
   if (html.includes("segment.com/analytics.js")) result.analytics.push("Segment")
