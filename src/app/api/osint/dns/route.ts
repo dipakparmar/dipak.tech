@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
 import { captureAPIError } from "@/lib/sentry-utils"
+import { parseEmailSecurity } from "@/lib/email-security"
 
 const RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA"] as const
 const RESPONSE_CACHE_TTL = 5 * 60 * 1000
@@ -70,9 +71,12 @@ export async function GET(request: Request) {
       }
     })
 
+    const emailSecurity = parseEmailSecurity(records.TXT)
+
     const payload = {
       target: normalized,
       records,
+      emailSecurity,
     }
 
     setCached(cacheKey, payload, RESPONSE_CACHE_TTL)
