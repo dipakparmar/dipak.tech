@@ -33,4 +33,17 @@ describe("parseEmailSecurity", () => {
     const result = parseEmailSecurity(["v=BIMI1; l=https://example.com/logo.svg"])
     expect(result.bimi.present).toBe(true)
   })
+
+  test("defaults pct to 100 when tag is absent", () => {
+    const result = parseEmailSecurity(["v=DMARC1; p=quarantine; rua=mailto:x@example.com"])
+    expect(result.dmarc.pct).toBe(100)
+  })
+
+  test("returns all nulls/none/false for empty array", () => {
+    const result = parseEmailSecurity([])
+    expect(result.spf.record).toBeNull()
+    expect(result.spf.policy).toBe("none")
+    expect(result.dmarc.record).toBeNull()
+    expect(result.bimi.present).toBe(false)
+  })
 })
