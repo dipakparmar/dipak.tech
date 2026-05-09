@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Shield, ShieldCheck, ShieldAlert, ShieldOff, Mail, Server, Lock } from "lucide-react"
+import { Shield, ShieldCheck, ShieldAlert, ShieldOff, Mail, Server, Lock, Key } from "lucide-react"
 import type { SecurityData, EmailSecurityResult, WAFResult } from "@/lib/osint-types"
 
 interface SecurityPostureProps {
@@ -91,12 +91,6 @@ export function SecurityPosture({ securityData, emailSecurity, waf, pending, err
               {securityData.dnssec.algorithm && (
                 <div className="text-xs text-muted-foreground">{securityData.dnssec.algorithm}</div>
               )}
-              {securityData.dkim.selectors.length > 0 && (
-                <div className="mt-2">
-                  <span className="text-xs text-muted-foreground">DKIM: </span>
-                  <span className="text-xs text-foreground">{securityData.dkim.selectors.join(", ")}</span>
-                </div>
-              )}
             </div>
           ) : (
             <Skeleton className="h-8 w-full" />
@@ -104,8 +98,8 @@ export function SecurityPosture({ securityData, emailSecurity, waf, pending, err
         </div>
       </div>
 
-      {/* Email security row */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Email security row — SPF / DMARC / DKIM / BIMI */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {/* SPF */}
         <div className="rounded-2xl border border-border/60 bg-card p-4">
           <div className="mb-2 flex items-center gap-2">
@@ -119,7 +113,7 @@ export function SecurityPosture({ securityData, emailSecurity, waf, pending, err
               ) : (
                 <StatusBadge
                   pass={spfPolicy === "fail"}
-                  label={spfPolicy === "fail" ? "Hard Fail" : spfPolicy === "none" ? "Not Set" : "Neutral"}
+                  label={spfPolicy === "fail" ? "Enforced (-all)" : spfPolicy === "none" ? "Not Set" : "Neutral"}
                 />
               )}
               {emailSecurity.spf.record && (
@@ -148,6 +142,28 @@ export function SecurityPosture({ securityData, emailSecurity, waf, pending, err
                   {emailSecurity.dmarc.reporting && <WarnBadge label="rua reporting" />}
                   {emailSecurity.dmarc.pct < 100 && <WarnBadge label={`${emailSecurity.dmarc.pct}% policy`} />}
                 </div>
+              )}
+            </>
+          ) : <Skeleton className="h-6 w-24" />}
+        </div>
+
+        {/* DKIM */}
+        <div className="rounded-2xl border border-border/60 bg-card p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Key className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">DKIM</span>
+          </div>
+          {securityData ? (
+            <>
+              {securityData.dkim.wildcard ? (
+                <WarnBadge label="Wildcard" />
+              ) : securityData.dkim.selectors.length > 0 ? (
+                <StatusBadge pass={true} label="Configured" />
+              ) : (
+                <StatusBadge pass={false} label="Not Found" />
+              )}
+              {!securityData.dkim.wildcard && securityData.dkim.selectors.length > 0 && (
+                <div className="mt-2 text-xs text-muted-foreground">{securityData.dkim.selectors.join(", ")}</div>
               )}
             </>
           ) : <Skeleton className="h-6 w-24" />}

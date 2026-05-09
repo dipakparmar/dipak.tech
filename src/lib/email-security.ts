@@ -1,8 +1,13 @@
 // src/lib/email-security.ts
 import type { EmailSecurityResult } from "./osint-types"
 
+function stripTxtQuotes(r: string): string {
+  return r.startsWith('"') && r.endsWith('"') ? r.slice(1, -1) : r
+}
+
 export function parseEmailSecurity(txtRecords: string[]): EmailSecurityResult {
-  const spfRecord = txtRecords.find((r) => r.startsWith("v=spf1")) ?? null
+  const records = txtRecords.map(stripTxtQuotes)
+  const spfRecord = records.find((r) => r.startsWith("v=spf1")) ?? null
   const spfPolicy: EmailSecurityResult["spf"]["policy"] = spfRecord?.includes("-all")
     ? "fail"
     : spfRecord?.includes("~all")
@@ -14,7 +19,7 @@ export function parseEmailSecurity(txtRecords: string[]): EmailSecurityResult {
             "neutral"
           : "none"
 
-  const dmarcRecord = txtRecords.find((r) => r.startsWith("v=DMARC1")) ?? null
+  const dmarcRecord = records.find((r) => r.startsWith("v=DMARC1")) ?? null
   const dmarcPolicyRaw = dmarcRecord?.match(/p=(none|quarantine|reject)/)?.[1]
   const dmarcPolicyMap: Record<string, EmailSecurityResult["dmarc"]["policy"]> = {
     none: "none",
@@ -23,7 +28,7 @@ export function parseEmailSecurity(txtRecords: string[]): EmailSecurityResult {
   }
   const dmarcPct = parseInt(dmarcRecord?.match(/pct=(\d+)/)?.[1] ?? "100", 10)
 
-  const bimiRecord = txtRecords.find((r) => r.startsWith("v=BIMI1")) ?? null
+  const bimiRecord = records.find((r) => r.startsWith("v=BIMI1")) ?? null
 
   return {
     spf: {

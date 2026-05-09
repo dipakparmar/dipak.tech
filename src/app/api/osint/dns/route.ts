@@ -52,7 +52,10 @@ export async function GET(request: Request) {
         },
       )
     }
-    const results = await Promise.allSettled(RECORD_TYPES.map((type) => queryDNS(normalized, type)))
+    const [mainResults, dmarcResult] = await Promise.all([
+      Promise.allSettled(RECORD_TYPES.map((type) => queryDNS(normalized, type))),
+      queryDNS(`_dmarc.${normalized}`, "TXT").catch(() => null),
+    ])
 
     const records: Record<RecordType, string[]> = {
       A: [],
@@ -64,14 +67,15 @@ export async function GET(request: Request) {
       SOA: [],
     }
 
-    results.forEach((result, index) => {
+    mainResults.forEach((result, index) => {
       const type = RECORD_TYPES[index]
       if (result.status === "fulfilled" && result.value.Answer) {
         records[type] = result.value.Answer.map((record) => record.data)
       }
     })
 
-    const emailSecurity = parseEmailSecurity(records.TXT)
+    const dmarcTxt = dmarcResult?.Answer?.map((r) => r.data) ?? []
+    const emailSecurity = parseEmailSecurity([...records.TXT, ...dmarcTxt])
 
     const payload = {
       target: normalized,

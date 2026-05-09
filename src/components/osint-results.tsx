@@ -12,7 +12,7 @@ import { SecurityPosture } from "@/components/osint/security-posture"
 import { SiteIdentity } from "@/components/osint/site-identity"
 import { ThreatHistory } from "@/components/osint/threat-history"
 import { RedirectChain } from "@/components/osint/redirect-chain"
-import type { SecurityData, IdentityData, ThreatData } from "@/lib/osint-types"
+import type { SecurityData, IdentityData, ThreatData, RedirectHop } from "@/lib/osint-types"
 
 // Known security headers to filter out from regular headers
 const SECURITY_HEADER_KEYS = new Set([
@@ -642,71 +642,72 @@ export function OsintResults({
           </Card>
         )}
 
-        {/* Security Posture */}
-        {(securityData || pending.security || dnsData || pending.dns) && (
-          <Card className="md:col-span-2 xl:col-span-3">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                Security Posture
-              </CardTitle>
-              <CardDescription>WAF, DNSSEC, email authentication, and blocklist status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SecurityPosture
-                securityData={securityData ?? null}
-                emailSecurity={dnsData?.emailSecurity ?? null}
-                waf={httpData?.waf ?? null}
-                pending={Boolean(pending.security)}
-                error={errors.security}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Site Identity */}
-        {(identityData || httpData?.techStack || pending.identity || pending.http) && (
-          <Card className="md:col-span-2 xl:col-span-3">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Globe className="h-4 w-4 text-primary" />
-                Site Identity
-              </CardTitle>
-              <CardDescription>Technology stack, social tags, cookies, and security disclosure</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <SiteIdentity
-                techStack={httpData?.techStack ?? null}
-                socialTags={httpData?.socialTags ?? null}
-                cookies={httpData?.cookies ?? null}
-                identityData={identityData ?? null}
-                pending={Boolean(pending.identity)}
-                error={errors.identity}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Threat & History */}
-        {(threatData || pending.threat) && (
-          <Card className="md:col-span-2 xl:col-span-3">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                <Activity className="h-4 w-4 text-primary" />
-                Threat & History
-              </CardTitle>
-              <CardDescription>Open ports, CVEs, archive history, and crawl rules</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ThreatHistory
-                threatData={threatData ?? null}
-                pending={Boolean(pending.threat)}
-                error={errors.threat}
-              />
-            </CardContent>
-          </Card>
-        )}
       </section>
+
+      {/* Security Posture */}
+      {(securityData || pending.security || errors.security) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              Security Posture
+            </CardTitle>
+            <CardDescription>WAF, DNSSEC, email authentication, and blocklist status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SecurityPosture
+              securityData={securityData ?? null}
+              emailSecurity={dnsData?.emailSecurity ?? null}
+              waf={httpData?.waf ?? null}
+              pending={Boolean(pending.security)}
+              error={errors.security}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Site Identity */}
+      {(identityData || httpData?.techStack || pending.identity || pending.http) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Globe className="h-4 w-4 text-primary" />
+              Site Identity
+            </CardTitle>
+            <CardDescription>Technology stack, social tags, cookies, and security disclosure</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SiteIdentity
+              techStack={httpData?.techStack ?? null}
+              socialTags={httpData?.socialTags ?? null}
+              cookies={httpData?.cookies ?? null}
+              identityData={identityData ?? null}
+              pending={Boolean(pending.identity)}
+              error={errors.identity}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Threat & History */}
+      {(threatData || pending.threat) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Activity className="h-4 w-4 text-primary" />
+              Threat & History
+            </CardTitle>
+            <CardDescription>Open ports, CVEs, archive history, and crawl rules</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ThreatHistory
+              threatData={threatData ?? null}
+              pending={Boolean(pending.threat)}
+              error={errors.threat}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

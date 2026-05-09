@@ -1,5 +1,13 @@
 import type { SocialTagsResult } from "./osint-types"
 
+const HTML_ENTITIES: Record<string, string> = {
+  "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&#x27;": "'",
+}
+
+function decodeEntities(s: string): string {
+  return s.replace(/&(?:amp|lt|gt|quot|#39|#x27);/gi, (m) => HTML_ENTITIES[m.toLowerCase()] ?? m)
+}
+
 function getMeta(html: string, property: string): string | null {
   const patterns = [
     new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']*)["']`, "i"),
@@ -9,7 +17,7 @@ function getMeta(html: string, property: string): string | null {
   ]
   for (const pattern of patterns) {
     const match = html.match(pattern)
-    if (match?.[1]) return match[1].trim()
+    if (match?.[1]) return decodeEntities(match[1].trim())
   }
   return null
 }

@@ -45,6 +45,13 @@ async function dohQuery(name: string, type = "A"): Promise<string[]> {
   }
 }
 
+function isValidDKIMRecord(raw: string): boolean {
+  const r = raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw
+  if (!r.includes("v=DKIM1")) return false
+  const pMatch = r.match(/(?:^|;)\s*p=([^;]*)/)
+  return pMatch !== null && pMatch[1].trim().length > 0
+}
+
 async function checkDNSBL(query: string): Promise<boolean> {
   const answers = await dohQuery(query, "A")
   return answers.length > 0
@@ -76,27 +83,34 @@ export async function GET(request: Request) {
     if (!isIP) {
       const dsRecords = await dohQuery(normalized, "DS")
       if (dsRecords.length > 0) {
-        const algoNum = parseInt(dsRecords[0].split(" ")[1] ?? "0", 10)
+        const tokens = dsRecords[0].trim().split(/\s+/)
+        const algoNum = parseInt(tokens[1] ?? "0", 10)
         const algorithms: Record<number, string> = {
           5: "RSA/SHA-1", 7: "RSASHA1-NSEC3-SHA1", 8: "RSA/SHA-256",
           10: "RSA/SHA-512", 13: "ECDSA P-256/SHA-256", 14: "ECDSA P-384/SHA-384",
           15: "Ed25519", 16: "Ed448",
         }
-        dnssec = { enabled: true, algorithm: algorithms[algoNum] ?? `Algorithm ${algoNum}` }
+        dnssec = { enabled: true, algorithm: algorithms[algoNum] ?? (isNaN(algoNum) ? null : `Algorithm ${algoNum}`) }
       }
     }
 
     const dkimSelectors: string[] = []
+    let dkimWildcard = false
     if (!isIP) {
-      const dkimChecks = await Promise.allSettled(
-        COMMON_DKIM_SELECTORS.map(async (sel) => {
-          const records = await dohQuery(`${sel}._domainkey.${normalized}`, "TXT")
-          return records.some((r) => r.includes("v=DKIM1")) ? sel : null
+      const wildcardCheck = await dohQuery(`_wildcard-probe-osint._domainkey.${normalized}`, "TXT")
+      dkimWildcard = wildcardCheck.some((r) => isValidDKIMRecord(r))
+
+      if (!dkimWildcard) {
+        const dkimChecks = await Promise.allSettled(
+          COMMON_DKIM_SELECTORS.map(async (sel) => {
+            const records = await dohQuery(`${sel}._domainkey.${normalized}`, "TXT")
+            return records.some((r) => isValidDKIMRecord(r)) ? sel : null
+          })
+        )
+        dkimChecks.forEach((r) => {
+          if (r.status === "fulfilled" && r.value) dkimSelectors.push(r.value)
         })
-      )
-      dkimChecks.forEach((r) => {
-        if (r.status === "fulfilled" && r.value) dkimSelectors.push(r.value)
-      })
+      }
     }
 
     const listResults = isIP
@@ -116,7 +130,7 @@ export async function GET(request: Request) {
 
     const payload: SecurityData = {
       dnssec,
-      dkim: { selectors: dkimSelectors },
+      dkim: { selectors: dkimSelectors, wildcard: dkimWildcard },
       blocklist: {
         total: blocklistResults.length,
         clean: blocklistResults.filter((r) => !r.listed).length,

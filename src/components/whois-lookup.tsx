@@ -11,6 +11,7 @@ import type React from "react"
 import { Spinner } from "@/components/ui/spinner"
 import { OsintResults } from "@/components/osint-results"
 import { useHaptics } from "@/hooks/use-haptics"
+import type { SecurityData, IdentityData, ThreatData } from "@/lib/osint-types"
 
 const EXAMPLE_QUERIES = [
   { label: "google.com", icon: Globe, type: "domain" },
@@ -55,9 +56,9 @@ export function WhoisLookup() {
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const [certDnsData, setCertDnsData] = useState<Record<string, any> | null>(null)
   const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>({})
-  const [securityData, setSecurityData] = useState<any>(null)
-  const [identityData, setIdentityData] = useState<any>(null)
-  const [threatData, setThreatData] = useState<any>(null)
+  const [securityData, setSecurityData] = useState<SecurityData | null>(null)
+  const [identityData, setIdentityData] = useState<IdentityData | null>(null)
+  const [threatData, setThreatData] = useState<ThreatData | null>(null)
   const [copied, setCopied] = useState(false)
   const hasAutoSearched = useRef(false)
   const prevUrlQuery = useRef(initialQuery)
@@ -146,6 +147,9 @@ export function WhoisLookup() {
         if (!requestedKeys.has("http")) baselineErrors.http = "Not applicable for this query type"
         if (!requestedKeys.has("certs")) baselineErrors.certs = "Not applicable for this query type"
         if (!requestedKeys.has("ip")) baselineErrors.ip = "Not applicable for this query type"
+        if (!requestedKeys.has("security")) baselineErrors.security = "Not applicable for this query type"
+        if (!requestedKeys.has("identity")) baselineErrors.identity = "Not applicable for this query type"
+        if (!requestedKeys.has("threat")) baselineErrors.threat = "Not applicable for this query type"
         setOsintErrors(baselineErrors)
 
         const taskPromises = tasks.map((task) => task.promise)
@@ -280,7 +284,7 @@ export function WhoisLookup() {
     performLookup(example)
   }
 
-  const hasResults = Boolean(rdapData || dnsData || httpData || certData || ipData)
+  const hasResults = Boolean(rdapData || dnsData || httpData || certData || ipData || securityData || identityData || threatData)
 
   return (
     <div className="space-y-8">

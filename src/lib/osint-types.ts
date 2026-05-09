@@ -67,6 +67,7 @@ export interface SecurityData {
   }
   dkim: {
     selectors: string[]
+    wildcard: boolean
   }
   blocklist: {
     total: number
