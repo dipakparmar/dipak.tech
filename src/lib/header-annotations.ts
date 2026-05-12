@@ -1,9 +1,29 @@
+import { getProviderHeaderGuide } from '@/lib/provider-headers'
+
+export interface AnnotationReference {
+  label: string
+  url: string
+}
+
 export interface AnnotationInfo {
   title: string
   description: string
   why: string
   howToRead: string
+  references?: AnnotationReference[]
 }
+
+const RFC_5322 = 'https://datatracker.ietf.org/doc/html/rfc5322'
+const RFC_2045 = 'https://datatracker.ietf.org/doc/html/rfc2045'
+const RFC_2369 = 'https://datatracker.ietf.org/doc/html/rfc2369'
+const RFC_8058 = 'https://datatracker.ietf.org/doc/html/rfc8058'
+const RFC_8601 = 'https://datatracker.ietf.org/doc/html/rfc8601'
+const RFC_7208 = 'https://datatracker.ietf.org/doc/html/rfc7208'
+const RFC_6376 = 'https://datatracker.ietf.org/doc/html/rfc6376'
+const RFC_7489 = 'https://datatracker.ietf.org/doc/rfc7489/'
+const RFC_8617 = 'https://datatracker.ietf.org/doc/html/rfc8617'
+
+const REF_5322 = [{ label: 'RFC 5322', url: RFC_5322 }]
 
 export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
   from: {
@@ -13,6 +33,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "Attackers commonly forge this field to impersonate trusted senders. Always cross-reference with authentication results.",
     howToRead:
       "Check whether the domain matches Return-Path and SPF/DKIM/DMARC results. A mismatch can indicate spoofing.",
+    references: REF_5322,
   },
   to: {
     title: "To",
@@ -34,6 +55,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "A manipulated date can make emails appear sent at different times. Comparing with Received timestamps reveals discrepancies.",
     howToRead:
       "Compare with the earliest Received header. Large gaps may indicate queuing or clock manipulation.",
+    references: REF_5322,
   },
   "message-id": {
     title: "Message-ID",
@@ -41,6 +63,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "Legitimate Message-IDs follow a consistent format tied to the sending domain. Malformed IDs can signal forged messages.",
     howToRead:
       "The domain part (after @) should relate to the sending infrastructure. Random or suspicious domains are a red flag.",
+    references: REF_5322,
   },
   "return-path": {
     title: "Return-Path",
@@ -49,6 +72,10 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "SPF checks are performed against this domain. A mismatch between From and Return-Path is common in forwarded or spoofed mail.",
     howToRead:
       "Compare with the From header. Differences are not always malicious but warrant checking SPF and DMARC alignment.",
+    references: [
+      { label: 'RFC 5322', url: RFC_5322 },
+      { label: 'SPF RFC 7208', url: RFC_7208 }
+    ],
   },
   "reply-to": {
     title: "Reply-To",
@@ -81,6 +108,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "These reveal the actual delivery path. Forged entries can be inserted, but the topmost entries (added by your server) are trustworthy.",
     howToRead:
       "Read from bottom (oldest) to top (newest). Each hop shows which server passed the message to which.",
+    references: REF_5322,
   },
   "authentication-results": {
     title: "Authentication-Results",
@@ -89,6 +117,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "This is the authoritative record of authentication. Failures here are the strongest signal of potential spoofing.",
     howToRead:
       'Look for pass/fail next to spf=, dkim=, and dmarc=. Results other than "pass" deserve attention.',
+    references: [{ label: 'RFC 8601', url: RFC_8601 }],
   },
   "dkim-signature": {
     title: "DKIM-Signature",
@@ -97,6 +126,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "A valid DKIM signature means the content hasn't been tampered with since signing.",
     howToRead:
       "The d= field shows the signing domain. Pair with the DKIM result in Authentication-Results to verify validity.",
+    references: [{ label: 'DKIM RFC 6376', url: RFC_6376 }],
   },
   "received-spf": {
     title: "Received-SPF",
@@ -105,6 +135,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "SPF verifies that the sending IP was authorized by the domain's DNS policy. Failures mean the IP is not on the allowed list.",
     howToRead:
       "The first word is the result. Details after it explain which mechanism matched or why it failed.",
+    references: [{ label: 'SPF RFC 7208', url: RFC_7208 }],
   },
   "arc-authentication-results": {
     title: "ARC-Authentication-Results",
@@ -113,6 +144,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "When email is forwarded, original SPF/DKIM may break. ARC preserves the authentication state from earlier hops.",
     howToRead:
       "Check ARC results alongside standard Authentication-Results. ARC helps distinguish legitimate forwarding from spoofing.",
+    references: [{ label: 'ARC RFC 8617', url: RFC_8617 }],
   },
   "x-originating-ip": {
     title: "X-Originating-IP",
@@ -137,6 +169,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "Almost always '1.0'. Its absence or unusual values may indicate a misconfigured or very old sending system.",
     howToRead:
       "Should be '1.0'. Any other value is non-standard and worth noting.",
+    references: [{ label: 'MIME RFC 2045', url: RFC_2045 }],
   },
   "content-type": {
     title: "Content-Type",
@@ -145,6 +178,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "Determines how the email client renders the message. Multipart types contain boundaries separating body parts and attachments.",
     howToRead:
       "text/plain = plain text, text/html = HTML, multipart/* = message has multiple parts (body + attachments).",
+    references: [{ label: 'MIME RFC 2045', url: RFC_2045 }],
   },
   "content-transfer-encoding": {
     title: "Content-Transfer-Encoding",
@@ -153,6 +187,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "Email transport is 7-bit ASCII. This header ensures binary or Unicode content survives delivery intact.",
     howToRead:
       "7bit/8bit = minimal encoding, quoted-printable = readable encoding for text, base64 = binary-safe encoding.",
+    references: [{ label: 'MIME RFC 2045', url: RFC_2045 }],
   },
   "x-google-dkim-signature": {
     title: "X-Google-DKIM-Signature",
@@ -225,6 +260,10 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "Legitimate bulk senders include this. Its absence in marketing email may indicate spam.",
     howToRead:
       "Contains a mailto: or https: URL. Email clients may show an 'Unsubscribe' button based on this.",
+    references: [
+      { label: 'RFC 2369', url: RFC_2369 },
+      { label: 'RFC 8058', url: RFC_8058 }
+    ],
   },
   "list-id": {
     title: "List-Id",
@@ -233,6 +272,7 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     why: "Helps distinguish mailing list traffic from direct email. Used by email clients for filtering.",
     howToRead:
       "Shows the list name and domain. Useful for creating mail filters.",
+    references: [{ label: 'RFC 2369', url: RFC_2369 }],
   },
   "x-spam-status": {
     title: "X-Spam-Status",
@@ -298,6 +338,15 @@ export const INFO_BY_HEADER: Record<string, AnnotationInfo> = {
     howToRead:
       "Colon-separated values identifying the campaign, sender, and sending infrastructure.",
   },
+  "list-unsubscribe-post": {
+    title: "List-Unsubscribe-Post",
+    description:
+      "Signals support for one-click HTTP POST unsubscribe on list mail.",
+    why: "Used by modern bulk senders so mailbox providers can offer safer, streamlined unsubscribe flows.",
+    howToRead:
+      'The expected value is usually "List-Unsubscribe=One-Click". It should accompany a matching List-Unsubscribe header.',
+    references: [{ label: 'RFC 8058', url: RFC_8058 }],
+  },
 }
 
 export const INFO_BY_CARD: Record<string, AnnotationInfo> = {
@@ -308,6 +357,7 @@ export const INFO_BY_CARD: Record<string, AnnotationInfo> = {
     why: "Prevents unauthorized servers from sending on behalf of a domain. Failure means the sender IP is not approved.",
     howToRead:
       "Pass = IP authorized. Fail/softfail = not authorized (higher spoofing risk). None = no SPF record exists.",
+    references: [{ label: 'SPF RFC 7208', url: RFC_7208 }],
   },
   dkim: {
     title: "DKIM (DomainKeys Identified Mail)",
@@ -316,6 +366,7 @@ export const INFO_BY_CARD: Record<string, AnnotationInfo> = {
     why: "Provides tamper detection. A valid signature means signed content arrived intact from the signing domain.",
     howToRead:
       "Pass = signature valid, content intact. Fail = verification failed, content may have been altered.",
+    references: [{ label: 'DKIM RFC 6376', url: RFC_6376 }],
   },
   dmarc: {
     title: "DMARC (Domain-based Message Authentication)",
@@ -324,6 +375,7 @@ export const INFO_BY_CARD: Record<string, AnnotationInfo> = {
     why: "Closes the gap between SPF/DKIM and the visible From address. Prevents passing SPF with a different domain.",
     howToRead:
       "Pass = From domain aligns with authenticated domain. Fail = alignment broken, increasing spoofing risk.",
+    references: [{ label: 'DMARC RFC 7489', url: RFC_7489 }],
   },
   "received-hops": {
     title: "Received Hops",
@@ -336,9 +388,13 @@ export const INFO_BY_CARD: Record<string, AnnotationInfo> = {
 }
 
 export function getHeaderAnnotation(
-  headerName: string
+  headerName: string,
+  headerValue?: string
 ): AnnotationInfo | undefined {
-  return INFO_BY_HEADER[headerName.toLowerCase()]
+  return (
+    INFO_BY_HEADER[headerName.toLowerCase()] ??
+    getProviderHeaderGuide(headerName, headerValue)
+  )
 }
 
 export function getCardAnnotation(
