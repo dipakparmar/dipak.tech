@@ -50,23 +50,25 @@ export function RoutingTimeline({ hops, totalDeliveryTime }: RoutingTimelineProp
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <Route className="h-4 w-4 text-primary" />
-            </div>
-            Routing Timeline
-            {hopsCardInfo && (
-              <CommentMarker id="routing-hops-info" info={hopsCardInfo} />
+        <AnnotatedRow id="routing-hops-info">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Route className="h-4 w-4 text-primary" />
+              </div>
+              Routing Timeline
+              {hopsCardInfo && (
+                <CommentMarker id="routing-hops-info" info={hopsCardInfo} />
+              )}
+            </CardTitle>
+            {totalDeliveryTime !== null && (
+              <Badge variant="outline" className="gap-1.5 font-mono">
+                <Clock className="h-3 w-3" />
+                Total: {formatDelay(totalDeliveryTime)}
+              </Badge>
             )}
-          </CardTitle>
-          {totalDeliveryTime !== null && (
-            <Badge variant="outline" className="gap-1.5 font-mono">
-              <Clock className="h-3 w-3" />
-              Total: {formatDelay(totalDeliveryTime)}
-            </Badge>
-          )}
-        </div>
+          </div>
+        </AnnotatedRow>
       </CardHeader>
       <CardContent>
         <div className="relative ml-3">

@@ -117,13 +117,15 @@ export function AuthResults({ authentication }: AuthResultsProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-          </div>
-          Authentication Results
-          <CommentMarker id="auth-results-header" info={authHeaderInfo} />
-        </CardTitle>
+        <AnnotatedRow id="auth-results-header">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+            </div>
+            Authentication Results
+            <CommentMarker id="auth-results-header" info={authHeaderInfo} />
+          </CardTitle>
+        </AnnotatedRow>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Overall verdict */}
