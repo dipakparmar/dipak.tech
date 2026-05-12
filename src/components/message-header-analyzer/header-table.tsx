@@ -81,7 +81,7 @@ function MobileHeaderRow({
   header: HeaderEntry
   idx: number
 }) {
-  const annotationId = `header-${idx}-${header.name.toLowerCase()}`
+  const annotationId = `mobile-header-${idx}-${header.name.toLowerCase()}`
   const info = getHeaderAnnotation(header.name, header.value)
 
   return (
