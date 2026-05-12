@@ -34,6 +34,7 @@ const RATE_WINDOW_MS = 60 * 1000
 const HTML_CAP = 100_000
 const MAX_REDIRECTS = 10
 const FETCH_TIMEOUT_MS = 8000
+const IMAGE_PROXY_TTL_MS = 5 * 60 * 1000
 
 export async function GET(request: Request) {
   try {
@@ -91,7 +92,22 @@ export async function GET(request: Request) {
     const techStack = detectTechStack(allHeaders, html)
     const socialTags = parseSocialTags(html)
     if (socialTags.og.image) {
-      socialTags.og.imageToken = await signImageUrl(socialTags.og.image)
+      const imageSignature = await signImageUrl({
+        url: socialTags.og.image,
+        clientId,
+        nonce: crypto.randomUUID(),
+        expiresAt: Date.now() + IMAGE_PROXY_TTL_MS
+      })
+
+      if (imageSignature) {
+        const params = new URLSearchParams({
+          url: imageSignature.url,
+          token: imageSignature.token,
+          exp: String(imageSignature.expiresAt),
+          nonce: imageSignature.nonce
+        })
+        socialTags.og.imageProxySrc = `/api/osint/image-proxy?${params.toString()}`
+      }
     }
 
     const payload = {

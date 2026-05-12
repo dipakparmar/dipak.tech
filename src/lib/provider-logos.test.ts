@@ -1,9 +1,13 @@
-import { describe, expect, test } from "bun:test"
-import {
-  getProviderLogoDomain,
-  getProviderLogoSrc,
-  isProviderLogoId
-} from "./provider-logos"
+import { beforeAll, describe, expect, test } from "bun:test"
+
+let getProviderLogoDomain: typeof import("./provider-logos").getProviderLogoDomain
+let getProviderLogoSrc: typeof import("./provider-logos").getProviderLogoSrc
+let isProviderLogoId: typeof import("./provider-logos").isProviderLogoId
+
+beforeAll(async () => {
+  process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN = "pk_test_logo_token"
+  ;({ getProviderLogoDomain, getProviderLogoSrc, isProviderLogoId } = await import("./provider-logos"))
+})
 
 describe("provider logos", () => {
   test("allows known provider ids only", () => {
@@ -14,9 +18,11 @@ describe("provider logos", () => {
 
   test("returns the expected logo domain and proxy src", () => {
     expect(getProviderLogoDomain("mailgun")).toBe("mailgun.com")
-    expect(getProviderLogoSrc("mailgun")).toBe("/api/osint/image-proxy?provider=mailgun")
+    expect(getProviderLogoSrc("mailgun")).toBe(
+      "https://img.logo.dev/mailgun.com?token=pk_test_logo_token&size=80&format=png&retina=true&fallback=404"
+    )
     expect(getProviderLogoSrc("mailgun", "dark")).toBe(
-      "/api/osint/image-proxy?provider=mailgun&theme=dark"
+      "https://img.logo.dev/mailgun.com?token=pk_test_logo_token&size=80&format=png&retina=true&fallback=404&theme=dark"
     )
     expect(getProviderLogoSrc("unknown")).toBeNull()
   })
