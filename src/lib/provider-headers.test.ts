@@ -82,4 +82,36 @@ describe("provider header detection", () => {
     expect(guide?.references?.length).toBeGreaterThan(0)
     expect(guide?.references?.[0]?.url).toContain("salesforce.com")
   })
+
+  test("returns references for SendGrid, Postmark, and Mailgun headers", () => {
+    const sendGridGuide = getProviderHeaderGuide("X-SMTPAPI", '{"category":"welcome"}')
+    const postmarkGuide = getProviderHeaderGuide("X-PM-Tag", "welcome-email")
+    const mailgunGuide = getProviderHeaderGuide("X-Mailgun-Variables", '{"userId":"42"}')
+
+    expect(sendGridGuide?.references?.[0]?.url).toContain("twilio.com")
+    expect(postmarkGuide?.references?.[0]?.url).toContain("postmarkapp.com")
+    expect(mailgunGuide?.references?.[0]?.url).toContain("mailgun.com")
+  })
+
+  test("returns references for Microsoft and HubSpot headers", () => {
+    const microsoftGuide = getProviderHeaderGuide("X-Forefront-Antispam-Report", "SCL:1; SFV:NSPM;")
+    const hubspotGuide = getProviderHeaderGuide("X-HubSpot-PortalID", "123456")
+
+    expect(microsoftGuide?.references?.[0]?.url).toContain("learn.microsoft.com")
+    expect(hubspotGuide?.references?.[0]?.url).toContain("hubspot.com")
+  })
+
+  test("returns references for expanded Salesforce relay and TLS headers", () => {
+    const relayGuide = getProviderHeaderGuide("X-SFDCOrgRelay", "00DA0000000KLks")
+    const verifiedGuide = getProviderHeaderGuide("X-SFDC-TLS-VERIFIED", "yes")
+
+    expect(relayGuide?.references?.[0]?.url).toContain("spiceworks.com")
+    expect(verifiedGuide?.references?.[0]?.url).toContain("my.site.com")
+  })
+
+  test("returns references for SFMC stack header", () => {
+    const guide = getProviderHeaderGuide("X-SFMC-Stack", "S1")
+
+    expect(guide?.references?.[0]?.url).toContain("youtube.com")
+  })
 })
