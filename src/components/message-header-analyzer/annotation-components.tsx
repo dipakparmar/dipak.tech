@@ -2,6 +2,7 @@
 
 import { ExternalLink, MessageSquareText, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 
 import type { AnnotationInfo } from "@/lib/header-annotations"
 import type { OpenAnnotationData } from "./annotation-provider"
@@ -365,11 +366,17 @@ export function DesktopCommentCards() {
 
 export function MobileCommentSheet() {
   const { openAnnotations, lastOpenedId, close } = useAnnotation()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const info = lastOpenedId ? openAnnotations.get(lastOpenedId) : undefined
-  if (!info || !lastOpenedId) return null
+  if (!mounted || !info || !lastOpenedId) return null
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-40 flex flex-col justify-end xl:hidden">
       <div
         className="absolute inset-0 bg-black/25 backdrop-blur-[3px] animate-in fade-in duration-200"
@@ -386,7 +393,8 @@ export function MobileCommentSheet() {
           <CardBody info={info} onClose={() => close(lastOpenedId)} />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
