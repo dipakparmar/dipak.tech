@@ -14,6 +14,7 @@ import type { ParsedHeaders } from "@/lib/email-header-parser"
 import { SummaryCard } from "./summary-card"
 import { RoutingTimeline } from "./routing-timeline"
 import { AuthResults } from "./auth-results"
+import { ProviderHeadersCard } from "./provider-headers-card"
 import { HeaderTable } from "./header-table"
 import { MessageViewer } from "./message-viewer"
 import { AnnotationProvider, useAnnotation } from "./annotation-provider"
@@ -231,6 +232,8 @@ function HeaderAnalyzerInner() {
           />
 
           <AuthResults authentication={parsed.authentication} />
+
+          <ProviderHeadersCard headers={parsed.headers} />
 
           <HeaderTable headers={parsed.headers} />
 

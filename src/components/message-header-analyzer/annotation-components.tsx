@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquareText, X } from "lucide-react"
+import { ExternalLink, MessageSquareText, X } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import type { AnnotationInfo } from "@/lib/header-annotations"
@@ -158,6 +158,28 @@ function CardBody({
           {info.howToRead}
         </p>
       </div>
+
+      {info.references && info.references.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-border/50">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 font-mono mb-1">
+            References
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {info.references.map((reference) => (
+              <a
+                key={`${reference.label}-${reference.url}`}
+                href={reference.url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {reference.label}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   )
 }

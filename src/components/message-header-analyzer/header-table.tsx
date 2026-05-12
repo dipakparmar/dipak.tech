@@ -29,7 +29,7 @@ function AnnotatedHeaderRow({
   idx: number
 }) {
   const annotationId = `header-${idx}-${header.name.toLowerCase()}`
-  const info = getHeaderAnnotation(header.name)
+  const info = getHeaderAnnotation(header.name, header.value)
   const { openAnnotations, registerRow, cardSides } = useAnnotation()
   const isOpen = openAnnotations.has(annotationId)
   const side = cardSides.get(annotationId) ?? "left"
