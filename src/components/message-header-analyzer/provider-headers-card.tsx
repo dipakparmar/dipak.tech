@@ -27,6 +27,8 @@ export function ProviderHeadersCard({
   const { resolvedTheme } = useTheme()
   const matches = useMemo(() => detectProviderHeaders(headers), [headers])
   const logoTheme = resolvedTheme === "dark" ? "dark" : "light"
+  const logoDevAttributionUrl =
+    "https://logo.dev?utm_source=dipak.tech&utm_medium=referral&utm_campaign=provider_logos"
 
   if (matches.length === 0) return null
 
@@ -141,6 +143,17 @@ export function ProviderHeadersCard({
             )
           })}
         </Accordion>
+
+        <p className="text-xs text-muted-foreground">
+          Logos provided by{" "}
+          <a
+            href={logoDevAttributionUrl}
+            referrerPolicy="strict-origin-when-cross-origin"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            Logo.dev
+          </a>
+        </p>
       </CardContent>
     </Card>
   )
