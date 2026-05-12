@@ -33,6 +33,14 @@ function AnnotatedHeaderRow({
   const { openAnnotations, registerRow, cardSides } = useAnnotation()
   const isOpen = openAnnotations.has(annotationId)
   const side = cardSides.get(annotationId) ?? "left"
+  const leftAccent =
+    isOpen && side === "left"
+      ? "relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:bg-amber-500 before:rounded-r"
+      : ""
+  const rightAccent =
+    isOpen && side === "right"
+      ? "relative after:absolute after:right-0 after:top-0 after:bottom-0 after:w-[3px] after:bg-amber-500 after:rounded-l"
+      : ""
 
   const refCallback = useCallback(
     (el: HTMLTableRowElement | null) => {
@@ -46,15 +54,11 @@ function AnnotatedHeaderRow({
       ref={refCallback}
       className={
         isOpen
-          ? `bg-amber-50 dark:bg-amber-950/20 relative ${
-              side === "left"
-                ? "border-l-[3px] border-l-amber-500"
-                : "border-r-[3px] border-r-amber-500"
-            }`
+          ? "bg-amber-50 dark:bg-amber-950/20"
           : ""
       }
     >
-      <TableCell className="font-mono text-muted-foreground">
+      <TableCell className={`font-mono text-muted-foreground ${leftAccent}`}>
         {idx + 1}
       </TableCell>
       <TableCell className="font-mono font-medium">
@@ -63,7 +67,7 @@ function AnnotatedHeaderRow({
           <CommentMarker id={annotationId} info={info} />
         </span>
       </TableCell>
-      <TableCell className="font-mono break-all whitespace-normal max-w-[400px]">
+      <TableCell className={`font-mono break-all whitespace-normal max-w-[400px] ${rightAccent}`}>
         {header.value}
       </TableCell>
     </TableRow>
