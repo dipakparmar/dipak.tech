@@ -27,6 +27,28 @@ export function getProviderLogoSrc(
   providerId: string,
   theme?: ProviderLogoTheme
 ): string | null {
+  return isProviderLogoId(providerId) ? getProviderLogoProxyUrl(providerId, theme) : null
+}
+
+export function getProviderLogoProxyUrl(
+  providerId: ProviderLogoId,
+  theme?: ProviderLogoTheme
+): string {
+  const params = new URLSearchParams({
+    provider: providerId
+  })
+
+  if (theme) {
+    params.set('theme', theme)
+  }
+
+  return `/api/osint/image-proxy?${params.toString()}`
+}
+
+export function getProviderLogoSignUrl(
+  providerId: string,
+  theme?: ProviderLogoTheme
+): string | null {
   if (!isProviderLogoId(providerId)) return null
 
   const params = new URLSearchParams({
@@ -37,5 +59,5 @@ export function getProviderLogoSrc(
     params.set('theme', theme)
   }
 
-  return `/api/osint/image-proxy?${params.toString()}`
+  return `/api/osint/image-proxy/sign?${params.toString()}`
 }

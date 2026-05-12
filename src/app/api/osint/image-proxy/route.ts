@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
-import { verifyImageUrl } from "@/lib/osint-image-sign"
+import { getClientId } from "@/lib/osint-cache"
+import { verifyImageUrl, verifyProviderLogoSignature } from "@/lib/osint-image-sign"
 import { getProviderLogoDomain, isProviderLogoId } from "@/lib/provider-logos"
 
 const ALLOWED_CONTENT_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/x-icon", "image/avif"]
@@ -11,6 +12,8 @@ export async function GET(request: Request) {
   const url = searchParams.get("url")
   const provider = searchParams.get("provider")
   const theme = searchParams.get("theme")
+  const exp = searchParams.get("exp")
+  const nonce = searchParams.get("nonce")
   const token = searchParams.get("token")
 
   let parsed: URL
@@ -23,6 +26,31 @@ export async function GET(request: Request) {
     const logoSecret = process.env.LOGO_DEV_SECRET
     if (!logoSecret) {
       return NextResponse.json({ error: "Provider logo support is not configured" }, { status: 503 })
+    }
+
+    if (!token || !exp || !nonce) {
+      return NextResponse.json({ error: "token, exp, and nonce are required" }, { status: 400 })
+    }
+
+    const expiresAt = Number(exp)
+    if (!Number.isFinite(expiresAt)) {
+      return NextResponse.json({ error: "Invalid expiration" }, { status: 400 })
+    }
+
+    const clientId = getClientId(request.headers)
+    const valid = await verifyProviderLogoSignature(
+      {
+        provider: getProviderLogoDomain(provider),
+        theme,
+        clientId,
+        nonce,
+        expiresAt
+      },
+      token
+    )
+
+    if (!valid) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 403 })
     }
 
     parsed = new URL(`https://img.logo.dev/${getProviderLogoDomain(provider)}`)
