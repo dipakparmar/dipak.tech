@@ -780,7 +780,9 @@ export function getProviderHeaderGuide(
 export function detectProviderHeaders(
   headers: HeaderEntry[]
 ): ProviderHeaderDetection[] {
-  return PROVIDER_DEFINITIONS.map((provider) => {
+  const matches: ProviderHeaderDetection[] = []
+
+  for (const provider of PROVIDER_DEFINITIONS) {
     const matchedHeaders = headers.flatMap((header) => {
       const rule = getMatchingRule(provider, header)
       if (!rule) return []
@@ -800,14 +802,16 @@ export function detectProviderHeaders(
       ]
     })
 
-    if (matchedHeaders.length === 0) return null
+    if (matchedHeaders.length === 0) continue
 
-    return {
+    matches.push({
       providerId: provider.id,
       providerName: provider.name,
       summary: provider.summary,
       note: provider.note,
       matchedHeaders
-    }
-  }).filter((match): match is ProviderHeaderDetection => match !== null)
+    })
+  }
+
+  return matches
 }

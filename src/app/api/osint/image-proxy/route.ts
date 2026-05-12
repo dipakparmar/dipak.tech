@@ -1,24 +1,53 @@
 import { NextResponse } from "next/server"
 import { verifyImageUrl } from "@/lib/osint-image-sign"
+import { getProviderLogoDomain, isProviderLogoId } from "@/lib/provider-logos"
 
 const ALLOWED_CONTENT_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/x-icon", "image/avif"]
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
+const ALLOWED_LOGO_THEMES = new Set(["light", "dark"])
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const url = searchParams.get("url")
+  const provider = searchParams.get("provider")
+  const theme = searchParams.get("theme")
   const token = searchParams.get("token")
 
-  if (!url || !token) return NextResponse.json({ error: "url and token parameters are required" }, { status: 400 })
-
-  const valid = await verifyImageUrl(url, token)
-  if (!valid) return NextResponse.json({ error: "Invalid token" }, { status: 403 })
-
   let parsed: URL
-  try {
-    parsed = new URL(url)
-  } catch {
-    return NextResponse.json({ error: "Invalid URL" }, { status: 400 })
+
+  if (provider) {
+    if (!isProviderLogoId(provider)) {
+      return NextResponse.json({ error: "Unknown provider" }, { status: 400 })
+    }
+
+    const logoSecret = process.env.LOGO_DEV_SECRET
+    if (!logoSecret) {
+      return NextResponse.json({ error: "Provider logo support is not configured" }, { status: 503 })
+    }
+
+    parsed = new URL(`https://img.logo.dev/${getProviderLogoDomain(provider)}`)
+    parsed.searchParams.set("token", logoSecret)
+    parsed.searchParams.set("size", "80")
+    parsed.searchParams.set("format", "png")
+    parsed.searchParams.set("retina", "true")
+    parsed.searchParams.set("fallback", "404")
+
+    if (theme && ALLOWED_LOGO_THEMES.has(theme)) {
+      parsed.searchParams.set("theme", theme)
+    }
+  } else {
+    if (!url || !token) {
+      return NextResponse.json({ error: "url and token parameters are required" }, { status: 400 })
+    }
+
+    const valid = await verifyImageUrl(url, token)
+    if (!valid) return NextResponse.json({ error: "Invalid token" }, { status: 403 })
+
+    try {
+      parsed = new URL(url)
+    } catch {
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 })
+    }
   }
 
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
@@ -51,7 +80,7 @@ export async function GET(request: Request) {
     return new Response(buffer, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": provider ? "public, max-age=86400, stale-while-revalidate=604800" : "public, max-age=3600",
         "X-Content-Type-Options": "nosniff",
       },
     })
