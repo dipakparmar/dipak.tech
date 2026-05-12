@@ -13,7 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, TableIcon } from "lucide-react"
 import type { HeaderEntry } from "@/lib/email-header-parser"
-import { CommentMarker } from "./annotation-components"
+import { AnnotatedRow, CommentMarker } from "./annotation-components"
 import { useAnnotation } from "./annotation-provider"
 import { getHeaderAnnotation } from "@/lib/header-annotations"
 
@@ -74,6 +74,36 @@ function AnnotatedHeaderRow({
   )
 }
 
+function MobileHeaderRow({
+  header,
+  idx,
+}: {
+  header: HeaderEntry
+  idx: number
+}) {
+  const annotationId = `header-${idx}-${header.name.toLowerCase()}`
+  const info = getHeaderAnnotation(header.name, header.value)
+
+  return (
+    <AnnotatedRow id={annotationId}>
+      <div className="space-y-2 border-b px-3 py-3 last:border-b-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <div className="text-[0.6875rem] font-medium uppercase tracking-wide text-muted-foreground">
+              Header {idx + 1}
+            </div>
+            <div className="font-mono font-medium break-all">{header.name}</div>
+          </div>
+          <CommentMarker id={annotationId} info={info} />
+        </div>
+        <div className="rounded-md bg-muted/35 px-2.5 py-2 font-mono text-xs break-all whitespace-pre-wrap">
+          {header.value}
+        </div>
+      </div>
+    </AnnotatedRow>
+  )
+}
+
 export function HeaderTable({ headers }: HeaderTableProps) {
   const [filter, setFilter] = useState("")
 
@@ -116,8 +146,8 @@ export function HeaderTable({ headers }: HeaderTableProps) {
           />
         </div>
 
-        {/* Table */}
-        <div className="rounded-md border">
+        {/* Desktop table */}
+        <div className="hidden rounded-md border md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -149,6 +179,25 @@ export function HeaderTable({ headers }: HeaderTableProps) {
               )}
             </TableBody>
           </Table>
+        </div>
+
+        {/* Mobile list */}
+        <div className="rounded-md border md:hidden">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-8 text-center text-muted-foreground">
+              {filter
+                ? "No headers match your filter."
+                : "No headers found."}
+            </div>
+          ) : (
+            filtered.map((header, idx) => (
+              <MobileHeaderRow
+                key={idx}
+                header={header}
+                idx={idx}
+              />
+            ))
+          )}
         </div>
       </CardContent>
     </Card>
