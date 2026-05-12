@@ -3,88 +3,70 @@ const SECRET = process.env.OG_SECRET ?? ""
 async function importKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(secret || "dev-insecure-fallback"),
+    new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
   )
 }
 
-export async function signImageUrl(url: string): Promise<string> {
-  const key = await importKey(SECRET)
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(url))
-  return Buffer.from(sig).toString("hex")
+function hasSigningSecret(): boolean {
+  return SECRET.length > 0
 }
 
-export async function verifyImageUrl(url: string, token: string): Promise<boolean> {
-  try {
-    const key = await importKey(SECRET)
-    const expected = Buffer.from(token, "hex")
-    return crypto.subtle.verify("HMAC", key, expected, new TextEncoder().encode(url))
-  } catch {
-    return false
-  }
-}
-
-async function signText(payload: string): Promise<string> {
-  const key = await importKey(SECRET)
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload))
-  return Buffer.from(sig).toString("hex")
-}
-
-async function verifyText(payload: string, token: string): Promise<boolean> {
-  try {
-    const key = await importKey(SECRET)
-    const expected = Buffer.from(token, "hex")
-    return crypto.subtle.verify("HMAC", key, expected, new TextEncoder().encode(payload))
-  } catch {
-    return false
-  }
-}
-
-export type ProviderLogoSignatureInput = {
-  provider: string
-  theme: string | null
+export type ImageUrlSignatureInput = {
+  url: string
   clientId: string
   nonce: string
   expiresAt: number
 }
 
-export type ProviderLogoSignature = ProviderLogoSignatureInput & {
+export type ImageUrlSignature = ImageUrlSignatureInput & {
   token: string
 }
 
-export function buildProviderLogoSignaturePayload({
-  provider,
-  theme,
+export function buildImageUrlSignaturePayload({
+  url,
   clientId,
   nonce,
   expiresAt
-}: ProviderLogoSignatureInput): string {
+}: ImageUrlSignatureInput): string {
   return [
-    `provider=${provider}`,
-    `theme=${theme ?? ""}`,
+    `url=${url}`,
     `client=${clientId}`,
     `nonce=${nonce}`,
     `exp=${expiresAt}`
   ].join("|")
 }
 
-export async function signProviderLogoSignature(
-  input: ProviderLogoSignatureInput
-): Promise<ProviderLogoSignature> {
-  const payload = buildProviderLogoSignaturePayload(input)
+export async function signImageUrl(
+  input: ImageUrlSignatureInput
+): Promise<ImageUrlSignature | null> {
+  if (!hasSigningSecret()) return null
+
+  const key = await importKey(SECRET)
+  const payload = buildImageUrlSignaturePayload(input)
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload))
   return {
     ...input,
-    token: await signText(payload)
+    token: Buffer.from(sig).toString("hex")
   }
 }
 
-export async function verifyProviderLogoSignature(
-  input: ProviderLogoSignatureInput,
+export async function verifyImageUrl(
+  input: ImageUrlSignatureInput,
   token: string
 ): Promise<boolean> {
-  if (Date.now() > input.expiresAt) return false
-  const payload = buildProviderLogoSignaturePayload(input)
-  return verifyText(payload, token)
+  try {
+    if (!hasSigningSecret() || Date.now() > input.expiresAt) {
+      return false
+    }
+
+    const key = await importKey(SECRET)
+    const expected = Buffer.from(token, "hex")
+    const payload = buildImageUrlSignaturePayload(input)
+    return crypto.subtle.verify("HMAC", key, expected, new TextEncoder().encode(payload))
+  } catch {
+    return false
+  }
 }

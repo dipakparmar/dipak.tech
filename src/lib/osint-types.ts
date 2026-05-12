@@ -34,7 +34,7 @@ export interface SocialTagsResult {
     title: string | null
     description: string | null
     image: string | null
-    imageToken: string | null
+    imageProxySrc: string | null
     type: string | null
     siteName: string | null
   }

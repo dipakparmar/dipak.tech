@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import Image from "next/image"
 import { useTheme } from "next-themes"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ExternalLink, Network, Info } from "lucide-react"
 import type { HeaderEntry } from "@/lib/email-header-parser"
 import { detectProviderHeaders } from "@/lib/provider-headers"
-import { getProviderLogoSignUrl } from "@/lib/provider-logos"
+import { getProviderLogoSrc } from "@/lib/provider-logos"
 
 interface ProviderHeadersCardProps {
   headers: HeaderEntry[]
@@ -29,49 +29,6 @@ export function ProviderHeadersCard({
   const logoTheme = resolvedTheme === "dark" ? "dark" : "light"
   const logoDevAttributionUrl =
     "https://logo.dev?utm_source=dipak.tech&utm_medium=referral&utm_campaign=provider_logos"
-  const [logoSrcs, setLogoSrcs] = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadLogoSrcs() {
-      const uniqueProviderIds = [...new Set(matches.map((match) => match.providerId))]
-      const signedEntries = await Promise.all(
-        uniqueProviderIds.map(async (providerId) => {
-          const signUrl = getProviderLogoSignUrl(providerId, logoTheme)
-          if (!signUrl) return null
-
-          try {
-            const response = await fetch(signUrl)
-            if (!response.ok) return null
-
-            const data = (await response.json()) as { src?: string }
-            if (!data.src) return null
-
-            return [providerId, data.src] as const
-          } catch {
-            return null
-          }
-        })
-      )
-
-      if (cancelled) return
-
-      setLogoSrcs(
-        Object.fromEntries(
-          signedEntries.filter(
-            (entry): entry is readonly [string, string] => entry !== null
-          )
-        )
-      )
-    }
-
-    void loadLogoSrcs()
-
-    return () => {
-      cancelled = true
-    }
-  }, [matches, logoTheme])
 
   if (matches.length === 0) return null
 
@@ -103,7 +60,7 @@ export function ProviderHeadersCard({
           defaultValue={matches.map((match) => match.providerId)}
         >
           {matches.map((match) => {
-            const logoSrc = logoSrcs[match.providerId]
+            const logoSrc = getProviderLogoSrc(match.providerId, logoTheme)
 
             return (
               <AccordionItem key={match.providerId} value={match.providerId}>

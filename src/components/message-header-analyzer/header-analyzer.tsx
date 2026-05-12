@@ -83,7 +83,6 @@ function HeaderAnalyzerInner() {
       hapticTrigger("error")
       return
     }
-
     const result = parseEmailHeaders(rawHeaders)
 
     if (result.headers.length === 0) {

@@ -28,7 +28,7 @@ export function parseSocialTags(html: string): SocialTagsResult {
       title: getMeta(html, "og:title"),
       description: getMeta(html, "og:description"),
       image: getMeta(html, "og:image"),
-      imageToken: null,
+      imageProxySrc: null,
       type: getMeta(html, "og:type"),
       siteName: getMeta(html, "og:site_name"),
     },

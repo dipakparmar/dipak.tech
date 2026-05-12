@@ -89,10 +89,10 @@ export function SiteIdentity({ techStack, socialTags, cookies, identityData, pen
           </div>
           {socialTags ? (
             <div className="space-y-2">
-              {socialTags.og.image && (
+              {socialTags.og.imageProxySrc && (
                 <div className="w-full overflow-hidden rounded-lg bg-muted">
                   <Image
-                    src={`/api/osint/image-proxy?url=${encodeURIComponent(socialTags.og.image)}&token=${socialTags.og.imageToken ?? ""}`}
+                    src={socialTags.og.imageProxySrc}
                     alt="OG image"
                     width={1200}
                     height={630}
