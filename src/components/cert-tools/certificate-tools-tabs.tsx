@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, Suspense } from "react"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useCallback, Suspense, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
 import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
@@ -17,13 +17,27 @@ const BLUR_FADE_DELAY = 0.04
 const VALID_TOOLS = ["ct-logs", "decoder", "csr", "keygen"] as const
 type ToolType = (typeof VALID_TOOLS)[number]
 
+function getValidTool(value: string | null): ToolType {
+  return VALID_TOOLS.includes(value as ToolType) ? (value as ToolType) : "ct-logs"
+}
+
 function CertificateToolsContent() {
-  const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const currentTool = (searchParams.get("tool") as ToolType) || "ct-logs"
-  const activeTool = VALID_TOOLS.includes(currentTool) ? currentTool : "ct-logs"
+  const [activeTool, setActiveTool] = useState<ToolType>(() => getValidTool(searchParams.get("tool")))
+
+  useEffect(() => {
+    setActiveTool(getValidTool(searchParams.get("tool")))
+  }, [searchParams])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveTool(getValidTool(new URLSearchParams(window.location.search).get("tool")))
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
 
   // Read tool-specific params
   const domain = searchParams.get("domain") || ""
@@ -50,16 +64,21 @@ function CertificateToolsContent() {
 
   const handleTabChange = useCallback(
     (value: string) => {
-      const params = new URLSearchParams(searchParams.toString())
+      const nextTool = getValidTool(value)
+      setActiveTool(nextTool)
+
+      const params = new URLSearchParams(window.location.search)
       if (value === "ct-logs") {
         params.delete("tool")
       } else {
         params.set("tool", value)
       }
+
       const query = params.toString()
-      router.push(`${pathname}${query ? `?${query}` : ""}`, { scroll: false })
+      const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
+      window.history.replaceState(window.history.state, "", nextUrl)
     },
-    [router, pathname, searchParams]
+    []
   )
 
   return (
