@@ -1,7 +1,7 @@
 version: 2
 updates:
-  # Enable version updates for npm
-  - package-ecosystem: "npm"
+  # Enable version updates for bun
+  - package-ecosystem: "bun"
     # Look for `package.json` and `lock` files in the `root` directory
     directory: "/"
     # Check the npm registry for updates every day (weekdays)
@@ -9,6 +9,14 @@ updates:
       interval: "weekly"
     versioning-strategy: increase-if-necessary
     groups:
+      # Next.js + React — core framework, break together
+      react-core:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "next-themes"
+          - "eslint-config-next"
       prod-deps:
         dependency-type: "production"
       dev-deps:
