@@ -1,32 +1,16 @@
 'use client';
 
-import { BlurFade } from '@/components/magicui/blur-fade';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { PostMeta } from '@/lib/blog';
 import { SearchToggle } from '@/components/blog/search-toggle';
 import { Tag } from 'lucide-react';
 import { useState } from 'react';
+import { NewStamp } from '@/components/blog/new-stamp';
 
 interface BlogListProps {
   posts: PostMeta[];
   tags: { name: string; count: number }[];
 }
-
-const SEARCH_LINES = [
-  'Nothing matching "{{q}}" — but I like your curiosity.',
-  '"{{q}}"? Now you\'ve got me thinking...',
-  'No results for "{{q}}" — yet. You might be ahead of me.',
-  'Searched high and low for "{{q}}". Maybe buy me a coffee and ask again?',
-  '"{{q}}" walked into a blog and found... nothing. Awkward.',
-  'If "{{q}}" were a blog post, I\'d totally write it. Noted.',
-  '"{{q}}"? That\'s actually a great idea for a post.',
-  '404: "{{q}}" not found. But you are. Hi.',
-  'I\'ve looked everywhere for "{{q}}". Even under the couch cushions.',
-  '"{{q}}" is playing hard to get. Just like my deploy on Fridays.',
-  'No "{{q}}" here — but stick around, I\'m full of surprises.',
-  'Roses are red, violets are blue, "{{q}}" has no results, but I appreciate you.',
-];
 
 const EMPTY_LINES = [
   '"The best time to write was yesterday. The second best time is now." — I\'m on it.',
@@ -47,78 +31,115 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-const BLUR_FADE_DELAY = 0.04;
+const NEW_THRESHOLD_DAYS = 21;
+
+function isNew(date: string): boolean {
+  const diff = Date.now() - new Date(date).getTime();
+  return diff / (1000 * 60 * 60 * 24) <= NEW_THRESHOLD_DAYS;
+}
+
+function formatRowDate(date: string) {
+  const d = new Date(date);
+  return {
+    mon: d.toLocaleDateString('en-US', { month: 'short' }),
+    day: d.toLocaleDateString('en-US', { day: '2-digit' }),
+    year: d.toLocaleDateString('en-US', { year: 'numeric' }),
+  };
+}
 
 export function BlogList({ posts }: BlogListProps) {
   const [emptyBlogLine] = useState(() => pick(EMPTY_LINES));
 
   return (
     <main className="min-h-dvh">
-      <div className="flex items-start justify-between gap-4 mb-8">
+      <header className="flex items-end justify-between gap-4 mb-12">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Blog</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Writings on software engineering, infrastructure, and DevSecOps.
+          <h1 className="text-[28px] font-medium tracking-[-0.04em] leading-[1.1]">
+            Writing
+          </h1>
+          <p className="text-sm text-muted-foreground mt-2 tracking-[-0.005em]">
+            Notes on software engineering, infrastructure, and DevSecOps.
           </p>
         </div>
-        <div className="flex items-center gap-1 shrink-0 mt-1">
+        <div className="flex items-center gap-0.5 shrink-0 -mb-1">
           <SearchToggle posts={posts} />
           <Link
             href="/blog/tags"
-            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="p-2 text-muted-foreground/70 hover:text-foreground transition-colors duration-150"
             aria-label="View all tags"
           >
-            <Tag className="size-4" />
+            <Tag className="size-4" strokeWidth={1.5} />
           </Link>
         </div>
-      </div>
+      </header>
 
-      <div className="divide-y divide-border">
-        {posts.map((post) => (
-          <Link
-            key={post.slug}
-            href={`/blog/${post.slug}`}
-            className="flex items-start gap-4 py-4 group"
-          >
-            {post.image && (
-              <div className="shrink-0 w-20 self-stretch rounded-md overflow-hidden bg-muted">
-                <Image
-                  src={post.image}
-                  alt={post.title}
-                  width={80}
-                  height={120}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                />
-              </div>
-            )}
-            <div className="flex-1 min-w-0 overflow-hidden">
-              <h2 className="text-base font-medium break-words group-hover:text-primary transition-colors">
-                {post.title}
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1 break-words">
-                {post.description}
-              </p>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
-                <span className="text-xs text-muted-foreground/70">
-                  {new Date(post.date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
-                <span className="text-xs text-muted-foreground/70">
-                  {post.readingTime} min read
-                </span>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
+      <ol className="border-t border-border/70">
+        {posts.map((post) => {
+          const d = formatRowDate(post.date);
+          const fresh = isNew(post.date);
+          return (
+            <li key={post.slug} className="border-b border-border/70">
+              <Link
+                href={`/blog/${post.slug}`}
+                className="group grid grid-cols-[5.25rem_1fr] gap-x-5 sm:gap-x-8 items-baseline py-5 sm:py-6"
+              >
+                <time
+                  dateTime={post.date}
+                  className="text-[11px] uppercase tracking-[0.08em] tabular-nums text-muted-foreground/60 pt-[3px] group-hover:text-muted-foreground transition-colors duration-150"
+                >
+                  <span className="sm:hidden">
+                    {d.mon} {d.day}, {d.year}
+                  </span>
+                  <span className="hidden sm:inline-flex flex-col leading-[1.35]">
+                    <span>{d.mon} {d.day}</span>
+                    <span className="text-muted-foreground/40">{d.year}</span>
+                  </span>
+                </time>
+
+                <div className="min-w-0">
+                  <h2 className="relative text-[17px] font-[470] tracking-[-0.015em] leading-[1.35] text-foreground/95 text-pretty break-words">
+                    {fresh && <NewStamp />}
+                    <span className="scribble-underline-text scribble-underline-text--draw">
+                      {post.title}
+                    </span>
+                  </h2>
+                  {post.description && (
+                    <p className="text-[13.5px] text-muted-foreground/85 mt-1.5 leading-[1.55] tracking-[-0.005em]">
+                      {post.description}
+                    </p>
+                  )}
+                  {(post.tags.length > 0 || post.readingTime) && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-[11px] text-muted-foreground/55 tracking-[-0.005em]">
+                      <span className="tabular-nums">
+                        {post.readingTime} min
+                      </span>
+                      {post.tags.length > 0 && (
+                        <>
+                          <span aria-hidden className="text-muted-foreground/30">
+                            ·
+                          </span>
+                          <span className="inline-flex flex-wrap gap-x-2">
+                            {post.tags.map((tag) => (
+                              <span key={tag}>{tag}</span>
+                            ))}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ol>
 
       {posts.length === 0 && (
-        <div className="py-12 text-center">
-          <p className="text-sm text-muted-foreground italic" suppressHydrationWarning>
+        <div className="py-16 text-center">
+          <p
+            className="text-sm text-muted-foreground italic"
+            suppressHydrationWarning
+          >
             {emptyBlogLine}
           </p>
         </div>

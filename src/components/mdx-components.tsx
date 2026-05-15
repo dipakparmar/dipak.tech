@@ -3,6 +3,8 @@ import Image from 'next/image';
 import type { MDXComponents } from 'mdx/types';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
 import { CopyButton } from '@/components/blog/copy-button';
+import { Annotate } from '@/components/mdx/annotate';
+import { MarginNote } from '@/components/mdx/margin-note';
 
 function extractText(node: ReactNode): string {
   if (typeof node === 'string') return node;
@@ -103,11 +105,12 @@ interface CiteProps {
 
 function Cite({ n }: CiteProps) {
   const refId = `ref-${n}`;
+  const citeId = `cite-${n}`;
 
   return (
-    <sup className="mdx-cite">
+    <sup id={citeId} className="mdx-cite">
       <a href={`#${refId}`} aria-label={`Jump to reference ${n}`}>
-        [{n}]
+        {n}
       </a>
     </sup>
   );
@@ -124,18 +127,44 @@ interface ReferencesProps {
 
 function References({ items }: ReferencesProps) {
   return (
-    <ol className="mdx-references">
-      {items.map((item, index) => {
-        const n = index + 1;
-        return (
-          <li key={`${n}-${item.href}`} id={`ref-${n}`}>
-            <a href={item.href} target="_blank" rel="noopener noreferrer">
-              {item.label}
-            </a>
-          </li>
-        );
-      })}
-    </ol>
+    <section className="mdx-references-section" data-footnotes>
+      <h2 id="footnote-label" className="mdx-references-label">
+        References
+      </h2>
+      <ol className="mdx-references">
+        {items.map((item, index) => {
+          const n = index + 1;
+          return (
+            <li key={`${n}-${item.href}`} id={`ref-${n}`}>
+              <a
+                className="mdx-references-link"
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {item.label}
+              </a>{' '}
+              <a
+                className="mdx-references-backref"
+                href={`#cite-${n}`}
+                aria-label={`Back to reference ${n}`}
+              >
+                {'↩'}
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function Acknowledgements({ children }: { children: ReactNode }) {
+  return (
+    <section className="mdx-acknowledgements" aria-label="Acknowledgements">
+      <h2 className="mdx-acknowledgements-heading">Acknowledgements</h2>
+      {children}
+    </section>
   );
 }
 
@@ -154,7 +183,10 @@ export const mdxComponents: MDXComponents = {
   a: MdxLink,
   img: MdxImage,
   pre: MdxPre,
+  Acknowledgements,
+  Annotate,
   Cite,
   FigureImage,
+  MarginNote,
   References,
 };

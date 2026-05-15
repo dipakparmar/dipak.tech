@@ -1,6 +1,6 @@
 import './globals.css';
 
-import { Inter, Karla } from 'next/font/google';
+import { Inter, Karla, Reenie_Beanie } from 'next/font/google';
 import { LOGO_URL, ogUrls } from '@/lib/og-config';
 
 import { GoogleTagManager } from '@next/third-parties/google';
@@ -19,6 +19,13 @@ const fontKarla = Karla({
   subsets: ['latin'],
   variable: '--font-karla',
   weight: ['200', '300', '400', '500', '600', '700', '800']
+});
+
+const fontReenie = Reenie_Beanie({
+  subsets: ['latin'],
+  variable: '--font-handwritten',
+  weight: '400',
+  display: 'swap'
 });
 
 const title = 'Dipak Parmar | ☁️ DevSecOps Engineer | @iamdipakparmar';
@@ -96,7 +103,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={fontInter.variable}>
+    <html lang="en" suppressHydrationWarning className={cn(fontInter.variable, fontReenie.variable)}>
       <head>
         {process.env.NEXT_PUBLIC_REACT_GRAB === "1" && (
           <script
@@ -120,7 +127,8 @@ export default function RootLayout({
         className={cn(
           'min-h-screen bg-background antialiased',
           fontInter.variable,
-          fontKarla.variable
+          fontKarla.variable,
+          fontReenie.variable
         )}
       >
         {children}

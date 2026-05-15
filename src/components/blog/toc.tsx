@@ -17,8 +17,11 @@ export function Toc({ entries }: TocProps) {
     function activate(id: string) {
       for (const [entryId, el] of map) {
         const isActive = entryId === id;
-        el.style.color = isActive ? 'var(--foreground)' : '';
-        el.style.fontWeight = isActive ? '500' : '';
+        if (isActive) {
+          el.dataset.active = 'true';
+        } else {
+          delete el.dataset.active;
+        }
       }
     }
 
@@ -43,10 +46,10 @@ export function Toc({ entries }: TocProps) {
 
   return (
     <nav className="hidden xl:block fixed right-[max(2rem,calc(50%-24rem-15rem))] top-24 w-56">
-      <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+      <p className="text-[10px] font-medium text-muted-foreground/55 mb-3 uppercase tracking-[0.12em]">
         On this page
       </p>
-      <ul className="space-y-1.5 text-sm">
+      <ul className="space-y-[3px] text-[13px] tracking-[-0.005em] border-l border-border/70">
         {entries.map((entry) => (
           <li
             key={entry.id}
@@ -57,8 +60,12 @@ export function Toc({ entries }: TocProps) {
               ref={(el) => {
                 if (el) linkRefs.current.set(entry.id, el);
               }}
-              className="block py-0.5 transition-colors text-muted-foreground/70 hover:text-foreground"
+              className="group/toc relative block py-[3px] pl-3 -ml-px transition-colors duration-150 text-muted-foreground/60 hover:text-foreground data-[active=true]:text-foreground data-[active=true]:font-medium"
             >
+              <span
+                aria-hidden
+                className="absolute left-0 top-0 bottom-0 w-px bg-primary scale-y-0 group-data-[active=true]/toc:scale-y-100 transition-transform duration-200 ease-out origin-center"
+              />
               {entry.text}
             </a>
           </li>
