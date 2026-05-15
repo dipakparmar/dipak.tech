@@ -3,8 +3,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { useInView, useReducedMotion } from 'motion/react';
-import { annotate } from 'rough-notation';
-import type { RoughAnnotation } from 'rough-notation/lib/model';
+import { annotate, type RoughAnnotation } from '@/lib/vendor/rough-notation';
 import {
   ScribbleArrow,
   ScribbleCircle,

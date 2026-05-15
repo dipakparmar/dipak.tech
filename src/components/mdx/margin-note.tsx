@@ -3,11 +3,11 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useInView, useReducedMotion } from 'motion/react';
-import { annotate } from 'rough-notation';
-import type {
-  BracketType,
-  RoughAnnotation,
-} from 'rough-notation/lib/model';
+import {
+  annotate,
+  type BracketType,
+  type RoughAnnotation,
+} from '@/lib/vendor/rough-notation';
 
 interface MarginNoteProps {
   children: ReactNode;
