@@ -7,6 +7,7 @@ import { JsonLd } from '@/components/seo/json-ld';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Toc } from '@/components/blog/toc';
+import { ReadingProgress } from '@/components/blog/reading-progress';
 import { mdxComponents } from '@/components/mdx-components';
 import { notFound } from 'next/navigation';
 import { personReference } from '@/lib/schema';
@@ -91,48 +92,51 @@ export default async function PostPage({ params }: PostPageProps) {
   return (
     <>
       <JsonLd data={postSchema} />
+      <ReadingProgress />
       <Toc entries={toc} />
       <article>
-        <header className="mb-10">
+        <header className="mb-12">
           <Link
             href="/blog"
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors mb-4"
+            className="group inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-muted-foreground/55 hover:text-foreground transition-colors duration-150 mb-8"
           >
-            <ArrowLeft className="size-3" />
-            <span>back to blog list</span>
+            <ArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" strokeWidth={1.5} />
+            <span>Writing</span>
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight mb-2">{meta.title}</h1>
-          <div className="flex items-center gap-2.5 text-xs text-muted-foreground/60">
+          <h1 className="text-[24px] sm:text-[28px] font-medium tracking-[-0.035em] leading-[1.15] text-foreground mb-5 text-balance break-words hyphens-auto">
+            {meta.title}
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground/55 tabular-nums">
             <time dateTime={meta.date}>
               {new Date(meta.date).toLocaleDateString('en-US', {
                 year: 'numeric',
-                month: 'long',
-                day: 'numeric',
+                month: 'short',
+                day: '2-digit',
               })}
             </time>
-            <span>·</span>
+            <span aria-hidden className="text-muted-foreground/30">·</span>
             <span>{meta.readingTime} min read</span>
             {meta.updated && (
               <>
-                <span>·</span>
+                <span aria-hidden className="text-muted-foreground/30">·</span>
                 <span>
                   Updated{' '}
                   {new Date(meta.updated).toLocaleDateString('en-US', {
                     year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
+                    month: 'short',
+                    day: '2-digit',
                   })}
                 </span>
               </>
             )}
           </div>
           {meta.tags.length > 0 && (
-            <div className="flex gap-1.5 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-5">
               {meta.tags.map((tag) => (
                 <Link
                   key={tag}
                   href={`/blog/tags/${tag}`}
-                  className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md hover:text-foreground transition-colors"
+                  className="inline-flex items-center text-[11px] text-muted-foreground/75 border border-border/70 px-2.5 py-[3px] rounded-full hover:text-foreground hover:border-foreground/25 transition-colors duration-150"
                 >
                   {tag}
                 </Link>

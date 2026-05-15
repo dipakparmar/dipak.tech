@@ -3,6 +3,8 @@ import Image from 'next/image';
 import type { MDXComponents } from 'mdx/types';
 import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
 import { CopyButton } from '@/components/blog/copy-button';
+import { Annotate } from '@/components/mdx/annotate';
+import { MarginNote } from '@/components/mdx/margin-note';
 
 function extractText(node: ReactNode): string {
   if (typeof node === 'string') return node;
@@ -154,7 +156,9 @@ export const mdxComponents: MDXComponents = {
   a: MdxLink,
   img: MdxImage,
   pre: MdxPre,
+  Annotate,
   Cite,
   FigureImage,
+  MarginNote,
   References,
 };

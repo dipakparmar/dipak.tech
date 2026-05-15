@@ -163,6 +163,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Editorial scribble palette — used by hand-drawn annotations,
+     NewStamp, and the per-line scribble underline. */
+  --scribble-stroke: oklch(0.88 0.15 92);
+  --scribble-ink: oklch(0.52 0.13 55);
+  --accent-blue: oklch(0.72 0.16 245);
 }
 
 .dark {
@@ -201,6 +206,8 @@
 
 @theme inline {
   --font-sans: var(--font-sans);
+  --font-handwritten: var(--font-handwritten);
+  --color-accent-blue: oklch(0.72 0.16 245);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -242,6 +249,59 @@
   --animate-wave: wave 2.5s ease-in-out infinite;
 }
 
+/* Scribble stroke — for absolutely-positioned SVG strokes (single-line only) */
+.scribble-stroke {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 0;
+}
+
+.scribble-stroke--draw {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  transition: stroke-dashoffset 0.5s ease-out;
+}
+
+.group:hover .scribble-stroke--draw,
+.group:focus-visible .scribble-stroke--draw {
+  stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scribble-stroke--draw {
+    transition: none;
+  }
+}
+
+/*
+ * Scribble underline as background-image on inline text.
+ * Wraps correctly across multiple lines — each line fragment paints its own
+ * underline sized to that line's width, not the whole element's box.
+ * Use `--draw` modifier for the hover-reveal animation.
+ */
+.scribble-underline-text {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 7' preserveAspectRatio='none'%3E%3Cpath d='M 1 3 C 5 1, 11 4.5, 17 2.5 S 30 5, 37 2.5 S 51 1.5, 58 4 S 73 5, 81 2.5 S 93 4.5, 99 3' stroke='%23FFE066' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none' opacity='0.92'/%3E%3Cpath d='M 2 4.5 C 7 3, 14 5.5, 22 4 S 34 5.5, 42 4.5 S 54 3.5, 62 5 S 77 6, 85 4.5 S 95 5.5, 99 4.2' stroke='%23FFE066' stroke-width='1' stroke-linecap='round' fill='none' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 100%;
+  background-size: 100% 0.4em;
+  padding-bottom: 0.2em;
+}
+
+.scribble-underline-text--draw {
+  background-size: 0% 0.4em;
+  transition: background-size 0.5s ease-out;
+}
+
+.group:hover .scribble-underline-text--draw,
+.group:focus-visible .scribble-underline-text--draw {
+  background-size: 100% 0.4em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scribble-underline-text--draw {
+    transition: none;
+  }
+}
+
 @keyframes wave {
   0%,
   100% {
@@ -279,29 +339,31 @@
 }
 
 .blog-prose h2 {
-  font-size: 1.35em;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin-top: 2.5em;
-  margin-bottom: 0.75em;
-  line-height: 1.3;
+  font-size: 1.32em;
+  font-weight: 500;
+  letter-spacing: -0.028em;
+  margin-top: 2.6em;
+  margin-bottom: 0.7em;
+  line-height: 1.25;
   color: var(--color-foreground);
 }
 
 .blog-prose h3 {
-  font-size: 1.125em;
-  font-weight: 600;
+  font-size: 1.1em;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   margin-top: 2em;
-  margin-bottom: 0.6em;
-  line-height: 1.4;
+  margin-bottom: 0.55em;
+  line-height: 1.35;
   color: var(--color-foreground);
 }
 
 .blog-prose h4 {
   font-size: 1em;
-  font-weight: 600;
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  margin-top: 1.6em;
+  margin-bottom: 0.45em;
   line-height: 1.4;
   color: var(--color-foreground);
 }
@@ -498,6 +560,187 @@
 .blog-prose td {
   padding: 0.5em 1em;
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Handwritten margin note — anchored to a paragraph, floats into the LEFT
+   gutter on wide screens (since TOC owns the right gutter); renders as a
+   quiet inline aside on narrow viewports.
+
+   Bracket is a CSS-border `]` shape so it auto-sizes to the text's actual
+   height — no awkward SVG stretching when the note is one line vs. three. */
+/*
+ * Handwritten margin note — STANDALONE mode.
+ *
+ * Mobile/tablet (< xl): bracket on TOP, handwritten text BELOW.
+ *   Bracket is a horizontal `U` (open-up shape) — arms pointing up, floor
+ *   at the bottom near the text.
+ *
+ * Desktop (≥ xl): the note floats into the LEFT gutter beside the paragraph.
+ *   Text on the LEFT (right-aligned), bracket on the RIGHT, between the
+ *   note and the paragraph. Bracket auto-sizes to text height via
+ *   `align-self: stretch`.
+ *
+ * DOM order is [bracket, text]; `order` flips them on desktop.
+ */
+.mdx-margin-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  margin: 0.75rem 0 1.25rem;
+  color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
+  font-family: var(--font-handwritten), cursive;
+  font-size: 1.35rem;
+  line-height: 1.3;
+}
+
+.mdx-margin-note__bracket {
+  display: block;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 6.5rem;
+  height: 0.45rem;
+  border-bottom: 1px solid currentColor;
+  border-left: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  opacity: 0.45;
+}
+
+.mdx-margin-note__text {
+  display: inline-block;
+  padding-left: 0.25rem;
+}
+
+@media (min-width: 1280px) {
+  .mdx-margin-note {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.6rem;
+    float: left;
+    clear: left;
+    width: 11rem;
+    margin: 0.25rem 1.5rem 0.5rem -12.5rem;
+  }
+
+  .mdx-margin-note__text {
+    order: 0; /* desktop: text on the left */
+    flex: 1;
+    text-align: right;
+    padding-left: 0;
+    padding-top: 0.05rem;
+    padding-bottom: 0.05rem;
+  }
+
+  .mdx-margin-note__bracket {
+    order: 1; /* desktop: bracket on the right */
+    width: 0.4rem;
+    height: auto;
+    max-width: none;
+    align-self: stretch;
+    border-top: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    border-left: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 0;
+  }
+}
+
+/*
+ * Handwritten margin note — ENCLOSURE mode.
+ *
+ * Wraps content and explicitly scopes the bracket to it. Use when the note
+ * applies to a specific block of content (one paragraph, a list, several
+ * paragraphs) rather than just being anchored to a single preceding line.
+ *
+ *   <MarginNote text="thankfully I enjoy this">
+ *
+ *     The paragraph (or several paragraphs) the note covers.
+ *
+ *   </MarginNote>
+ *
+ * Mobile/tablet: content renders normally; a horizontal `U` bracket sits
+ * BELOW the content, opening up toward it, with the handwritten note text
+ * BELOW the bracket.
+ *
+ * Desktop: bracket becomes a vertical `[` in the left gutter, spanning the
+ * full height of the wrapped content. The handwritten note sits further
+ * left of the bracket, right-aligned and vertically centered.
+ */
+.mdx-margin-enclose {
+  margin: 1rem 0 1.5rem;
+}
+
+.mdx-margin-enclose__content > :first-child {
+  margin-top: 0;
+}
+.mdx-margin-enclose__content > :last-child {
+  margin-bottom: 0;
+}
+
+.mdx-margin-enclose__bracket {
+  display: block;
+  height: 0.45rem;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 0.5rem;
+  border-bottom: 1px solid currentColor;
+  border-left: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  opacity: 0.4;
+  color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
+}
+
+.mdx-margin-enclose__note {
+  display: block;
+  margin-top: 0.35rem;
+  padding-left: 0.25rem;
+  font-family: var(--font-handwritten), cursive;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
+}
+
+@media (min-width: 1280px) {
+  .mdx-margin-enclose {
+    position: relative;
+  }
+
+  .mdx-margin-enclose__bracket {
+    position: absolute;
+    top: 0.1rem;
+    bottom: 0.1rem;
+    left: -1.5rem;
+    width: 0.4rem;
+    height: auto;
+    margin-top: 0;
+    border-top: 1px solid currentColor;
+    border-left: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    border-right: none;
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    opacity: 0.45;
+  }
+
+  .mdx-margin-enclose__note {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: -13rem;
+    width: 11rem;
+    margin-top: 0;
+    padding-left: 0;
+    text-align: right;
+  }
 }
 
 /* Shiki dual theme support */
