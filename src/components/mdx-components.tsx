@@ -128,7 +128,7 @@ interface ReferencesProps {
 function References({ items }: ReferencesProps) {
   return (
     <section className="mdx-references-section" data-footnotes>
-      <h2 id="footnote-label" className="sr-only">
+      <h2 id="footnote-label" className="mdx-references-label">
         References
       </h2>
       <ol className="mdx-references">
