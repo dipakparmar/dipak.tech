@@ -103,7 +103,7 @@ export default async function PostPage({ params }: PostPageProps) {
             <ArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" strokeWidth={1.5} />
             <span>Writing</span>
           </Link>
-          <h1 className="text-[24px] sm:text-[28px] font-medium tracking-[-0.035em] leading-[1.15] text-foreground mb-5 text-balance break-words hyphens-auto">
+          <h1 className="text-[28px] sm:text-[34px] md:text-[40px] font-medium tracking-[-0.035em] md:tracking-[-0.04em] leading-[1.1] text-foreground mb-5 text-balance break-words hyphens-auto">
             {meta.title}
           </h1>
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground/55 tabular-nums">

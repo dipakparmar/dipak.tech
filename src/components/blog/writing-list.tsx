@@ -59,7 +59,7 @@ export function WritingList({
                   <li key={post.slug} className="min-w-0">
                     <Link
                       href={`/blog/${post.slug}`}
-                      className="group flex items-baseline gap-2 py-[5px] -mx-1 px-1 rounded-[2px] min-w-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3E9FFF]/40"
+                      className="group flex items-baseline gap-2 py-[5px] -mx-1 px-1 rounded-[2px] min-w-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40"
                     >
                       <span className="relative flex-1 min-w-0 text-[14px] text-foreground/95 tracking-[-0.005em] leading-[1.45] text-pretty break-words">
                         {fresh && <NewStamp />}

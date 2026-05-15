@@ -88,7 +88,7 @@ export default async function TagPage({ params }: TagPageProps) {
                   <h2 className="text-[17px] font-[470] tracking-[-0.015em] leading-[1.35] text-foreground/95">
                     <span
                       className="bg-no-repeat bg-[length:0%_1px] bg-[position:0_92%] group-hover:bg-[length:100%_1px] transition-[background-size] duration-300 ease-out"
-                      style={{ backgroundImage: 'linear-gradient(#3E9FFF, #3E9FFF)' }}
+                      style={{ backgroundImage: 'linear-gradient(var(--color-primary), var(--color-primary))' }}
                     >
                       {post.title}
                     </span>

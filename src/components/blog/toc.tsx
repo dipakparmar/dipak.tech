@@ -64,7 +64,7 @@ export function Toc({ entries }: TocProps) {
             >
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-px bg-[#3E9FFF] scale-y-0 group-data-[active=true]/toc:scale-y-100 transition-transform duration-200 ease-out origin-center"
+                className="absolute left-0 top-0 bottom-0 w-px bg-primary scale-y-0 group-data-[active=true]/toc:scale-y-100 transition-transform duration-200 ease-out origin-center"
               />
               {entry.text}
             </a>
