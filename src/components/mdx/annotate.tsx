@@ -1,4 +1,8 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import type { CSSProperties, ReactNode } from 'react';
+import { useRef } from 'react';
+import { motion, useInView, useReducedMotion } from 'motion/react';
 import {
   ScribbleArrow,
   ScribbleCircle,
@@ -11,6 +15,40 @@ interface AnnotateProps {
   type?: AnnotateType;
   color?: string;
   children: ReactNode;
+}
+
+const DRAW_EASE = [0.45, 0.05, 0.55, 0.95] as const;
+const DRAW_DURATION = 0.95;
+
+function UnderlineAnnotate({
+  color,
+  children,
+}: {
+  color?: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-12% 0px' });
+  const reduced = useReducedMotion();
+
+  const baseStyle: CSSProperties = color
+    ? { backgroundImage: buildUnderlineSvg(color) }
+    : {};
+
+  return (
+    <motion.span
+      ref={ref}
+      className="scribble-underline-text"
+      style={baseStyle}
+      initial={reduced ? false : { backgroundSize: '0% 0.4em' }}
+      animate={{
+        backgroundSize: inView || reduced ? '100% 0.4em' : '0% 0.4em',
+      }}
+      transition={{ duration: reduced ? 0 : DRAW_DURATION, ease: DRAW_EASE }}
+    >
+      {children}
+    </motion.span>
+  );
 }
 
 export function Annotate({
@@ -56,20 +94,7 @@ export function Annotate({
     );
   }
 
-  if (color) {
-    return (
-      <span
-        className="scribble-underline-text"
-        style={{
-          backgroundImage: buildUnderlineSvg(color),
-        }}
-      >
-        {children}
-      </span>
-    );
-  }
-
-  return <span className="scribble-underline-text">{children}</span>;
+  return <UnderlineAnnotate color={color}>{children}</UnderlineAnnotate>;
 }
 
 function buildUnderlineSvg(color: string): string {
