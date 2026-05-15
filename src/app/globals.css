@@ -527,12 +527,91 @@
   text-decoration: underline;
 }
 
-.blog-prose .mdx-references li {
-  scroll-margin-top: 6rem;
+.blog-prose .mdx-acknowledgements {
+  margin-top: 3.5em;
+  color: var(--color-muted-foreground);
 }
 
-.blog-prose .mdx-references li:target {
-  font-weight: 600;
+.blog-prose .mdx-acknowledgements-label {
+  font-size: 0.6875em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  margin: 0 0 1em;
+  opacity: 0.7;
+}
+
+.blog-prose .mdx-acknowledgements p {
+  font-size: 0.9375em;
+  color: var(--color-muted-foreground);
+  margin-bottom: 0.6em;
+}
+
+.blog-prose .mdx-acknowledgements p:last-child {
+  margin-bottom: 0;
+}
+
+.blog-prose .mdx-references-section {
+  margin-top: 2.5em;
+  padding-top: 1.75em;
+  border-top: 1px solid var(--color-border);
+}
+
+.blog-prose .mdx-references-label {
+  font-size: 0.6875em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  margin: 0 0 1em;
+  opacity: 0.7;
+}
+
+.blog-prose ol.mdx-references {
+  list-style: none;
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0;
+  font-size: 0.75em;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--color-muted-foreground) 70%, transparent);
+}
+
+.blog-prose ol.mdx-references > li {
+  position: relative;
+  padding-left: 1.4em;
+  margin-bottom: 0.5em;
+  scroll-margin-top: 6rem;
+  list-style: none;
+}
+
+.blog-prose ol.mdx-references > li::marker {
+  content: "";
+  display: none;
+}
+
+.blog-prose .mdx-references-marker {
+  position: absolute;
+  left: 0;
+  top: 0.4em;
+  font-size: 0.78em;
+  line-height: 1;
+  vertical-align: baseline;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+}
+
+.blog-prose ol.mdx-references a {
+  color: inherit;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+}
+
+.blog-prose ol.mdx-references a:hover {
+  color: var(--color-foreground);
+  text-decoration-color: currentColor;
+}
+
+.blog-prose ol.mdx-references > li:target {
+  color: var(--color-foreground);
 }
 
 .blog-prose iframe {
