@@ -66,10 +66,13 @@ export function MarginNote({ children, text }: MarginNoteProps) {
     );
   }
 
+  // Renders as a <span role="note"> so it remains valid HTML even when MDX
+  // wraps it inside a <p>. CSS gives it display: flex, so the visual layout
+  // matches what an <aside> would produce.
   return (
-    <aside className="mdx-margin-note">
+    <span className="mdx-margin-note" role="note">
       <RevealBracket className="mdx-margin-note__bracket" />
       <span className="mdx-margin-note__text">{children}</span>
-    </aside>
+    </span>
   );
 }
