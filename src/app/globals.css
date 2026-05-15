@@ -272,11 +272,28 @@
   }
 }
 
+/* In-prose `<Annotate type="underline">` — host span for the rough-notation
+   underline SVG. Position-relative establishes a coordinate system so the
+   absolutely-positioned SVG (injected as a sibling) doesn't anchor to the
+   viewport and detach on scroll. The pseudo link-underline is suppressed
+   here so the rough underline reads as the sole underline. */
+.blog-prose .mdx-annotate-underline {
+  position: relative;
+  display: inline;
+}
+
+.blog-prose .mdx-annotate-underline a:before {
+  display: none;
+}
+
 /*
  * Scribble underline as background-image on inline text.
  * Wraps correctly across multiple lines — each line fragment paints its own
  * underline sized to that line's width, not the whole element's box.
  * Use `--draw` modifier for the hover-reveal animation.
+ *
+ * Used by WritingList / BlogList for the hover-reveal post-title scribble.
+ * (The `<Annotate>` component now uses rough-notation instead.)
  */
 .scribble-underline-text {
   background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 7' preserveAspectRatio='none'%3E%3Cpath d='M 1 3 C 5 1, 11 4.5, 17 2.5 S 30 5, 37 2.5 S 51 1.5, 58 4 S 73 5, 81 2.5 S 93 4.5, 99 3' stroke='%23FFE066' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none' opacity='0.92'/%3E%3Cpath d='M 2 4.5 C 7 3, 14 5.5, 22 4 S 34 5.5, 42 4.5 S 54 3.5, 62 5 S 77 6, 85 4.5 S 95 5.5, 99 4.2' stroke='%23FFE066' stroke-width='1' stroke-linecap='round' fill='none' opacity='0.5'/%3E%3C/svg%3E");
@@ -327,6 +344,32 @@
   }
 }
 
+/* Top scroll-fade gradient — the soft dissolve at the top of every blog
+   page so scrolled content blurs into the page edge instead of clipping.
+   Sits below the ReadingProgress bar (z-50) so the progress hairline stays
+   on top. */
+.blog-layout:before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5rem;
+  pointer-events: none;
+  z-index: 9;
+  background: linear-gradient(
+    180deg,
+    var(--color-background),
+    color-mix(in srgb, var(--color-background) 0%, transparent)
+  );
+}
+
+@media (max-width: 640px) {
+  .blog-layout:before {
+    height: 2.5rem;
+  }
+}
+
 /* Blog prose typography — classic clean style */
 .blog-prose {
   font-size: 0.938rem;
@@ -373,17 +416,44 @@
   margin-bottom: 1.25em;
 }
 
+/* Inline link underline — a `:before` pseudo gives us pixel-precise control
+   over the rule and a smooth colour swap on hover. The pseudo is suppressed
+   in contexts where a coloured underline would feel noisy (citation chip,
+   reference backref, button/image wrappers, figure captions). */
 .blog-prose a {
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--color-primary);
-  text-decoration-thickness: 1px;
-  transition: text-decoration-color 0.15s;
+  position: relative;
+  display: inline;
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
-.blog-prose a:hover {
-  text-decoration-color: transparent;
+.blog-prose a:before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.05em;
+  height: 1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+  transition: background-color 0.2s ease;
+  pointer-events: none;
+}
+
+.blog-prose a:hover:before {
+  background: color-mix(in srgb, currentColor 75%, transparent);
+}
+
+/* Suppress the pseudo underline inside contexts where a hairline would
+   compete with the content (a wrapped image, a button, a citation chip). */
+.blog-prose sup a:before,
+.blog-prose .mdx-references a.mdx-references-backref:before,
+.blog-prose a:has(> button):before,
+.blog-prose a:has(> img):before,
+.blog-prose .mdx-figcaption a:before {
+  display: none;
 }
 
 .blog-prose strong {
@@ -510,40 +580,57 @@
   text-decoration-color: currentColor;
 }
 
+/* Bare-number citation (`<sup>{n}</sup>`) — soft, half-opacity, with a tiny
+   left padding so it visually detaches from the preceding word rather than
+   crowding into it like a typographic apostrophe. */
 .blog-prose .mdx-cite {
-  margin-left: 0.12rem;
-  font-size: 0.72em;
-  line-height: 0;
+  display: inline-block;
+  padding-left: 0.35em;
+  font-size: 0.62em;
+  line-height: 1;
   vertical-align: super;
+  color: color-mix(in srgb, var(--color-muted-foreground) 50%, transparent);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: -0.005em;
+  scroll-margin-top: 6rem;
 }
 
 .blog-prose .mdx-cite a {
-  color: var(--color-primary);
+  color: inherit;
   text-decoration: none;
 }
 
 .blog-prose .mdx-cite a:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
+  color: var(--color-foreground);
 }
 
+.blog-prose .mdx-cite:target {
+  color: var(--color-foreground);
+}
+
+/* Acknowledgements — quiet heading at body size with muted body underneath.
+   Replaces the uppercase-tracked label pattern with a subdued title-style
+   heading; the hierarchy comes from the muted prose colour, not from a
+   competing typographic device. */
 .blog-prose .mdx-acknowledgements {
   margin-top: 3.5em;
-  color: var(--color-muted-foreground);
+  color: color-mix(in srgb, var(--color-muted-foreground) 80%, transparent);
 }
 
-.blog-prose .mdx-acknowledgements-label {
-  font-size: 0.6875em;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-muted-foreground);
-  margin: 0 0 1em;
-  opacity: 0.7;
+.blog-prose .mdx-acknowledgements-heading {
+  font-size: 1em;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--color-foreground);
+  margin: 0 0 0.9em;
+  line-height: 1.3;
 }
 
 .blog-prose .mdx-acknowledgements p {
-  font-size: 0.9375em;
-  color: var(--color-muted-foreground);
+  font-size: 0.875em;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--color-muted-foreground) 70%, transparent);
   margin-bottom: 0.6em;
 }
 
@@ -551,35 +638,40 @@
   margin-bottom: 0;
 }
 
+/* References section — gutter-positioned counter markers, sr-only heading,
+   short 50px divider above the list. Each item also carries a click-target
+   `↩` backref that visually-hides but expands to the full list-row click
+   area via `inset: 0; text-indent: -9999px`. */
 .blog-prose .mdx-references-section {
-  margin-top: 2.5em;
-  padding-top: 1.75em;
-  border-top: 1px solid var(--color-border);
+  margin-top: 3rem;
+  padding-top: 2.5rem;
+  counter-reset: list;
 }
 
-.blog-prose .mdx-references-label {
-  font-size: 0.6875em;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-muted-foreground);
-  margin: 0 0 1em;
-  opacity: 0.7;
+.blog-prose .mdx-references-section:before {
+  content: "";
+  display: block;
+  width: 3.125rem;
+  height: 1px;
+  background: var(--color-border);
+  margin-bottom: 3rem;
 }
 
 .blog-prose ol.mdx-references {
   list-style: none;
   list-style-type: none;
-  padding-left: 0;
+  padding: 0 0 0 0.25rem;
   margin: 0;
-  font-size: 0.75em;
-  line-height: 1.6;
-  color: color-mix(in srgb, var(--color-muted-foreground) 70%, transparent);
+  font-size: 0.78em;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--color-muted-foreground) 65%, transparent);
 }
 
 .blog-prose ol.mdx-references > li {
   position: relative;
-  padding-left: 1.4em;
-  margin-bottom: 0.5em;
+  counter-increment: list;
+  margin-bottom: 0.5625rem;
+  padding: 0 0 0 0.25rem;
   scroll-margin-top: 6rem;
   list-style: none;
 }
@@ -589,25 +681,42 @@
   display: none;
 }
 
-.blog-prose .mdx-references-marker {
+/* Gutter-positioned counter marker — sits to the LEFT of the column at
+   ~7px so it reads as a marginal annotation rather than a list bullet
+   inside the text block. */
+.blog-prose ol.mdx-references > li:before {
   position: absolute;
-  left: 0;
-  top: 0.4em;
-  font-size: 0.78em;
-  line-height: 1;
-  vertical-align: baseline;
+  right: 100%;
+  top: 0.05em;
+  margin-right: 0.5rem;
+  content: counter(list);
+  font-size: 0.55rem;
+  font-weight: 500;
+  line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-muted-foreground) 55%, transparent);
+}
+
+.blog-prose ol.mdx-references .mdx-references-link {
   color: inherit;
 }
 
-.blog-prose ol.mdx-references a {
-  color: inherit;
-  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
-}
-
-.blog-prose ol.mdx-references a:hover {
+.blog-prose ol.mdx-references .mdx-references-link:hover {
   color: var(--color-foreground);
-  text-decoration-color: currentColor;
+}
+
+/* Backref `↩` link — visually hidden, but its hit area expands to the
+   entire row via `inset: 0` so clicking anywhere on the line returns the
+   reader to the corresponding citation. */
+.blog-prose ol.mdx-references .mdx-references-backref {
+  z-index: 1;
+  position: absolute;
+  inset: 0;
+  bottom: 0.5em;
+  overflow: hidden;
+  display: inline-block;
+  text-indent: -9999px;
+  color: inherit;
 }
 
 .blog-prose ol.mdx-references > li:target {
@@ -641,31 +750,31 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-/* Handwritten margin note — anchored to a paragraph, floats into the LEFT
-   gutter on wide screens (since TOC owns the right gutter); renders as a
-   quiet inline aside on narrow viewports.
-
-   Bracket is a CSS-border `]` shape so it auto-sizes to the text's actual
-   height — no awkward SVG stretching when the note is one line vs. three. */
 /*
- * Handwritten margin note — STANDALONE mode.
+ * Handwritten margin note.
  *
- * Mobile/tablet (< xl): bracket on TOP, handwritten text BELOW.
- *   Bracket is a horizontal `U` (open-up shape) — arms pointing up, floor
- *   at the bottom near the text.
+ * The bracket is drawn by `rough-notation` (literal hand-drawn SVG paths
+ * with wobble) which injects an absolutely-positioned SVG sibling next to
+ * the bracket's target element. Our CSS just owns the layout containers
+ * and the cursive note styling.
  *
- * Desktop (≥ xl): the note floats into the LEFT gutter beside the paragraph.
- *   Text on the LEFT (right-aligned), bracket on the RIGHT, between the
- *   note and the paragraph. Bracket auto-sizes to text height via
- *   `align-self: stretch`.
+ * Standalone mode: `children` is the handwritten note itself; the bracket
+ * scopes the note. Desktop: vertical `[` between note (left gutter) and
+ * the article column. Mobile: horizontal `U` underneath the note.
  *
- * DOM order is [bracket, text]; `order` flips them on desktop.
+ * Enclosure mode: `children` is the wrapped content (a paragraph or block);
+ * the bracket scopes that content. Desktop: vertical `[` in the left
+ * gutter; cursive note further left, vertically centered. Mobile: bracket
+ * is a horizontal `U` below the content; cursive note below that.
+ *
+ * We leave generous left padding/margin on the host containers so the
+ * rough-notation SVG (which paints OUTSIDE the target's box, into the
+ * surrounding padding region) doesn't get clipped.
  */
+
 .mdx-margin-note {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3rem;
+  position: relative;
+  display: inline-block;
   margin: 0.75rem 0 1.25rem;
   color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
   font-family: var(--font-handwritten), cursive;
@@ -673,85 +782,45 @@
   line-height: 1.3;
 }
 
-.mdx-margin-note__bracket {
-  display: block;
-  flex-shrink: 0;
-  width: 100%;
-  max-width: 6.5rem;
-  height: 0.45rem;
-  border-bottom: 1px solid currentColor;
-  border-left: 1px solid currentColor;
-  border-right: 1px solid currentColor;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  opacity: 0.45;
-}
-
 .mdx-margin-note__text {
   display: inline-block;
-  padding-left: 0.25rem;
+  padding: 0.05rem 0.25rem;
+}
+
+/* Anchor span for the rough-notation SVG. Has no visual presence itself
+   (rough-notation injects its own absolutely-positioned SVG as a sibling
+   of the target element). */
+.mdx-margin-note__bracket-anchor,
+.mdx-margin-enclose__bracket-anchor {
+  display: inline;
 }
 
 @media (min-width: 1280px) {
   .mdx-margin-note {
-    flex-direction: row;
-    align-items: stretch;
-    gap: 0.6rem;
+    display: block;
     float: left;
     clear: left;
     width: 11rem;
     margin: 0.25rem 1.5rem 0.5rem -12.5rem;
+    text-align: right;
   }
 
   .mdx-margin-note__text {
-    order: 0; /* desktop: text on the left */
-    flex: 1;
+    /* Pad-right gives rough-notation room to paint the right bracket
+       without overlapping the cursive glyphs. */
+    padding: 0.05rem 0.6rem 0.05rem 0;
     text-align: right;
-    padding-left: 0;
-    padding-top: 0.05rem;
-    padding-bottom: 0.05rem;
-  }
-
-  .mdx-margin-note__bracket {
-    order: 1; /* desktop: bracket on the right */
-    width: 0.4rem;
-    height: auto;
-    max-width: none;
-    align-self: stretch;
-    border-top: 1px solid currentColor;
-    border-right: 1px solid currentColor;
-    border-bottom: 1px solid currentColor;
-    border-left: none;
-    border-top-left-radius: 0;
-    border-top-right-radius: 3px;
-    border-bottom-right-radius: 3px;
-    border-bottom-left-radius: 0;
   }
 }
 
-/*
- * Handwritten margin note — ENCLOSURE mode.
- *
- * Wraps content and explicitly scopes the bracket to it. Use when the note
- * applies to a specific block of content (one paragraph, a list, several
- * paragraphs) rather than just being anchored to a single preceding line.
- *
- *   <MarginNote text="thankfully I enjoy this">
- *
- *     The paragraph (or several paragraphs) the note covers.
- *
- *   </MarginNote>
- *
- * Mobile/tablet: content renders normally; a horizontal `U` bracket sits
- * BELOW the content, opening up toward it, with the handwritten note text
- * BELOW the bracket.
- *
- * Desktop: bracket becomes a vertical `[` in the left gutter, spanning the
- * full height of the wrapped content. The handwritten note sits further
- * left of the bracket, right-aligned and vertically centered.
- */
+/* Enclosure mode container. */
 .mdx-margin-enclose {
+  position: relative;
   margin: 1rem 0 1.5rem;
+}
+
+.mdx-margin-enclose__content {
+  position: relative;
 }
 
 .mdx-margin-enclose__content > :first-child {
@@ -761,53 +830,21 @@
   margin-bottom: 0;
 }
 
-.mdx-margin-enclose__bracket {
-  display: block;
-  height: 0.45rem;
-  width: 100%;
-  max-width: 100%;
-  margin-top: 0.5rem;
-  border-bottom: 1px solid currentColor;
-  border-left: 1px solid currentColor;
-  border-right: 1px solid currentColor;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-  opacity: 0.4;
-  color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
-}
-
 .mdx-margin-enclose__note {
   display: block;
-  margin-top: 0.35rem;
+  margin-top: 1.5rem;
   padding-left: 0.25rem;
   font-family: var(--font-handwritten), cursive;
   font-size: 1.35rem;
   line-height: 1.3;
   color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
+  text-align: center;
 }
 
 @media (min-width: 1280px) {
   .mdx-margin-enclose {
-    position: relative;
-  }
-
-  .mdx-margin-enclose__bracket {
-    position: absolute;
-    top: 0.1rem;
-    bottom: 0.1rem;
-    left: -1.5rem;
-    width: 0.4rem;
-    height: auto;
-    margin-top: 0;
-    border-top: 1px solid currentColor;
-    border-left: 1px solid currentColor;
-    border-bottom: 1px solid currentColor;
-    border-right: none;
-    border-top-left-radius: 3px;
-    border-bottom-left-radius: 3px;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    opacity: 0.45;
+    /* Leave gutter room for the bracket on the left. */
+    padding-left: 1.5rem;
   }
 
   .mdx-margin-enclose__note {

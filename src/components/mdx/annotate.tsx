@@ -1,8 +1,10 @@
 'use client';
 
-import type { CSSProperties, ReactNode } from 'react';
-import { useRef } from 'react';
-import { motion, useInView, useReducedMotion } from 'motion/react';
+import type { ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
+import { useInView, useReducedMotion } from 'motion/react';
+import { annotate } from 'rough-notation';
+import type { RoughAnnotation } from 'rough-notation/lib/model';
 import {
   ScribbleArrow,
   ScribbleCircle,
@@ -17,8 +19,9 @@ interface AnnotateProps {
   children: ReactNode;
 }
 
-const DRAW_EASE = [0.45, 0.05, 0.55, 0.95] as const;
-const DRAW_DURATION = 0.95;
+// Match the marker yellow Agentation uses for its scribble underline.
+const DEFAULT_UNDERLINE_COLOR = '#FFE066';
+const UNDERLINE_DURATION_MS = 800;
 
 function UnderlineAnnotate({
   color,
@@ -30,24 +33,43 @@ function UnderlineAnnotate({
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: '-12% 0px' });
   const reduced = useReducedMotion();
+  const annotationRef = useRef<RoughAnnotation | null>(null);
 
-  const baseStyle: CSSProperties = color
-    ? { backgroundImage: buildUnderlineSvg(color) }
-    : {};
+  useEffect(() => {
+    const target = ref.current;
+    if (!target) return;
+
+    const annotation = annotate(target, {
+      type: 'underline',
+      color: color ?? DEFAULT_UNDERLINE_COLOR,
+      strokeWidth: 2,
+      animationDuration: reduced ? 0 : UNDERLINE_DURATION_MS,
+      animate: !reduced,
+      iterations: 2,
+      // multiline lets the scribble wrap across line breaks correctly.
+      multiline: true,
+      padding: 1,
+    });
+    annotationRef.current = annotation;
+
+    return () => {
+      annotation.remove();
+      annotationRef.current = null;
+    };
+  }, [color, reduced]);
+
+  useEffect(() => {
+    if (!inView) return;
+    const annotation = annotationRef.current;
+    if (!annotation) return;
+    const id = requestAnimationFrame(() => annotation.show());
+    return () => cancelAnimationFrame(id);
+  }, [inView]);
 
   return (
-    <motion.span
-      ref={ref}
-      className="scribble-underline-text"
-      style={baseStyle}
-      initial={reduced ? false : { backgroundSize: '0% 0.4em' }}
-      animate={{
-        backgroundSize: inView || reduced ? '100% 0.4em' : '0% 0.4em',
-      }}
-      transition={{ duration: reduced ? 0 : DRAW_DURATION, ease: DRAW_EASE }}
-    >
+    <span ref={ref} className="mdx-annotate-underline">
       {children}
-    </motion.span>
+    </span>
   );
 }
 
@@ -95,9 +117,4 @@ export function Annotate({
   }
 
   return <UnderlineAnnotate color={color}>{children}</UnderlineAnnotate>;
-}
-
-function buildUnderlineSvg(color: string): string {
-  const stroke = encodeURIComponent(color);
-  return `url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 7' preserveAspectRatio='none'%3E%3Cpath d='M 1 3 C 5 1, 11 4.5, 17 2.5 S 30 5, 37 2.5 S 51 1.5, 58 4 S 73 5, 81 2.5 S 93 4.5, 99 3' stroke='${stroke}' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none' opacity='0.92'/%3E%3Cpath d='M 2 4.5 C 7 3, 14 5.5, 22 4 S 34 5.5, 42 4.5 S 54 3.5, 62 5 S 77 6, 85 4.5 S 95 5.5, 99 4.2' stroke='${stroke}' stroke-width='1' stroke-linecap='round' fill='none' opacity='0.5'/%3E%3C/svg%3E")`;
 }

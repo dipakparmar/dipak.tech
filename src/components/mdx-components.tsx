@@ -105,11 +105,12 @@ interface CiteProps {
 
 function Cite({ n }: CiteProps) {
   const refId = `ref-${n}`;
+  const citeId = `cite-${n}`;
 
   return (
-    <sup className="mdx-cite">
+    <sup id={citeId} className="mdx-cite">
       <a href={`#${refId}`} aria-label={`Jump to reference ${n}`}>
-        [{n}]
+        {n}
       </a>
     </sup>
   );
@@ -126,18 +127,29 @@ interface ReferencesProps {
 
 function References({ items }: ReferencesProps) {
   return (
-    <section className="mdx-references-section" aria-label="References">
-      <p className="mdx-references-label">References</p>
+    <section className="mdx-references-section" data-footnotes>
+      <h2 id="footnote-label" className="sr-only">
+        References
+      </h2>
       <ol className="mdx-references">
         {items.map((item, index) => {
           const n = index + 1;
           return (
             <li key={`${n}-${item.href}`} id={`ref-${n}`}>
-              <sup className="mdx-references-marker" aria-hidden>
-                {n}
-              </sup>
-              <a href={item.href} target="_blank" rel="noopener noreferrer">
+              <a
+                className="mdx-references-link"
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 {item.label}
+              </a>{' '}
+              <a
+                className="mdx-references-backref"
+                href={`#cite-${n}`}
+                aria-label={`Back to reference ${n}`}
+              >
+                {'↩'}
               </a>
             </li>
           );
@@ -150,7 +162,7 @@ function References({ items }: ReferencesProps) {
 function Acknowledgements({ children }: { children: ReactNode }) {
   return (
     <section className="mdx-acknowledgements" aria-label="Acknowledgements">
-      <p className="mdx-acknowledgements-label">Acknowledgements</p>
+      <h2 className="mdx-acknowledgements-heading">Acknowledgements</h2>
       {children}
     </section>
   );
