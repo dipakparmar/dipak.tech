@@ -10,12 +10,16 @@ import {
 } from "@/components/ui/accordion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CheckCircle2, XCircle, AlertTriangle, MinusCircle, ShieldCheck } from "lucide-react"
-import type { AuthenticationResults, AuthResult } from "@/lib/email-header-parser"
+import type { AuthenticationResults, AuthResult, HeaderEntry } from "@/lib/email-header-parser"
 import { CommentMarker, AnnotatedRow } from "./annotation-components"
 import { getHeaderAnnotation, getCardAnnotation } from "@/lib/header-annotations"
+import { deriveLiveAuthLookupContext } from "@/lib/message-auth-context"
+import { LiveAuthChecks } from "./live-auth-checks"
 
 interface AuthResultsProps {
   authentication: AuthenticationResults
+  headers: HeaderEntry[]
+  fromHeader: string | null
 }
 
 function getResultIcon(result: string) {
@@ -110,84 +114,86 @@ function getOverallVerdict(results: AuthResult[]): {
   }
 }
 
-export function AuthResults({ authentication }: AuthResultsProps) {
+export function AuthResults({ authentication, headers, fromHeader }: AuthResultsProps) {
   const verdict = getOverallVerdict(authentication.results)
   const authHeaderInfo = getHeaderAnnotation("authentication-results")
+  const liveContext = deriveLiveAuthLookupContext(headers, authentication, fromHeader)
 
   return (
-    <Card>
-      <CardHeader>
-        <AnnotatedRow id="auth-results-header">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <ShieldCheck className="h-4 w-4 text-primary" />
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <AnnotatedRow id="auth-results-header">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+              </div>
+              Authentication Results
+              <CommentMarker id="auth-results-header" info={authHeaderInfo} />
+            </CardTitle>
+          </AnnotatedRow>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant={verdict.variant} className={verdict.className}>
+            {verdict.variant === "destructive" ? (
+              <XCircle className="h-4 w-4" />
+            ) : authentication.results.length > 0 &&
+              authentication.results.every((r) => r.result.toLowerCase() === "pass") ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <AlertTriangle className="h-4 w-4" />
+            )}
+            <AlertTitle>{verdict.title}</AlertTitle>
+            <AlertDescription>{verdict.description}</AlertDescription>
+          </Alert>
+
+          {authentication.server && (
+            <div className="text-xs text-muted-foreground">
+              Evaluated by: <span className="font-mono font-medium">{authentication.server}</span>
             </div>
-            Authentication Results
-            <CommentMarker id="auth-results-header" info={authHeaderInfo} />
-          </CardTitle>
-        </AnnotatedRow>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Overall verdict */}
-        <Alert variant={verdict.variant} className={verdict.className}>
-          {verdict.variant === "destructive" ? (
-            <XCircle className="h-4 w-4" />
-          ) : authentication.results.length > 0 &&
-            authentication.results.every((r) => r.result.toLowerCase() === "pass") ? (
-            <CheckCircle2 className="h-4 w-4" />
-          ) : (
-            <AlertTriangle className="h-4 w-4" />
           )}
-          <AlertTitle>{verdict.title}</AlertTitle>
-          <AlertDescription>{verdict.description}</AlertDescription>
-        </Alert>
 
-        {/* Auth server */}
-        {authentication.server && (
-          <div className="text-xs text-muted-foreground">
-            Evaluated by: <span className="font-mono font-medium">{authentication.server}</span>
-          </div>
-        )}
-
-        {/* Individual results */}
-        {authentication.results.length > 0 && (
-          <Accordion type="multiple" defaultValue={authentication.results.map((_, i) => String(i))}>
-            {authentication.results.map((result, i) => {
-              const cardInfo = getCardAnnotation(result.method)
-              return (
-                <AccordionItem key={i} value={String(i)}>
-                  <AnnotatedRow id={`auth-detail-${result.method}-${i}`}>
-                    <div className="flex items-center gap-2">
-                      <AccordionTrigger className="flex-1">
-                        <div className="flex items-center gap-2">
-                          {getResultIcon(result.result)}
-                          <span className="font-mono font-medium uppercase">{result.method}</span>
-                          {getResultBadge(result.result)}
-                        </div>
-                      </AccordionTrigger>
-                      {cardInfo && (
-                        <CommentMarker id={`auth-detail-${result.method}-${i}`} info={cardInfo} />
-                      )}
-                    </div>
-                    <AccordionContent>
-                      <div className="space-y-2">
+          {authentication.results.length > 0 && (
+            <Accordion type="multiple" defaultValue={authentication.results.map((_, i) => String(i))}>
+              {authentication.results.map((result, i) => {
+                const cardInfo = getCardAnnotation(result.method)
+                return (
+                  <AccordionItem key={i} value={String(i)}>
+                    <AnnotatedRow id={`auth-detail-${result.method}-${i}`}>
+                      <div className="flex items-center gap-2">
+                        <AccordionTrigger className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {getResultIcon(result.result)}
+                            <span className="font-mono font-medium uppercase">{result.method}</span>
+                            {getResultBadge(result.result)}
+                          </div>
+                        </AccordionTrigger>
                         {cardInfo && (
-                          <p className="text-muted-foreground">
-                            {cardInfo.description}
-                          </p>
+                          <CommentMarker id={`auth-detail-${result.method}-${i}`} info={cardInfo} />
                         )}
-                        <div className="rounded-md bg-muted/50 p-2">
-                          <code className="font-mono text-xs break-all">{result.detail}</code>
-                        </div>
                       </div>
-                    </AccordionContent>
-                  </AnnotatedRow>
-                </AccordionItem>
-              )
-            })}
-          </Accordion>
-        )}
-      </CardContent>
-    </Card>
+                      <AccordionContent>
+                        <div className="space-y-2">
+                          {cardInfo && (
+                            <p className="text-muted-foreground">
+                              {cardInfo.description}
+                            </p>
+                          )}
+                          <div className="rounded-md bg-muted/50 p-2">
+                            <code className="font-mono text-xs break-all">{result.detail}</code>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AnnotatedRow>
+                  </AccordionItem>
+                )
+              })}
+            </Accordion>
+          )}
+        </CardContent>
+      </Card>
+
+      <LiveAuthChecks context={liveContext} />
+    </div>
   )
 }

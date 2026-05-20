@@ -230,7 +230,11 @@ function HeaderAnalyzerInner() {
             totalDeliveryTime={parsed.totalDeliveryTime}
           />
 
-          <AuthResults authentication={parsed.authentication} />
+          <AuthResults
+            authentication={parsed.authentication}
+            headers={parsed.headers}
+            fromHeader={parsed.summary.from}
+          />
 
           <ProviderHeadersCard headers={parsed.headers} />
 
