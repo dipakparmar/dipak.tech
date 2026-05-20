@@ -37,7 +37,6 @@ import type {
     LocateOptions,
     LocationEvent,
     Marker,
-    MarkerCluster,
     PointExpression,
     Polygon,
     Polyline,
@@ -93,6 +92,10 @@ import {
 } from "react-leaflet"
 import type { MarkerClusterGroupProps } from "react-leaflet-markercluster"
 import "react-leaflet-markercluster/styles"
+
+type MarkerClusterType = Parameters<
+    NonNullable<MarkerClusterGroupProps["iconCreateFunction"]>
+>[0]
 
 const LeafletMapContainer = dynamic(
     async () => (await import("react-leaflet")).MapContainer,
@@ -555,7 +558,7 @@ function MapMarkerClusterGroup({
     if (!L) return null
 
     const iconCreateFunction = icon
-        ? (cluster: MarkerCluster) => {
+        ? (cluster: MarkerClusterType) => {
               const markerCount = cluster.getChildCount()
               const iconNode = icon(markerCount)
               return L.divIcon({
