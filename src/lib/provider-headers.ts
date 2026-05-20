@@ -38,6 +38,8 @@ export interface ProviderHeaderDetection {
 
 const SALESFORCE_EMAIL_HEADER_DOC =
   'https://developer.salesforce.com/docs/atlas.en-us.pages.meta/pages/pages_compref_messaging_emailHeader.htm'
+const SALESFORCE_SYSTEM_EMAIL_HELP =
+  'https://help.salesforce.com/s/articleView?id=000386477&language=en_US&type=1'
 const SALESFORCE_ORG_ID_HELP =
   'https://help.salesforce.com/s/articleView?id=005167069&language=en_US&type=1'
 const SALESFORCE_TLS_HELP =
@@ -536,6 +538,7 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         why: 'One of the most useful headers for allowlisting or confirming which Salesforce org generated the message.',
         howToRead: 'Expect a Salesforce org ID such as 00D.... Compare it against the org you expect.',
         references: [
+          { label: 'Salesforce system email help', url: SALESFORCE_SYSTEM_EMAIL_HELP },
           { label: 'Salesforce Help', url: SALESFORCE_ORG_ID_HELP },
           { label: 'Salesforce developer docs', url: SALESFORCE_EMAIL_HEADER_DOC }
         ]
@@ -547,6 +550,7 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         why: 'Helps identify which Salesforce user action or automation context caused the email to be sent.',
         howToRead: 'Expect a Salesforce user ID. Most useful during auditing or incident response.',
         references: [
+          { label: 'Salesforce system email help', url: SALESFORCE_SYSTEM_EMAIL_HELP },
           { label: 'Salesforce Help', url: SALESFORCE_ORG_ID_HELP },
           { label: 'Salesforce developer docs', url: SALESFORCE_EMAIL_HEADER_DOC }
         ]
@@ -565,7 +569,10 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         description: 'Salesforce record ID associated with the email trigger.',
         why: 'Can link the message back to a specific Case, Opportunity, or other Salesforce record.',
         howToRead: 'Expect a Salesforce record ID. Use the object prefix to infer the record type if needed.',
-        references: [{ label: 'Observed header example', url: SALESFORCE_OBSERVED_ENTITY_SOURCE }]
+        references: [
+          { label: 'Salesforce system email help', url: SALESFORCE_SYSTEM_EMAIL_HELP },
+          { label: 'Observed header example', url: SALESFORCE_OBSERVED_ENTITY_SOURCE }
+        ]
       },
       {
         exact: 'x-sfdc-correlation-id',
@@ -597,7 +604,19 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         description: 'Salesforce trigger or email category.',
         why: 'Helps explain what workflow or product event caused the email to send.',
         howToRead: 'Look for category names such as workflowActionAlert or other internal Salesforce labels.',
-        references: [{ label: 'Trailblazer community example', url: SALESFORCE_EMAIL_CATEGORY_SOURCE }]
+        references: [
+          { label: 'Salesforce system email help', url: SALESFORCE_SYSTEM_EMAIL_HELP },
+          { label: 'Trailblazer community example', url: SALESFORCE_EMAIL_CATEGORY_SOURCE }
+        ]
+      },
+      {
+        exact: 'x-sfdc-orgtype',
+        title: 'X-SFDC-ORGTYPE',
+        description: 'Salesforce org type for the sending environment.',
+        why: 'Useful when you need to distinguish Free or Trial org traffic from other Salesforce environments.',
+        howToRead:
+          'This header only appears for Free or Trial orgs. Its absence does not rule out Salesforce; production, sandbox, and developer org mail typically omit it.',
+        references: [{ label: 'Salesforce system email help', url: SALESFORCE_SYSTEM_EMAIL_HELP }]
       },
       {
         exact: 'x-sfdc-interface',

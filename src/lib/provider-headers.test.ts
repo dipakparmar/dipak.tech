@@ -104,9 +104,11 @@ describe("provider header detection", () => {
   test("returns references for expanded Salesforce relay and TLS headers", () => {
     const relayGuide = getProviderHeaderGuide("X-SFDCOrgRelay", "00DA0000000KLks")
     const verifiedGuide = getProviderHeaderGuide("X-SFDC-TLS-VERIFIED", "yes")
+    const orgTypeGuide = getProviderHeaderGuide("X-SFDC-ORGTYPE", "FREE")
 
     expect(relayGuide?.references?.[0]?.url).toContain("spiceworks.com")
     expect(verifiedGuide?.references?.[0]?.url).toContain("my.site.com")
+    expect(orgTypeGuide?.references?.[0]?.url).toContain("salesforce.com")
   })
 
   test("returns references for SFMC stack header", () => {
