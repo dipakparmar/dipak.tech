@@ -20,7 +20,8 @@
     "format": "prettier --write ./src",
     "postbuild": "next-sitemap",
     "upgrade": "bunx @next/codemod@canary upgrade latest",
-    "analyze": "next experimental-analyze"
+    "analyze": "next experimental-analyze",
+    "knip": "knip"
   },
   "dependencies": {
     "@apollo/client": "^4.0.11",
@@ -82,17 +83,18 @@
     "@types/leaflet-draw": "^1.0.13",
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/mdx": "2.0.13",
-    "@types/node": "^25",
+    "@types/node": "^25.8.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "^10",
     "eslint-config-next": "16.2.6",
+    "knip": "^6.14.1",
     "next-sitemap": "4.2.3",
     "postcss": "^8",
     "prettier": "^3.3.3",
     "react-grab": "^0.1.21",
     "tailwindcss": "^4.1.18",
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   },
   "prettier": {
     "arrowParens": "always",
