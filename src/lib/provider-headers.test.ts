@@ -101,6 +101,31 @@ describe("provider header detection", () => {
     expect(hubspotGuide?.references?.[0]?.url).toContain("hubspot.com")
   })
 
+  test("detects expanded Microsoft 365 transport headers", () => {
+    const matches = detectProviderHeaders([
+      { name: "X-MS-PublicTrafficType", value: "Email" },
+      { name: "X-MS-Exchange-SenderADCheck", value: "1" },
+      { name: "X-MS-Exchange-CrossTenant-AuthAs", value: "Internal" },
+      { name: "X-MS-Exchange-Antispam-MessageData-0", value: "opaque-chunk" }
+    ])
+
+    expect(matches).toHaveLength(1)
+    expect(matches[0]?.providerId).toBe("microsoft365")
+    expect(matches[0]?.matchedHeaders).toHaveLength(4)
+  })
+
+  test("detects Zoho Mail receiver-side headers", () => {
+    const matches = detectProviderHeaders([
+      { name: "X-ZohoMail-DKIM", value: "pass (identity @example.test)" },
+      { name: "Authentication-Results", value: "mx.zohomail.com; dkim=pass; spf=pass; dmarc=pass;" },
+      { name: "ARC-Seal", value: "i=1; a=rsa-sha256; d=zohomail.com; s=zohoarc; cv=pass;" }
+    ])
+
+    expect(matches).toHaveLength(1)
+    expect(matches[0]?.providerId).toBe("zoho-mail")
+    expect(matches[0]?.matchedHeaders).toHaveLength(3)
+  })
+
   test("returns references for expanded Salesforce relay and TLS headers", () => {
     const relayGuide = getProviderHeaderGuide("X-SFDCOrgRelay", "00DA0000000KLks")
     const verifiedGuide = getProviderHeaderGuide("X-SFDC-TLS-VERIFIED", "yes")
@@ -115,5 +140,15 @@ describe("provider header detection", () => {
     const guide = getProviderHeaderGuide("X-SFMC-Stack", "S1")
 
     expect(guide?.references?.[0]?.url).toContain("youtube.com")
+  })
+
+  test("returns Zoho Mail guide for Zoho-stamped authentication results", () => {
+    const guide = getProviderHeaderGuide(
+      "Authentication-Results",
+      "mx.zohomail.com; dkim=pass; spf=pass; dmarc=pass;"
+    )
+
+    expect(guide?.title).toBe("Authentication-Results from mx.zohomail.com")
+    expect(guide?.references?.[0]?.url).toContain("zoho.com")
   })
 })

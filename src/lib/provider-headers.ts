@@ -107,6 +107,12 @@ const MICROSOFT_MESSAGE_TRACE_DOC =
   'https://learn.microsoft.com/en-us/exchange/monitoring/trace-an-email-message/message-trace-modern-eac'
 const HUBSPOT_EMAIL_SENDING_DOC =
   'https://knowledge.hubspot.com/marketing-email/understand-email-sending-in-hubspot'
+const ZOHO_MAIL_HEADERS_DOC =
+  'https://www.zoho.com/mail/help/mail-options.html'
+const ZOHO_MAIL_API_HEADERS_DOC =
+  'https://www.zoho.com/mail/help/api/get-email-header.html'
+const ZOHO_DKIM_DOC =
+  'https://www.zoho.com/mail/help/adminconsole/dkim-configuration.html'
 
 const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
   {
@@ -448,6 +454,30 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         references: [{ label: 'Microsoft anti-spam headers docs', url: MICROSOFT_HEADERS_DOC }]
       },
       {
+        exact: 'x-ms-publictraffictype',
+        title: 'X-MS-PublicTrafficType',
+        description: 'Microsoft classification for the broad message traffic type.',
+        why: 'Provides quick context such as Email versus meeting-related transport classes.',
+        howToRead: 'Treat the value as a transport label, not a spam verdict.',
+        references: [{ label: 'Microsoft anti-spam headers docs', url: MICROSOFT_HEADERS_DOC }]
+      },
+      {
+        exact: 'x-ms-traffictypediagnostic',
+        title: 'X-MS-TrafficTypeDiagnostic',
+        description: 'Microsoft transport diagnostic chain for message classification.',
+        why: 'Useful when reconstructing which Microsoft hosts handled the message and what traffic type they assigned.',
+        howToRead: 'Read it as host-to-classification pairs rather than an end-user facing status.',
+        references: [{ label: 'Microsoft anti-spam headers docs', url: MICROSOFT_HEADERS_DOC }]
+      },
+      {
+        exact: 'x-ms-office365-filtering-correlation-id',
+        title: 'X-MS-Office365-Filtering-Correlation-Id',
+        description: 'Microsoft filtering correlation identifier.',
+        why: 'Helpful when correlating the delivered message with Exchange Online filtering events and support traces.',
+        howToRead: 'Treat it as an opaque trace ID.',
+        references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      },
+      {
         exact: 'x-microsoft-antispam-mailbox-delivery',
         title: 'X-Microsoft-Antispam-Mailbox-Delivery',
         description: 'Mailbox-level Microsoft delivery verdict.',
@@ -464,11 +494,67 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
       },
       {
+        exact: 'x-ms-exchange-senderadcheck',
+        title: 'X-MS-Exchange-SenderADCheck',
+        description: 'Microsoft sender directory validation result.',
+        why: 'Shows whether Exchange Online validated the sender against directory context during transport.',
+        howToRead: 'Common values are 1 or 0. Treat it as an internal validation signal, not a full auth verdict.',
+        references: [{ label: 'Microsoft anti-spam headers docs', url: MICROSOFT_HEADERS_DOC }]
+      },
+      {
+        exact: 'x-ms-exchange-antispam-relay',
+        title: 'X-MS-Exchange-Antispam-Relay',
+        description: 'Microsoft relay classification flag used during anti-spam processing.',
+        why: 'Adds context about whether Exchange treated the message as relayed in the filtering pipeline.',
+        howToRead: 'Interpret it as an internal transport flag rather than a user-facing spam score.',
+        references: [{ label: 'Microsoft anti-spam headers docs', url: MICROSOFT_HEADERS_DOC }]
+      },
+      {
+        exact: 'x-ms-exchange-antispam-messagedata-chunkcount',
+        title: 'X-MS-Exchange-Antispam-MessageData-ChunkCount',
+        description: 'Count of Microsoft anti-spam metadata chunks attached to the message.',
+        why: 'Explains whether additional chunked anti-spam data headers should be present.',
+        howToRead: 'The value is the number of companion X-MS-Exchange-Antispam-MessageData-* headers.',
+        references: [{ label: 'Microsoft anti-spam headers docs', url: MICROSOFT_HEADERS_DOC }]
+      },
+      {
+        prefix: 'x-ms-exchange-antispam-messagedata-',
+        title: 'X-MS-Exchange-Antispam-MessageData-*',
+        description: 'Chunked Microsoft anti-spam metadata payload.',
+        why: 'Marks that Exchange attached internal anti-spam analysis data to the message.',
+        howToRead: 'Treat the value as opaque provider metadata unless you are working with Microsoft support tooling.',
+        references: [{ label: 'Microsoft anti-spam headers docs', url: MICROSOFT_HEADERS_DOC }]
+      },
+      {
         exact: 'x-ms-exchange-crosstenant-id',
         title: 'X-MS-Exchange-CrossTenant-Id',
         description: 'Microsoft tenant identifier.',
         why: 'Can reveal the tenant context involved in message flow.',
         howToRead: 'Usually a GUID representing the tenant.',
+        references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      },
+      {
+        exact: 'x-originatororg',
+        title: 'X-OriginatorOrg',
+        description: 'Originating Microsoft 365 organization domain label.',
+        why: 'Helpful for identifying which tenant or accepted domain the message originated from.',
+        howToRead: 'Use it as tenant context, not as a standalone trust signal.',
+        references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      },
+      {
+        exact: 'x-ms-exchange-crosstenant-authas',
+        title: 'X-MS-Exchange-CrossTenant-AuthAs',
+        description: 'Microsoft cross-tenant authentication role for the message flow.',
+        why: 'Explains whether Microsoft treated the sender as Internal, Anonymous, or another auth class.',
+        howToRead: 'Focus on the role name to understand transport trust context.',
+        references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      },
+      {
+        exact: 'x-ms-exchange-crosstenant-authsource',
+        title: 'X-MS-Exchange-CrossTenant-AuthSource',
+        description: 'Microsoft host that supplied cross-tenant authentication context.',
+        why: 'Useful when tracing which Exchange Online server stamped the auth state.',
+        howToRead: 'Usually a Microsoft host name.',
         references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
       },
       {
@@ -480,12 +566,104 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
       },
       {
+        exact: 'x-ms-exchange-crosstenant-fromentityheader',
+        title: 'X-MS-Exchange-CrossTenant-FromEntityHeader',
+        description: 'Microsoft classification of the originating entity type.',
+        why: 'Adds context about whether the sender was treated as hosted, on-premises, or another source class.',
+        howToRead: 'Read the value as a source-category label.',
+        references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      },
+      {
+        exact: 'x-ms-exchange-crosstenant-mailboxtype',
+        title: 'X-MS-Exchange-CrossTenant-MailboxType',
+        description: 'Mailbox type involved in Microsoft cross-tenant transport.',
+        why: 'Useful for distinguishing hosted mailbox flows from other tenant mailbox types.',
+        howToRead: 'Treat it as mailbox-class metadata rather than a delivery result.',
+        references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      },
+      {
+        exact: 'x-ms-exchange-crosstenant-userprincipalname',
+        title: 'X-MS-Exchange-CrossTenant-UserPrincipalName',
+        description: 'Microsoft-stamped user principal context for the sending identity.',
+        why: 'Can help correlate the message to a tenant identity, even though the value may be obfuscated or encoded.',
+        howToRead: 'Treat the value as identity correlation data, not a human-readable username.',
+        references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      },
+      {
         exact: 'x-ms-exchange-transport-crosstenantheadersstamped',
         title: 'X-MS-Exchange-Transport-CrossTenantHeadersStamped',
         description: 'Transport server that stamped Microsoft cross-tenant headers.',
         why: 'Useful when tracing how Microsoft transport handled the message.',
         howToRead: 'Usually a host or service identifier.',
         references: [{ label: 'Microsoft message trace docs', url: MICROSOFT_MESSAGE_TRACE_DOC }]
+      }
+    ]
+  },
+  {
+    id: 'zoho-mail',
+    name: 'Zoho Mail',
+    summary:
+      'Zoho Mail adds receiver-side authentication, ARC, and message-correlation headers when it accepts and evaluates mail.',
+    note:
+      'These headers usually describe Zoho as the receiving system, not the original sender. They are useful for delivery analysis and authentication review.',
+    rules: [
+      {
+        exact: 'x-zohomail-dkim',
+        title: 'X-ZohoMail-DKIM',
+        description: 'Zoho Mail summary of the DKIM verification result.',
+        why: 'Gives a quick provider-specific view of whether Zoho accepted the DKIM signature.',
+        howToRead: 'Values such as pass indicate Zoho verified DKIM successfully for the message.',
+        references: [
+          { label: 'Zoho Mail header options', url: ZOHO_MAIL_HEADERS_DOC },
+          { label: 'Zoho DKIM configuration', url: ZOHO_DKIM_DOC }
+        ]
+      },
+      {
+        exact: 'x-zm-messageid',
+        title: 'X-ZM-MESSAGEID',
+        description: 'Zoho Mail internal message identifier.',
+        why: 'Useful for correlating the raw message with Zoho-side mailbox records or support cases.',
+        howToRead: 'Treat the value as an opaque Zoho message ID.',
+        references: [
+          { label: 'Zoho Mail header API', url: ZOHO_MAIL_API_HEADERS_DOC },
+          { label: 'Zoho Mail header options', url: ZOHO_MAIL_HEADERS_DOC }
+        ]
+      },
+      {
+        headerName: 'arc-seal',
+        valuePattern: /\bd=zohomail\.com\b/i,
+        title: 'ARC-Seal from zohomail.com',
+        description: 'Zoho Mail ARC seal over the authentication chain it observed.',
+        why: 'Shows that Zoho acted as an ARC participant and sealed the prior authentication state.',
+        howToRead: 'The d=zohomail.com tag identifies Zoho as the ARC sealer; cv shows whether the prior chain validated.',
+        references: [{ label: 'Zoho Mail header options', url: ZOHO_MAIL_HEADERS_DOC }]
+      },
+      {
+        headerName: 'arc-message-signature',
+        valuePattern: /\bd=zohomail\.com\b/i,
+        title: 'ARC-Message-Signature from zohomail.com',
+        description: 'Zoho Mail ARC signature over selected message headers.',
+        why: 'Useful when you need to confirm Zoho signed the message state it relayed onward.',
+        howToRead: 'The d=zohomail.com tag identifies Zoho as the signer.',
+        references: [{ label: 'Zoho Mail header options', url: ZOHO_MAIL_HEADERS_DOC }]
+      },
+      {
+        headerName: 'arc-authentication-results',
+        valuePattern: /\bmx\.zohomail\.com\b/i,
+        title: 'ARC-Authentication-Results from mx.zohomail.com',
+        description: 'Zoho Mail’s sealed authentication verdicts for SPF, DKIM, DMARC, and prior ARC.',
+        why: 'Captures the auth results Zoho saw at receipt time, even if later hops modify or add their own Authentication-Results headers.',
+        howToRead: 'Focus on the auth method results and the mx.zohomail.com stamping host.',
+        references: [{ label: 'Zoho Mail header options', url: ZOHO_MAIL_HEADERS_DOC }]
+      },
+      {
+        headerName: 'authentication-results',
+        valuePattern: /\bmx\.zohomail\.com\b/i,
+        title: 'Authentication-Results from mx.zohomail.com',
+        description: 'Zoho Mail authentication summary for the received message.',
+        why: 'Shows what Zoho concluded about SPF, DKIM, DMARC, and ARC when it accepted the message.',
+        howToRead: 'Read each auth method result separately; do not confuse this with the sender’s own claims.',
+        references: [{ label: 'Zoho Mail header options', url: ZOHO_MAIL_HEADERS_DOC }]
       }
     ]
   },
