@@ -47,11 +47,168 @@ export interface AuthResult {
   method: string;
   result: string;
   detail: string;
+  properties?: Record<string, string>;
+  explanation?: string;
 }
 
 export interface AuthenticationResults {
   server: string | null;
   results: AuthResult[];
+}
+
+function parseAuthResultProperties(detail: string): Record<string, string> {
+  const properties: Record<string, string> = {};
+
+  for (const match of detail.matchAll(/([a-z][a-z0-9_.-]*)=([^\s;]+)/gi)) {
+    const [, key, rawValue] = match;
+    properties[key.toLowerCase()] = rawValue;
+  }
+
+  return properties;
+}
+
+function looksLikeMicrosoftAuthStamp(
+  server: string | null,
+  headers: HeaderEntry[]
+): boolean {
+  if (
+    server &&
+    /(outlook\.com|protection\.outlook\.com|microsoft)/i.test(server)
+  ) {
+    return true;
+  }
+
+  return headers.some((header) =>
+    /^(x-microsoft-antispam|x-forefront-antispam-report|x-ms-exchange-|x-ms-office365-)/i.test(
+      header.name
+    )
+  );
+}
+
+function getMicrosoftCompauthReason(reason: string): string | null {
+  const direct: Record<string, string> = {
+    '000':
+      "DMARC failed and the domain's DMARC policy was quarantine or reject.",
+    '001':
+      'The sender lacked strong published authentication, so Microsoft treated the message as failing implicit authentication.',
+    '002':
+      'An organization policy explicitly blocks this sender/domain combination from spoofing.',
+    '010':
+      'DMARC failed for one of your own accepted domains, which usually indicates intra-org or self-spoofing.',
+    '100':
+      'SPF passed or DKIM passed, and the MAIL FROM and From domains aligned.',
+    '101': 'The message was DKIM-signed by the visible From domain.',
+    '102': 'The MAIL FROM and From domains aligned, and SPF passed.',
+    '103': 'The From domain aligned with the PTR record of the source IP.',
+    '104': 'The source IP PTR record aligned with the From domain.',
+    '108':
+      'DKIM failed only because a prior legitimate hop modified the message body.',
+    '109':
+      'No DMARC record existed, but the message still looked aligned enough to pass implicitly.',
+    '111':
+      'DMARC had a temporary or permanent error, but SPF or DKIM still aligned with the From domain.',
+    '112':
+      'A DNS timeout prevented Microsoft from retrieving the DMARC record.',
+    '115':
+      'The message came from a Microsoft 365 tenant where the From domain is an accepted domain.',
+    '116': "The From domain's MX aligned with the PTR of the connecting IP.",
+    '130':
+      'A trusted ARC sealer overrode what would otherwise have been a DMARC failure.',
+    '201':
+      "The From domain aligned with the subnet associated with the connecting IP's PTR record.",
+    '202':
+      "The From domain aligned with the domain portion of the connecting IP's PTR record.",
+    '501':
+      'DMARC was not enforced because this was treated as a valid bounce/NDR in an already-established sender-recipient relationship.',
+    '502':
+      'DMARC was not enforced because this was a valid NDR for mail sent from this organization.',
+    '601':
+      'The sending domain is one of your own accepted domains, so Microsoft treated this as self-spoofing or intra-org spoofing.',
+    '905':
+      'DMARC was not enforced because routing was too complex, such as hybrid or third-party relay flow.'
+  };
+
+  if (direct[reason]) return direct[reason];
+
+  const numeric = Number.parseInt(reason, 10);
+  if (Number.isNaN(numeric)) return null;
+  if (numeric >= 100 && numeric < 200)
+    return 'The message passed explicit or implicit composite authentication.';
+  if (numeric >= 200 && numeric < 300)
+    return 'The message soft-passed implicit composite authentication.';
+  if (numeric >= 300 && numeric < 500)
+    return 'The message was not checked for composite authentication or bypassed it.';
+  if (numeric >= 600 && numeric < 700)
+    return 'The message failed implicit composite authentication.';
+  if (numeric >= 700 && numeric < 705)
+    return 'DMARC was not enforced because Microsoft had a history of legitimate mail from this sending infrastructure.';
+  if (numeric >= 700 && numeric < 800)
+    return 'The message passed implicit composite authentication.';
+  if (numeric >= 900 && numeric < 1000)
+    return 'The message bypassed composite authentication.';
+
+  return null;
+}
+
+function getMicrosoftAuthExplanation(
+  method: string,
+  result: string,
+  properties: Record<string, string>
+): string | undefined {
+  const normalizedMethod = method.toLowerCase();
+  const normalizedResult = result.toLowerCase();
+
+  if (normalizedMethod === 'compauth') {
+    const reason = properties['reason'];
+    const reasonExplanation = reason
+      ? getMicrosoftCompauthReason(reason)
+      : null;
+
+    if (reason && reasonExplanation) {
+      return `Microsoft composite authentication returned ${normalizedResult}. Reason ${reason}: ${reasonExplanation}`;
+    }
+
+    if (reason) {
+      return `Microsoft composite authentication returned ${normalizedResult}. Reason ${reason} is Microsoft-specific composite auth detail.`;
+    }
+
+    return `Microsoft composite authentication returned ${normalizedResult}. This combines SPF, DKIM, DMARC, and other message signals using the visible From domain.`;
+  }
+
+  if (normalizedMethod === 'dmarc') {
+    const action = properties['action']?.toLowerCase();
+    if (!action) return undefined;
+
+    const explanations: Record<string, string> = {
+      none: 'Microsoft evaluated DMARC but did not enforce a failing policy action.',
+      pct_quarantine:
+        "The message failed DMARC, but Microsoft did not quarantine this sample because the sender's DMARC pct setting was below 100%.",
+      'pct.quarantine':
+        "The message failed DMARC, but Microsoft did not quarantine this sample because the sender's DMARC pct setting was below 100%.",
+      pct_reject:
+        "The message failed DMARC, but Microsoft did not reject this sample because the sender's DMARC pct setting was below 100%.",
+      'pct.reject':
+        "The message failed DMARC, but Microsoft did not reject this sample because the sender's DMARC pct setting was below 100%.",
+      permerror:
+        'Microsoft hit a permanent DMARC evaluation error, usually due to a malformed DMARC DNS record.',
+      temperror:
+        'Microsoft hit a temporary DMARC evaluation error, often DNS-related.',
+      oreject:
+        'The message failed DMARC and Microsoft enforced a reject-style outcome.'
+    };
+
+    return explanations[action] ?? `Microsoft recorded DMARC action ${action}.`;
+  }
+
+  if (normalizedMethod === 'spf' && normalizedResult === 'softfail') {
+    return "SPF softfail means the sending IP was not authorized, but the sender's SPF policy asked receivers to accept and mark the message rather than hard reject it.";
+  }
+
+  if (normalizedMethod === 'dmarc' && normalizedResult === 'bestguesspass') {
+    return 'Microsoft uses bestguesspass when no DMARC record exists but the message still looks aligned enough that it would likely pass DMARC if a record were published.';
+  }
+
+  return undefined;
 }
 
 // Main parsing function
@@ -87,7 +244,7 @@ export function parseRawHeaders(raw: string): HeaderEntry[] {
     if (line.length === 0) continue;
     // Continuation line: starts with whitespace
     if (/^\s/.test(line) && merged.length > 0) {
-      merged[merged.length - 1] += " " + line.trim();
+      merged[merged.length - 1] += ' ' + line.trim();
     } else {
       merged.push(line);
     }
@@ -95,7 +252,7 @@ export function parseRawHeaders(raw: string): HeaderEntry[] {
 
   const headers: HeaderEntry[] = [];
   for (const line of merged) {
-    const colonIndex = line.indexOf(":");
+    const colonIndex = line.indexOf(':');
     if (colonIndex === -1) continue;
     const name = line.slice(0, colonIndex).trim();
     const value = line.slice(colonIndex + 1).trim();
@@ -121,15 +278,15 @@ export function extractSummary(headers: HeaderEntry[]): EmailSummary {
   };
 
   return {
-    from: find(["From"]),
-    to: find(["To"]),
-    subject: find(["Subject"]),
-    date: find(["Date"]),
-    messageId: find(["Message-ID", "Message-Id"]),
-    mailer: find(["X-Mailer", "User-Agent"]),
-    replyTo: find(["Reply-To"]),
-    contentType: find(["Content-Type"]),
-    spamScore: find(["X-Spam-Score", "X-Spam-Status"]),
+    from: find(['From']),
+    to: find(['To']),
+    subject: find(['Subject']),
+    date: find(['Date']),
+    messageId: find(['Message-ID', 'Message-Id']),
+    mailer: find(['X-Mailer', 'User-Agent']),
+    replyTo: find(['Reply-To']),
+    contentType: find(['Content-Type']),
+    spamScore: find(['X-Spam-Score', 'X-Spam-Status'])
   };
 }
 
@@ -137,7 +294,7 @@ export function extractSummary(headers: HeaderEntry[]): EmailSummary {
 
 export function extractHops(headers: HeaderEntry[]): Hop[] {
   const receivedHeaders = headers.filter(
-    (h) => h.name.toLowerCase() === "received"
+    (h) => h.name.toLowerCase() === 'received'
   );
 
   // Received headers are in reverse chronological order in the raw headers
@@ -152,7 +309,7 @@ export function extractHops(headers: HeaderEntry[]): Hop[] {
     const withMatch = raw.match(/with\s+(\S+)/i);
 
     let timestamp: Date | null = null;
-    const semiIndex = raw.lastIndexOf(";");
+    const semiIndex = raw.lastIndexOf(';');
     if (semiIndex !== -1) {
       const dateStr = raw.slice(semiIndex + 1).trim();
       const parsed = new Date(dateStr);
@@ -168,7 +325,7 @@ export function extractHops(headers: HeaderEntry[]): Hop[] {
       with: withMatch ? withMatch[1] : null,
       timestamp,
       delay: null,
-      rawHeader: raw,
+      rawHeader: raw
     };
   });
 
@@ -186,19 +343,10 @@ export function extractHops(headers: HeaderEntry[]): Hop[] {
 
 // Parse Authentication-Results header
 
-export function parseAuthenticationResults(
-  headers: HeaderEntry[]
+export function parseAuthenticationResultsValue(
+  value: string
 ): AuthenticationResults {
-  const authHeader = headers.find(
-    (h) => h.name.toLowerCase() === "authentication-results"
-  );
-
-  if (!authHeader) {
-    return { server: null, results: [] };
-  }
-
-  const value = authHeader.value;
-  const parts = value.split(";").map((s) => s.trim());
+  const parts = value.split(';').map((s) => s.trim());
 
   const server = parts[0] || null;
   const results: AuthResult[] = [];
@@ -208,17 +356,51 @@ export function parseAuthenticationResults(
     if (!part) continue;
 
     // Match patterns like "spf=pass", "dkim=pass", "dmarc=pass"
-    const match = part.match(/^(\w+)\s*=\s*(\w+)/);
+    const match = part.match(/^([a-z][a-z0-9_.-]*)\s*=\s*([a-z0-9_.-]+)/i);
     if (match) {
+      const method = match[1];
+      const result = match[2];
+      const properties = parseAuthResultProperties(part);
       results.push({
-        method: match[1],
-        result: match[2],
+        method,
+        result,
         detail: part,
+        properties,
+        explanation: undefined
       });
     }
   }
 
   return { server, results };
+}
+
+export function parseAuthenticationResults(
+  headers: HeaderEntry[]
+): AuthenticationResults {
+  const authHeader = headers.find((h) =>
+    /^(authentication-results|arc-authentication-results)$/i.test(h.name)
+  );
+
+  if (!authHeader) {
+    return { server: null, results: [] };
+  }
+
+  const parsed = parseAuthenticationResultsValue(authHeader.value);
+  const isMicrosoftStamp = looksLikeMicrosoftAuthStamp(parsed.server, headers);
+
+  return {
+    server: parsed.server,
+    results: parsed.results.map((result) => ({
+      ...result,
+      explanation: isMicrosoftStamp
+        ? getMicrosoftAuthExplanation(
+            result.method,
+            result.result,
+            result.properties ?? {}
+          )
+        : result.explanation
+    }))
+  };
 }
 
 // Extract email body from raw message
@@ -249,7 +431,7 @@ export function extractBody(
     const parts = bodyRaw.split(`--${boundary}`);
 
     for (const part of parts) {
-      if (part.trim() === "" || part.trim() === "--") continue;
+      if (part.trim() === '' || part.trim() === '--') continue;
 
       // Split part headers from part body
       const partSep = part.match(/\r?\n\r?\n/);
@@ -261,17 +443,17 @@ export function extractBody(
       if (!partBody) continue;
 
       // Decode quoted-printable if needed
-      const decoded = partHeaders.includes("quoted-printable")
+      const decoded = partHeaders.includes('quoted-printable')
         ? decodeQuotedPrintable(partBody)
         : partBody;
 
-      if (partHeaders.includes("text/html")) {
+      if (partHeaders.includes('text/html')) {
         html = decoded;
-      } else if (partHeaders.includes("text/plain")) {
+      } else if (partHeaders.includes('text/plain')) {
         plain = decoded;
       }
     }
-  } else if (contentType?.toLowerCase().includes("text/html")) {
+  } else if (contentType?.toLowerCase().includes('text/html')) {
     html = bodyRaw.trim();
   } else {
     // Default to plain text
@@ -283,7 +465,7 @@ export function extractBody(
 
 function decodeQuotedPrintable(input: string): string {
   return input
-    .replace(/=\r?\n/g, "") // soft line breaks
+    .replace(/=\r?\n/g, '') // soft line breaks
     .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) =>
       String.fromCharCode(parseInt(hex, 16))
     );
@@ -295,7 +477,7 @@ export function formatDelay(ms: number): string {
   const absMs = Math.abs(ms);
 
   if (absMs < 1000) {
-    return "<1 sec";
+    return '<1 sec';
   }
 
   const totalSeconds = Math.floor(absMs / 1000);

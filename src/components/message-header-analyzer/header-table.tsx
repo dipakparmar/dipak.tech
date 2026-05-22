@@ -22,13 +22,204 @@ import {
 } from '@/components/ui/popover';
 import { Search, TableIcon } from 'lucide-react';
 import type { HeaderEntry } from '@/lib/email-header-parser';
+import { parseAuthenticationResults } from '@/lib/email-header-parser';
+import type { ProviderHeaderValueToken } from '@/lib/provider-header-values';
 import { AnnotatedRow, CommentMarker } from './annotation-components';
 import { useAnnotation } from './annotation-provider';
-import { getHeaderAnnotation } from '@/lib/header-annotations';
+import {
+  getCardAnnotation,
+  getHeaderAnnotation
+} from '@/lib/header-annotations';
 import { getProviderHeaderValueTokens } from '@/lib/provider-headers';
 
 interface HeaderTableProps {
   headers: HeaderEntry[];
+}
+
+function formatAuthPropertyLabel(key: string) {
+  return key
+    .split('.')
+    .map((segment) => {
+      const lower = segment.toLowerCase();
+      if (lower === 'smtp') return 'SMTP';
+      if (lower === 'header') return 'Header';
+      if (lower === 'mailfrom') return 'MAIL FROM';
+      if (lower === 'from') return 'From';
+      if (lower === 'dkim') return 'DKIM';
+      if (lower === 'spf') return 'SPF';
+      if (lower === 'dmarc') return 'DMARC';
+      if (lower === 'reason') return 'Reason';
+      if (lower === 'action') return 'Action';
+      return segment.length <= 3 ? segment.toUpperCase() : segment;
+    })
+    .join('.');
+}
+
+function getAuthResultGuide(method: string) {
+  if (method.toLowerCase() === 'compauth') {
+    return {
+      title: 'Composite authentication',
+      description:
+        'Microsoft-specific composite authentication that combines SPF, DKIM, DMARC, alignment, and additional message signals.',
+      howToRead:
+        'Read the verdict first, then use the reason code to understand why Microsoft trusted, downgraded, or rejected the message.'
+    };
+  }
+
+  return getCardAnnotation(method);
+}
+
+function getAuthResultMeaning(result: string) {
+  const lower = result.toLowerCase();
+
+  if (lower === 'pass') return 'The check succeeded.';
+  if (lower === 'fail' || lower === 'hardfail')
+    return 'The check failed and should be treated as a stronger trust warning.';
+  if (lower === 'softfail')
+    return 'The check failed softly. The sender was not authorized, but the policy asked receivers not to hard reject.';
+  if (lower === 'none')
+    return 'No usable authentication record or signature was available for this check.';
+  if (lower === 'neutral')
+    return 'The sender published a neutral policy, so the receiver got no clear allow or deny signal.';
+  if (lower === 'temperror')
+    return 'The check could not complete because of a temporary error, often DNS or network related.';
+  if (lower === 'permerror')
+    return 'The check could not complete because of a permanent configuration or syntax error.';
+  if (lower === 'bestguesspass')
+    return 'The receiver inferred a likely pass even though a full DMARC policy was not published.';
+
+  return `The receiver reported verdict "${result}".`;
+}
+
+function AuthHeaderValueDisplay({ header }: { header: HeaderEntry }) {
+  const [showUnparsed, setShowUnparsed] = useState(false);
+  const parsed = parseAuthenticationResults([header]);
+
+  return (
+    <div className="flex flex-wrap items-start gap-1.5">
+      {parsed.server && (
+        <span className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[11px] text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
+          {parsed.server}
+        </span>
+      )}
+      {parsed.results.map((result, index) => {
+        const guide = getAuthResultGuide(result.method);
+        const verdictMeaning = getAuthResultMeaning(result.result);
+        const isPass = result.result.toLowerCase() === 'pass';
+        const isFail = ['fail', 'hardfail', 'permerror'].includes(
+          result.result.toLowerCase()
+        );
+        const isSoft = ['softfail', 'temperror'].includes(
+          result.result.toLowerCase()
+        );
+        const chipClass = isPass
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200'
+          : isFail
+            ? 'border-red-200 bg-red-50 text-red-950 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200'
+            : isSoft
+              ? 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-200'
+              : 'border-border/70 bg-muted/35 text-muted-foreground';
+
+        return (
+          <Popover key={`${result.method}-${index}`}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={`inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-[11px] transition-colors hover:opacity-90 ${chipClass}`}
+              >
+                <span className="uppercase">{result.method}</span>
+                <span className="mx-0.5 text-muted-foreground">=</span>
+                <span className="font-semibold uppercase">{result.result}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[22rem]">
+              <PopoverHeader>
+                <PopoverTitle className="break-words leading-snug pr-4">
+                  {guide?.title ?? result.method.toUpperCase()}
+                </PopoverTitle>
+                <PopoverDescription className="font-mono text-[11px] break-all text-muted-foreground/90">
+                  {result.detail}
+                </PopoverDescription>
+              </PopoverHeader>
+              <div className="space-y-2 text-xs">
+                {guide && (
+                  <div>
+                    <div className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                      What this checks
+                    </div>
+                    <p className="text-muted-foreground">{guide.description}</p>
+                  </div>
+                )}
+                <div>
+                  <div className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                    Result
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-md border px-1.5 py-0.5 font-mono text-[11px] uppercase ${chipClass}`}
+                    >
+                      {result.result}
+                    </span>
+                    <p className="text-muted-foreground">{verdictMeaning}</p>
+                  </div>
+                </div>
+                {result.explanation && (
+                  <div>
+                    <div className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                      Why it matters here
+                    </div>
+                    <p className="text-muted-foreground">
+                      {result.explanation}
+                    </p>
+                  </div>
+                )}
+                {result.properties &&
+                  Object.keys(result.properties).length > 0 && (
+                    <div>
+                      <div className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+                        Parsed fields
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(result.properties).map(
+                          ([key, value]) => (
+                            <span
+                              key={`${result.method}-${key}`}
+                              className="rounded-md border border-border/70 bg-muted/35 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+                            >
+                              {formatAuthPropertyLabel(key)}={value}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+                {guide?.howToRead && (
+                  <div>
+                    <div className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-sky-600 dark:text-sky-400">
+                      How to read
+                    </div>
+                    <p className="text-muted-foreground">{guide.howToRead}</p>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+      <button
+        type="button"
+        onClick={() => setShowUnparsed((current) => !current)}
+        className="inline-flex items-center rounded-md border border-dashed border-border/80 bg-background px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+      >
+        {showUnparsed ? 'hide raw header' : 'show raw header'}
+      </button>
+      {showUnparsed && (
+        <div className="w-full rounded-md border border-border/70 bg-muted/25 px-2 py-2 font-mono text-[11px] leading-relaxed break-all text-muted-foreground">
+          {header.value}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ParsedValueToken({
@@ -36,8 +227,20 @@ function ParsedValueToken({
   token
 }: {
   raw: string;
-  token: ReturnType<typeof getProviderHeaderValueTokens>[number];
+  token: ProviderHeaderValueToken;
 }) {
+  const displayValue = token.value || '(blank)';
+  const tokenLabel =
+    token.kind === 'tag' ? (
+      <>
+        <span className="text-amber-700 dark:text-amber-300">{token.key}</span>
+        <span className="text-muted-foreground">:</span>
+        <span className="font-semibold">{displayValue}</span>
+      </>
+    ) : (
+      <span className="font-semibold">{token.raw}</span>
+    );
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -45,16 +248,14 @@ function ParsedValueToken({
           type="button"
           className="inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-left font-mono text-[11px] text-amber-950 transition-colors hover:border-amber-300 hover:bg-amber-100 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-200 dark:hover:bg-amber-900/50"
         >
-          <span className="text-amber-700 dark:text-amber-300">
-            {token.key}
-          </span>
-          <span className="text-muted-foreground">:</span>
-          <span className="font-semibold">{token.value || '∅'}</span>
+          {tokenLabel}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80">
         <PopoverHeader>
-          <PopoverTitle>{token.guide.title}</PopoverTitle>
+          <PopoverTitle className="break-words leading-snug pr-4">
+            {token.guide.title}
+          </PopoverTitle>
           <PopoverDescription className="font-mono text-[11px] break-all text-muted-foreground/90">
             {raw}
           </PopoverDescription>
@@ -106,6 +307,14 @@ function ParsedValueToken({
 }
 
 function HeaderValueDisplay({ header }: { header: HeaderEntry }) {
+  const [showRawHeader, setShowRawHeader] = useState(false);
+  const isAuthHeader =
+    /^(authentication-results|arc-authentication-results)$/i.test(header.name);
+
+  if (isAuthHeader) {
+    return <AuthHeaderValueDisplay header={header} />;
+  }
+
   const tokens = getProviderHeaderValueTokens(header.name, header.value);
 
   if (tokens.length === 0) {
@@ -119,7 +328,7 @@ function HeaderValueDisplay({ header }: { header: HeaderEntry }) {
     .filter(Boolean);
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap items-start gap-1.5">
       {rawTokens.map((rawToken, index) => {
         const token = tokenByRaw.get(rawToken);
 
@@ -142,6 +351,18 @@ function HeaderValueDisplay({ header }: { header: HeaderEntry }) {
           />
         );
       })}
+      <button
+        type="button"
+        onClick={() => setShowRawHeader((current) => !current)}
+        className="inline-flex items-center rounded-md border border-dashed border-border/80 bg-background px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+      >
+        {showRawHeader ? 'hide raw header' : 'show raw header'}
+      </button>
+      {showRawHeader && (
+        <div className="w-full rounded-md border border-border/70 bg-muted/25 px-2 py-2 font-mono text-[11px] leading-relaxed break-all text-muted-foreground">
+          {header.value}
+        </div>
+      )}
     </div>
   );
 }
