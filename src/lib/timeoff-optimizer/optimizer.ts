@@ -8,13 +8,14 @@ import type {
   PlanSummary,
 } from "./types"
 
-// ---------------------------------------------------------------------------
-// Strategy table. Block lengths are inclusive [min, max]; spacing is the
-// minimum gap, in days, between the end of one block and the start of the
-// next (exclusive of both endpoints, i.e. next.start >= prev.end + 1 + spacing
-// implemented below as next.startIndex - prev.endIndex - 1 >= spacing).
-// ---------------------------------------------------------------------------
-
+/**
+ * Strategy tuning for candidate break selection.
+ *
+ * Block lengths are inclusive `[min, max]`. `spacing` is the minimum gap, in
+ * days, between the end of one block and the start of the next, excluding both
+ * endpoints. In index terms, this is enforced as
+ * `next.startIndex - prev.endIndex - 1 >= spacing`.
+ */
 interface StrategyConfig {
   minLen: number
   maxLen: number
@@ -29,20 +30,30 @@ const STRATEGIES: Record<PlanStrategy, StrategyConfig> = {
   balanced: { minLen: 3, maxLen: 15, spacing: 21 },
 }
 
-// ---------------------------------------------------------------------------
-// Date helpers. All work is done in local time on a normalized midnight
-// instant. We deliberately avoid Date.UTC and any timezone arithmetic so the
-// emitted YYYY-MM-DD strings match what the user sees on the wall calendar.
-// ---------------------------------------------------------------------------
+/**
+ * Date helpers operate entirely in local time on normalized midnight values.
+ *
+ * The optimizer deliberately avoids `Date.UTC` and timezone arithmetic so the
+ * emitted `YYYY-MM-DD` strings always match the user's wall-calendar view.
+ */
 
+/**
+ * Zero-pads a number for local ISO date formatting.
+ */
 function pad2(n: number): string {
   return n < 10 ? "0" + n : String(n)
 }
 
+/**
+ * Formats a local calendar date as `YYYY-MM-DD`.
+ */
 function toIso(d: Date): string {
   return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate())
 }
 
+/**
+ * Parses a `YYYY-MM-DD` string into a local-midnight `Date`.
+ */
 function fromIso(s: string): Date {
   // Expect 'YYYY-MM-DD'. Construct via numeric constructor so we stay in
   // local time and never trip on a stray 'Z' or TZ offset.
@@ -52,27 +63,38 @@ function fromIso(s: string): Date {
   return new Date(y, m - 1, d, 0, 0, 0, 0)
 }
 
+/**
+ * Returns a copy of `d` shifted by `n` calendar days in local time.
+ */
 function addDays(d: Date, n: number): Date {
   const copy = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
   copy.setDate(copy.getDate() + n)
   return copy
 }
 
+/**
+ * Returns the current day normalized to local midnight.
+ */
 function startOfToday(): Date {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
 }
 
-// ---------------------------------------------------------------------------
-// Window construction & day annotation.
-// ---------------------------------------------------------------------------
-
+/**
+ * Normalized planning window for a single calendar year.
+ */
 interface WindowInfo {
   start: Date
   end: Date
   days: DayPlan[]
 }
 
+/**
+ * Builds the planning window and day list for the requested year.
+ *
+ * For the current year, the window starts at today rather than January 1 so
+ * already-past dates are excluded from planning.
+ */
 function buildWindow(year: number): WindowInfo {
   const today = startOfToday()
   const currentYear = today.getFullYear()
@@ -94,6 +116,9 @@ function buildWindow(year: number): WindowInfo {
   return { start, end: dec31, days }
 }
 
+/**
+ * Annotates days that match public holidays.
+ */
 function applyHolidays(days: DayPlan[], holidays: { date: string; name: string }[] | undefined): void {
   if (!holidays || holidays.length === 0) return
   // First-match wins. Build a map from date string to the first occurrence.
@@ -110,6 +135,9 @@ function applyHolidays(days: DayPlan[], holidays: { date: string; name: string }
   }
 }
 
+/**
+ * Annotates days that match caller-provided custom days off.
+ */
 function applyCompanyDays(days: DayPlan[], customDaysOff: CustomDayOff[] | undefined): void {
   if (!customDaysOff || customDaysOff.length === 0) return
   // Build (date -> name) honoring first-match wins, processing entries in the
@@ -141,10 +169,9 @@ function applyCompanyDays(days: DayPlan[], customDaysOff: CustomDayOff[] | undef
   }
 }
 
-// ---------------------------------------------------------------------------
-// Candidate enumeration.
-// ---------------------------------------------------------------------------
-
+/**
+ * Candidate off block expressed as indexes into the planning window.
+ */
 interface Candidate {
   start: number // index into days[]
   end: number // inclusive
@@ -153,10 +180,16 @@ interface Candidate {
   efficiency: number // length / ptoCost
 }
 
+/**
+ * Returns whether a day is already off without spending PTO.
+ */
 function isFixedOff(day: DayPlan): boolean {
   return day.isWeekend || day.isPublicHoliday || day.isCustomDayOff
 }
 
+/**
+ * Enumerates candidate PTO blocks that fit the selected strategy and budget.
+ */
 function enumerateCandidates(
   days: DayPlan[],
   cfg: StrategyConfig,
@@ -190,8 +223,10 @@ function enumerateCandidates(
   return out
 }
 
-// Domination pruning. For candidates that share a start index, drop those
-// dominated by another with end >= ours, ptoCost <= ours, and length >= ours.
+/**
+ * Removes candidates that are strictly dominated by another candidate with the
+ * same start index.
+ */
 function prune(cands: Candidate[]): Candidate[] {
   if (cands.length === 0) return cands
   const byStart = new Map<number, Candidate[]>()
@@ -220,10 +255,9 @@ function prune(cands: Candidate[]): Candidate[] {
   return kept
 }
 
-// ---------------------------------------------------------------------------
-// Main selection: greedy by efficiency with deterministic tiebreakers.
-// ---------------------------------------------------------------------------
-
+/**
+ * Greedily selects non-overlapping candidates using deterministic tiebreakers.
+ */
 function selectBlocks(
   candidates: Candidate[],
   spacing: number,
@@ -276,10 +310,9 @@ function selectBlocks(
   return chosen
 }
 
-// ---------------------------------------------------------------------------
-// Mark phase: stamp isDayOff and inOffBlock from the selected candidates.
-// ---------------------------------------------------------------------------
-
+/**
+ * Applies the chosen candidate blocks onto the day list and returns PTO spent.
+ */
 function markChosen(days: DayPlan[], chosen: Candidate[]): number {
   let ptoSpent = 0
   for (const c of chosen) {
@@ -295,11 +328,12 @@ function markChosen(days: DayPlan[], chosen: Candidate[]): number {
   return ptoSpent
 }
 
-// ---------------------------------------------------------------------------
-// Forced extension + forced segments. Spends remaining PTO regardless of
-// strategy block-length preference, because budget overrides preference.
-// ---------------------------------------------------------------------------
-
+/**
+ * Extends existing breaks forward with any remaining PTO on working days.
+ *
+ * This phase intentionally spends remaining PTO even if doing so falls outside
+ * the preferred block lengths from the selected strategy.
+ */
 function extendBreaksForward(days: DayPlan[], remaining: number): number {
   if (remaining <= 0) return 0
   const n = days.length
@@ -334,6 +368,12 @@ function extendBreaksForward(days: DayPlan[], remaining: number): number {
   return spent
 }
 
+/**
+ * Emits new break segments when PTO remains after extending existing breaks.
+ *
+ * This is the final fallback for spending leftover PTO when budget takes
+ * precedence over strategy shape preferences.
+ */
 function emitForcedSegments(days: DayPlan[], remaining: number): number {
   if (remaining <= 0) return 0
   const n = days.length
@@ -361,6 +401,9 @@ function emitForcedSegments(days: DayPlan[], remaining: number): number {
   return spent
 }
 
+/**
+ * Spends any remaining PTO after the main selection pass.
+ */
 function spendRemaining(days: DayPlan[], remaining: number): void {
   // Loop extend + emit until no progress. Spec invariant 5.
   let budget = remaining
@@ -373,11 +416,11 @@ function spendRemaining(days: DayPlan[], remaining: number): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Build the OffBlock[] view from the marked days[]. A "break" is any maximal
-// contiguous run of inOffBlock=true days.
-// ---------------------------------------------------------------------------
-
+/**
+ * Builds the `OffBlock[]` view from marked days.
+ *
+ * A break is any maximal contiguous run where `inOffBlock` is `true`.
+ */
 function collectBreaks(days: DayPlan[]): OffBlock[] {
   const out: OffBlock[] = []
   const n = days.length
@@ -421,6 +464,9 @@ function collectBreaks(days: DayPlan[]): OffBlock[] {
   return out
 }
 
+/**
+ * Aggregates summary counters from the computed break list.
+ */
 function computeStats(breaks: OffBlock[]): PlanSummary {
   let totalDayOffs = 0
   let totalHolidays = 0
@@ -443,10 +489,15 @@ function computeStats(breaks: OffBlock[]): PlanSummary {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Public API.
-// ---------------------------------------------------------------------------
-
+/**
+ * Computes a time-off plan for the requested year, budget, and strategy.
+ *
+ * The optimizer works entirely in local calendar time and returns both the
+ * annotated day list and the derived break summary.
+ *
+ * @param params - Planner inputs including budget, strategy, holidays, and custom days off.
+ * @returns The computed day-by-day plan plus summarized break data.
+ */
 export function optimizeDays(params: PlanInputs): PlanResult {
   const strategy: PlanStrategy = params.strategy ?? "balanced"
   const cfg = STRATEGIES[strategy] ?? STRATEGIES.balanced
@@ -478,6 +529,13 @@ export function optimizeDays(params: PlanInputs): PlanResult {
   return { days, breaks, stats }
 }
 
+/**
+ * Asynchronously computes a time-off plan after yielding once to the event
+ * loop so the UI can render loading feedback first.
+ *
+ * @param params - Planner inputs including budget, strategy, holidays, and custom days off.
+ * @returns A promise that resolves to the computed plan.
+ */
 export function optimizeDaysAsync(params: PlanInputs): Promise<PlanResult> {
   return new Promise((resolve) => {
     // Yield once so the UI can paint the spinner before we burn the main
