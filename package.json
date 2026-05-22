@@ -62,6 +62,7 @@
     "pkijs": "^3.3.3",
     "radix-ui": "^1.4.3",
     "react": "19.2.6",
+    "react-day-picker": "^10.0.1",
     "react-dom": "19.2.6",
     "react-leaflet": "^5.0.0",
     "react-leaflet-markercluster": "^5.0.0-rc.0",

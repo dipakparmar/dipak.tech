@@ -1,5 +1,5 @@
 import React from "react"
-import { Apple, Globe, KeyRound, Mail, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
+import { Apple, CalendarHeart, Globe, KeyRound, Mail, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
 import { GitHubIcon } from "@/components/icons"
 import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "schema-dts"
 import { personReference, personSchema } from "@/lib/schema"
@@ -180,9 +180,21 @@ const tools: Tool[] = [
     iconBg: "bg-rose-500/10",
     tagBg: "bg-rose-500/10 text-rose-500",
     hoverBg: "hover:bg-rose-500/10",
-    span: 2,
     stat: "Client-side · ES256 signing via Web Crypto",
     tags: ["JWT", "ES256", "Sign in with Apple"],
+  },
+  {
+    title: "Time-off Optimizer",
+    description: "Maximize your PTO by stacking days off around weekends, holidays, and company days",
+    path: "timeoff-optimizer",
+    icon: CalendarHeart,
+    color: "text-pink-500",
+    borderColor: "hover:border-pink-500/30",
+    iconBg: "bg-pink-500/10",
+    tagBg: "bg-pink-500/10 text-pink-500",
+    hoverBg: "hover:bg-pink-500/10",
+    stat: "Client-side · 5 strategies, 200+ countries",
+    tags: ["PTO", "Holidays", "ICS Export"],
   },
 ]
 

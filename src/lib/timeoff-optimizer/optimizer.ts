@@ -1,0 +1,489 @@
+import type {
+  CustomDayOff,
+  DayPlan,
+  OffBlock,
+  PlanInputs,
+  PlanResult,
+  PlanStrategy,
+  PlanSummary,
+} from "./types"
+
+// ---------------------------------------------------------------------------
+// Strategy table. Block lengths are inclusive [min, max]; spacing is the
+// minimum gap, in days, between the end of one block and the start of the
+// next (exclusive of both endpoints, i.e. next.start >= prev.end + 1 + spacing
+// implemented below as next.startIndex - prev.endIndex - 1 >= spacing).
+// ---------------------------------------------------------------------------
+
+interface StrategyConfig {
+  minLen: number
+  maxLen: number
+  spacing: number
+}
+
+const STRATEGIES: Record<PlanStrategy, StrategyConfig> = {
+  longWeekends: { minLen: 3, maxLen: 4, spacing: 7 },
+  miniBreaks: { minLen: 5, maxLen: 6, spacing: 14 },
+  weekLongBreaks: { minLen: 7, maxLen: 9, spacing: 21 },
+  extendedVacations: { minLen: 10, maxLen: 15, spacing: 30 },
+  balanced: { minLen: 3, maxLen: 15, spacing: 21 },
+}
+
+// ---------------------------------------------------------------------------
+// Date helpers. All work is done in local time on a normalized midnight
+// instant. We deliberately avoid Date.UTC and any timezone arithmetic so the
+// emitted YYYY-MM-DD strings match what the user sees on the wall calendar.
+// ---------------------------------------------------------------------------
+
+function pad2(n: number): string {
+  return n < 10 ? "0" + n : String(n)
+}
+
+function toIso(d: Date): string {
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate())
+}
+
+function fromIso(s: string): Date {
+  // Expect 'YYYY-MM-DD'. Construct via numeric constructor so we stay in
+  // local time and never trip on a stray 'Z' or TZ offset.
+  const y = Number(s.slice(0, 4))
+  const m = Number(s.slice(5, 7))
+  const d = Number(s.slice(8, 10))
+  return new Date(y, m - 1, d, 0, 0, 0, 0)
+}
+
+function addDays(d: Date, n: number): Date {
+  const copy = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
+  copy.setDate(copy.getDate() + n)
+  return copy
+}
+
+function startOfToday(): Date {
+  const now = new Date()
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+}
+
+// ---------------------------------------------------------------------------
+// Window construction & day annotation.
+// ---------------------------------------------------------------------------
+
+interface WindowInfo {
+  start: Date
+  end: Date
+  days: DayPlan[]
+}
+
+function buildWindow(year: number): WindowInfo {
+  const today = startOfToday()
+  const currentYear = today.getFullYear()
+  const jan1 = new Date(year, 0, 1, 0, 0, 0, 0)
+  const dec31 = new Date(year, 11, 31, 0, 0, 0, 0)
+  const start = year === currentYear && today.getTime() > jan1.getTime() ? today : jan1
+  const days: DayPlan[] = []
+  for (let cursor = new Date(start); cursor.getTime() <= dec31.getTime(); cursor = addDays(cursor, 1)) {
+    const dow = cursor.getDay()
+    days.push({
+      date: toIso(cursor),
+      isWeekend: dow === 0 || dow === 6,
+      isDayOff: false,
+      inOffBlock: false,
+      isPublicHoliday: false,
+      isCustomDayOff: false,
+    })
+  }
+  return { start, end: dec31, days }
+}
+
+function applyHolidays(days: DayPlan[], holidays: { date: string; name: string }[] | undefined): void {
+  if (!holidays || holidays.length === 0) return
+  // First-match wins. Build a map from date string to the first occurrence.
+  const map = new Map<string, string>()
+  for (const h of holidays) {
+    if (!map.has(h.date)) map.set(h.date, h.name)
+  }
+  for (const day of days) {
+    const name = map.get(day.date)
+    if (name !== undefined) {
+      day.isPublicHoliday = true
+      day.holidayName = name
+    }
+  }
+}
+
+function applyCompanyDays(days: DayPlan[], customDaysOff: CustomDayOff[] | undefined): void {
+  if (!customDaysOff || customDaysOff.length === 0) return
+  // Build (date -> name) honoring first-match wins, processing entries in the
+  // order the caller supplied them. Single-date entries set their exact date.
+  // Recurring entries fire on every matching weekday inside [startDate, endDate].
+  const map = new Map<string, string>()
+  for (const cd of customDaysOff) {
+    if (cd.isRecurring) {
+      if (!cd.startDate || !cd.endDate || cd.weekday === undefined || cd.weekday === null) continue
+      const startD = fromIso(cd.startDate)
+      const endD = fromIso(cd.endDate)
+      if (endD.getTime() < startD.getTime()) continue
+      for (let cur = new Date(startD); cur.getTime() <= endD.getTime(); cur = addDays(cur, 1)) {
+        if (cur.getDay() === cd.weekday) {
+          const iso = toIso(cur)
+          if (!map.has(iso)) map.set(iso, cd.name)
+        }
+      }
+    } else if (cd.date) {
+      if (!map.has(cd.date)) map.set(cd.date, cd.name)
+    }
+  }
+  for (const day of days) {
+    const name = map.get(day.date)
+    if (name !== undefined) {
+      day.isCustomDayOff = true
+      day.customDayName = name
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Candidate enumeration.
+// ---------------------------------------------------------------------------
+
+interface Candidate {
+  start: number // index into days[]
+  end: number // inclusive
+  length: number
+  ptoCost: number
+  efficiency: number // length / ptoCost
+}
+
+function isFixedOff(day: DayPlan): boolean {
+  return day.isWeekend || day.isPublicHoliday || day.isCustomDayOff
+}
+
+function enumerateCandidates(
+  days: DayPlan[],
+  cfg: StrategyConfig,
+  budget: number,
+): Candidate[] {
+  const n = days.length
+  const out: Candidate[] = []
+  // For each possible start index, build candidate blocks of every allowed
+  // length. We trim blocks whose endpoints are fixed-off days because such
+  // edges should be absorbed by an adjacent block; an "honest" block starts
+  // and ends on a working day so its PTO is what literally extends the gap.
+  for (let start = 0; start < n; start++) {
+    // Skip starts that are fixed-off: those days are free, so a block that
+    // starts on one is strictly inferior to the same block starting on the
+    // next working day (same PTO, fewer days, equal or worse efficiency).
+    if (isFixedOff(days[start])) continue
+    for (let len = cfg.minLen; len <= cfg.maxLen; len++) {
+      const end = start + len - 1
+      if (end >= n) break
+      // Trim: ending on a fixed-off day is wasteful in the same sense.
+      if (isFixedOff(days[end])) continue
+      let ptoCost = 0
+      for (let i = start; i <= end; i++) {
+        if (!isFixedOff(days[i])) ptoCost++
+      }
+      if (ptoCost <= 0) continue // invariant 1: skip useless candidates
+      if (ptoCost > budget) continue // invariant 2: cap by budget
+      out.push({ start, end, length: len, ptoCost, efficiency: len / ptoCost })
+    }
+  }
+  return out
+}
+
+// Domination pruning. For candidates that share a start index, drop those
+// dominated by another with end >= ours, ptoCost <= ours, and length >= ours.
+function prune(cands: Candidate[]): Candidate[] {
+  if (cands.length === 0) return cands
+  const byStart = new Map<number, Candidate[]>()
+  for (const c of cands) {
+    const arr = byStart.get(c.start)
+    if (arr) arr.push(c)
+    else byStart.set(c.start, [c])
+  }
+  const kept: Candidate[] = []
+  for (const arr of byStart.values()) {
+    for (const c of arr) {
+      let dominated = false
+      for (const o of arr) {
+        if (o === c) continue
+        if (o.end >= c.end && o.ptoCost <= c.ptoCost && o.length >= c.length) {
+          // Strictly better on at least one axis?
+          if (o.end > c.end || o.ptoCost < c.ptoCost || o.length > c.length) {
+            dominated = true
+            break
+          }
+        }
+      }
+      if (!dominated) kept.push(c)
+    }
+  }
+  return kept
+}
+
+// ---------------------------------------------------------------------------
+// Main selection: greedy by efficiency with deterministic tiebreakers.
+// ---------------------------------------------------------------------------
+
+function selectBlocks(
+  candidates: Candidate[],
+  spacing: number,
+  budget: number,
+  totalDays: number,
+): Candidate[] {
+  if (candidates.length === 0 || budget <= 0) return []
+  // Sort: best efficiency first; then longer blocks; then earlier start; then
+  // lower pto cost. All deterministic; no Math.random.
+  const sorted = candidates.slice().sort((a, b) => {
+    if (b.efficiency !== a.efficiency) return b.efficiency - a.efficiency
+    if (b.length !== a.length) return b.length - a.length
+    if (a.start !== b.start) return a.start - b.start
+    return a.ptoCost - b.ptoCost
+  })
+
+  // Track occupancy using a flat boolean array indexed by day. This makes the
+  // overlap + spacing test O(spacing) per candidate. For a one-year window
+  // (<= 366 days) and ~thousands of candidates this is cheap.
+  const occupied = new Uint8Array(totalDays)
+  const chosen: Candidate[] = []
+  let remaining = budget
+
+  for (const c of sorted) {
+    if (c.ptoCost > remaining) continue
+    // Check overlap and spacing. The block occupies [start, end]; we also
+    // require that no previously-chosen block lies within `spacing` days on
+    // either side. Equivalent: scan [start - spacing, end + spacing] for any
+    // occupied cell that is not in [start, end] itself.
+    const lo = Math.max(0, c.start - spacing)
+    const hi = Math.min(totalDays - 1, c.end + spacing)
+    let conflict = false
+    for (let i = lo; i <= hi; i++) {
+      if (occupied[i]) {
+        // Allow re-touching ourselves only - impossible here since we have
+        // not committed yet, so any occupied cell is a real conflict.
+        conflict = true
+        break
+      }
+    }
+    if (conflict) continue
+    // Commit.
+    for (let i = c.start; i <= c.end; i++) occupied[i] = 1
+    chosen.push(c)
+    remaining -= c.ptoCost
+    if (remaining <= 0) break
+  }
+  // Return chosen in chronological order for downstream simplicity.
+  chosen.sort((a, b) => a.start - b.start)
+  return chosen
+}
+
+// ---------------------------------------------------------------------------
+// Mark phase: stamp isDayOff and inOffBlock from the selected candidates.
+// ---------------------------------------------------------------------------
+
+function markChosen(days: DayPlan[], chosen: Candidate[]): number {
+  let ptoSpent = 0
+  for (const c of chosen) {
+    for (let i = c.start; i <= c.end; i++) {
+      const day = days[i]
+      day.inOffBlock = true
+      if (!isFixedOff(day) && !day.isDayOff) {
+        day.isDayOff = true
+        ptoSpent++
+      }
+    }
+  }
+  return ptoSpent
+}
+
+// ---------------------------------------------------------------------------
+// Forced extension + forced segments. Spends remaining PTO regardless of
+// strategy block-length preference, because budget overrides preference.
+// ---------------------------------------------------------------------------
+
+function extendBreaksForward(days: DayPlan[], remaining: number): number {
+  if (remaining <= 0) return 0
+  const n = days.length
+  let spent = 0
+  // Find each contiguous "inOffBlock" run, then try to extend forward.
+  let i = 0
+  while (i < n && remaining > 0) {
+    if (!days[i].inOffBlock) {
+      i++
+      continue
+    }
+    // Walk to the end of the run.
+    let j = i
+    while (j + 1 < n && days[j + 1].inOffBlock) j++
+    // Try to extend forward one working day at a time. Stop if the next day
+    // is fixed-off (don't "extend onto" a holiday/weekend - the spec is
+    // explicit about working days only) or already in another break.
+    let k = j + 1
+    while (k < n && remaining > 0) {
+      const next = days[k]
+      if (next.inOffBlock) break
+      if (isFixedOff(next)) break
+      next.isDayOff = true
+      next.inOffBlock = true
+      remaining--
+      spent++
+      k++
+    }
+    // Move past this (possibly extended) run.
+    i = k > j + 1 ? k : j + 1
+  }
+  return spent
+}
+
+function emitForcedSegments(days: DayPlan[], remaining: number): number {
+  if (remaining <= 0) return 0
+  const n = days.length
+  let spent = 0
+  let i = 0
+  while (i < n && remaining > 0) {
+    const day = days[i]
+    if (day.inOffBlock || isFixedOff(day)) {
+      i++
+      continue
+    }
+    // Found a run of unbroken working days. Consume up to `remaining` of them.
+    let j = i
+    while (j < n && remaining > 0) {
+      const d = days[j]
+      if (d.inOffBlock || isFixedOff(d)) break
+      d.isDayOff = true
+      d.inOffBlock = true
+      remaining--
+      spent++
+      j++
+    }
+    i = j + 1
+  }
+  return spent
+}
+
+function spendRemaining(days: DayPlan[], remaining: number): void {
+  // Loop extend + emit until no progress. Spec invariant 5.
+  let budget = remaining
+  while (budget > 0) {
+    const before = budget
+    budget -= extendBreaksForward(days, budget)
+    if (budget <= 0) break
+    budget -= emitForcedSegments(days, budget)
+    if (budget === before) break // no progress
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Build the OffBlock[] view from the marked days[]. A "break" is any maximal
+// contiguous run of inOffBlock=true days.
+// ---------------------------------------------------------------------------
+
+function collectBreaks(days: DayPlan[]): OffBlock[] {
+  const out: OffBlock[] = []
+  const n = days.length
+  let i = 0
+  while (i < n) {
+    if (!days[i].inOffBlock) {
+      i++
+      continue
+    }
+    let j = i
+    while (j + 1 < n && days[j + 1].inOffBlock) j++
+    const slice = days.slice(i, j + 1)
+    let dayOffCount = 0
+    let holidayCount = 0
+    let weekendCount = 0
+    let customDayCount = 0
+    for (const d of slice) {
+      if (d.isDayOff) dayOffCount++
+      // Categorical counters: a single day might be both a public holiday
+      // and a weekend (e.g. a holiday that lands on a Saturday). The UI's
+      // existing display lists them under "holidayCount" first; we count
+      // it under holidayCount in that case and not under weekendCount, so the
+      // counters partition the days of the break.
+      if (d.isPublicHoliday) holidayCount++
+      else if (d.isCustomDayOff) customDayCount++
+      else if (d.isWeekend) weekendCount++
+    }
+    out.push({
+      startDate: slice[0].date,
+      endDate: slice[slice.length - 1].date,
+      days: slice,
+      totalDays: slice.length,
+      dayOffCount,
+      holidayCount,
+      weekendCount,
+      customDayCount,
+    })
+    i = j + 1
+  }
+  out.sort((a, b) => (a.startDate < b.startDate ? -1 : a.startDate > b.startDate ? 1 : 0))
+  return out
+}
+
+function computeStats(breaks: OffBlock[]): PlanSummary {
+  let totalDayOffs = 0
+  let totalHolidays = 0
+  let totalWeekendDays = 0
+  let totalCustomDays = 0
+  let totalDaysOff = 0
+  for (const b of breaks) {
+    totalDayOffs += b.dayOffCount
+    totalHolidays += b.holidayCount
+    totalWeekendDays += b.weekendCount
+    totalCustomDays += b.customDayCount
+    totalDaysOff += b.totalDays
+  }
+  return {
+    totalDayOffs,
+    totalHolidays,
+    totalWeekendDays,
+    totalCustomDays,
+    totalDaysOff,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API.
+// ---------------------------------------------------------------------------
+
+export function optimizeDays(params: PlanInputs): PlanResult {
+  const strategy: PlanStrategy = params.strategy ?? "balanced"
+  const cfg = STRATEGIES[strategy] ?? STRATEGIES.balanced
+  const year = params.year ?? new Date().getFullYear()
+  const budget = Math.max(0, Math.floor(params.dayOffBudget || 0))
+
+  const { days } = buildWindow(year)
+  applyHolidays(days, params.holidays)
+  applyCompanyDays(days, params.customDaysOff)
+
+  // Zero-budget short circuit: emit annotated days with no breaks.
+  if (budget === 0 || days.length === 0) {
+    return { days, breaks: [], stats: computeStats([]) }
+  }
+
+  // Main pass.
+  const rawCandidates = enumerateCandidates(days, cfg, budget)
+  const pruned = prune(rawCandidates)
+  const chosen = selectBlocks(pruned, cfg.spacing, budget, days.length)
+  const ptoSpent = markChosen(days, chosen)
+
+  // Forced extension + forced segments to spend the rest of the budget.
+  const remaining = budget - ptoSpent
+  spendRemaining(days, remaining)
+
+  const breaks = collectBreaks(days)
+  const stats = computeStats(breaks)
+
+  return { days, breaks, stats }
+}
+
+export function optimizeDaysAsync(params: PlanInputs): Promise<PlanResult> {
+  return new Promise((resolve) => {
+    // Yield once so the UI can paint the spinner before we burn the main
+    // thread. The setTimeout(0) is the standard "next tick" hook.
+    setTimeout(() => {
+      resolve(optimizeDays(params))
+    }, 0)
+  })
+}

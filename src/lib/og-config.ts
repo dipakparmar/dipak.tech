@@ -118,6 +118,7 @@ export const toolIcons: Record<string, string> = {
   'web-terminal': '📟',
   'password-generator': '🔑',
   'message-header-analyzer': '📧',
+  'timeoff-optimizer': '🏖️',
   default: '🛠️',
 };
 
