@@ -93,8 +93,6 @@ function extractPolicyOIDs(der: Buffer): string[] {
   }
 
   // Search for Certificate Policies extension (OID 2.5.29.32 = 55 1d 20)
-  const certPoliciesOID = Buffer.from([0x55, 0x1d, 0x20])
-
   for (let i = 0; i < der.length - 10; i++) {
     if (der[i] === 0x06 && der[i + 1] === 0x03 &&
         der[i + 2] === 0x55 && der[i + 3] === 0x1d && der[i + 4] === 0x20) {

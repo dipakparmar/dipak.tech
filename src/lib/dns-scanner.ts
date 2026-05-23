@@ -83,7 +83,6 @@ export class DNSScanner {
         }
 
         const existing = subdomainMap.get(subdomain)
-        const certDate = new Date(cert.not_before)
         const expiryDate = new Date(cert.not_after)
         const now = new Date()
 

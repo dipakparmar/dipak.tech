@@ -168,7 +168,13 @@ function useDebounce<T>(value: T, delay: number = 300) {
 function usePlaceSearch({
     debounceMs,
     query,
-    ...props
+    bbox,
+    lang,
+    lat,
+    limit,
+    locationBiasScale,
+    lon,
+    zoom,
 }: {
     debounceMs: number
 } & PlaceSearchOptions) {
@@ -192,10 +198,19 @@ function usePlaceSearch({
         async function fetchResults() {
             setIsLoading(true)
             setError(null)
-            setHasSearched(true)
+                setHasSearched(true)
 
             try {
-                const url = buildSearchUrl({ query: debouncedQuery, ...props })
+                const url = buildSearchUrl({
+                    query: debouncedQuery,
+                    bbox,
+                    lang,
+                    lat,
+                    limit,
+                    locationBiasScale,
+                    lon,
+                    zoom,
+                })
                 const response = await fetch(url, {
                     signal: abortController.signal,
                 })
@@ -207,7 +222,7 @@ function usePlaceSearch({
                 }
 
                 const data: PlaceFeatureCollection = await response.json()
-                const addressOsmIds = new Set()
+                const addressOsmIds = new Set<number>()
                 const dedupedFeatures = data.features.filter((feature) => {
                     const id = feature.properties.osm_id
                     if (addressOsmIds.has(id)) return false
@@ -230,13 +245,13 @@ function usePlaceSearch({
         return () => abortController.abort()
     }, [
         debouncedQuery,
-        props.lang,
-        props.limit,
-        props.bbox,
-        props.lat,
-        props.lon,
-        props.zoom,
-        props.locationBiasScale,
+        bbox,
+        lang,
+        lat,
+        limit,
+        locationBiasScale,
+        lon,
+        zoom,
     ])
 
     return { results, isLoading, error, hasSearched }
@@ -333,7 +348,7 @@ function PlaceAutocomplete({
                         )}
                         {hasNoResults && (
                             <CommandEmpty>
-                                Can't find {displayValue}.
+                                Can&apos;t find {displayValue}.
                             </CommandEmpty>
                         )}
                         {results.length > 0 && (

@@ -1,4 +1,4 @@
-import { Mail, Route, ShieldCheck, Clock } from "lucide-react"
+import { Route, ShieldCheck, Clock } from "lucide-react"
 
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Suspense } from "react"

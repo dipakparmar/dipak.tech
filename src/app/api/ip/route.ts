@@ -140,16 +140,17 @@ export async function GET(request: NextRequest) {
     const finalIp = ip || data.query || ""
 
     // Add rate limit info from API headers
-    data.req_left = parseInt(res_headers.get("X-Rl") || "0")
-    data.resets_in = parseInt(res_headers.get("X-Ttl") || "60")
-    data.ip_type = ipType(finalIp)
-    data.ip = finalIp
-    delete (data as any).query
+    const responseData = { ...data }
+    delete responseData.query
+    responseData.req_left = parseInt(res_headers.get("X-Rl") || "0")
+    responseData.resets_in = parseInt(res_headers.get("X-Ttl") || "60")
+    responseData.ip_type = ipType(finalIp)
+    responseData.ip = finalIp
 
     // Cache the result
-    setCached(cacheKey, data, RESPONSE_CACHE_TTL)
+    setCached(cacheKey, responseData, RESPONSE_CACHE_TTL)
 
-    return NextResponse.json(data, {
+    return NextResponse.json(responseData, {
       headers: {
         "Cache-Control": "public, max-age=86400",
         "X-Cache": "MISS",

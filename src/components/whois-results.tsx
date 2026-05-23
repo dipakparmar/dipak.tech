@@ -26,12 +26,114 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { useCallback, useState } from "react"
 import { useHaptics } from "@/hooks/use-haptics"
+import type { ParsedWhoisData, WhoisFallbackResult } from "@/lib/whois"
 
 import { Badge } from "@/components/ui/badge"
 import { HapticButton as Button } from "@/components/haptic-wrappers"
 
+type RdapEvent = {
+  eventAction?: string
+  eventDate?: string
+}
+
+type RdapLink = {
+  href?: string
+  rel?: string
+  type?: string
+}
+
+type RdapNotice = {
+  title?: string
+  description?: string[]
+  links?: RdapLink[]
+}
+
+type PublicId = {
+  type?: string
+  identifier?: string
+}
+
+type SecureDnsDsRecord = {
+  keyTag?: string | number
+  algorithm?: string | number
+  digestType?: string | number
+  digest?: string
+}
+
+type SecureDnsInfo = {
+  zoneSigned?: boolean
+  delegationSigned?: boolean
+  dsData?: SecureDnsDsRecord[]
+}
+
+type IpAddressInfo = {
+  v4?: string[]
+  v6?: string[]
+}
+
+type NameServer = {
+  ldhName?: string
+  unicodeName?: string
+  ipAddresses?: IpAddressInfo
+}
+
+type CidrBlock = {
+  v4prefix?: string
+  v6prefix?: string
+  length?: number | string
+}
+
+type VCardValue = string | string[] | null
+type VCardEntry = [string, Record<string, unknown>, string, VCardValue]
+type VCardArray = [string, VCardEntry[]]
+
+type RdapEntity = {
+  handle?: string
+  roles?: string[]
+  vcardArray?: VCardArray
+  status?: string[]
+  events?: RdapEvent[]
+  entities?: RdapEntity[]
+}
+
+type WhoisDisplayData = {
+  _queryType?: QueryType
+  _source?: string
+  _fallbackReason?: string
+  objectClassName?: string
+  name?: string
+  handle?: string
+  ldhName?: string
+  type?: string
+  country?: string
+  port43?: string
+  sourceServer?: string
+  referralServer?: string | null
+  referralError?: string | null
+  sourceChain?: string[]
+  parsedWhois?: ParsedWhoisData | null
+  status?: string[]
+  entities?: RdapEntity[]
+  events?: RdapEvent[]
+  nameservers?: NameServer[]
+  cidr0_cidrs?: CidrBlock[]
+  startAddress?: string
+  endAddress?: string
+  parentHandle?: string
+  startAutnum?: number | string
+  endAutnum?: number | string
+  secureDNS?: SecureDnsInfo
+  notices?: RdapNotice[]
+  remarks?: RdapNotice[]
+  links?: RdapLink[]
+  publicIds?: PublicId[]
+  ipVersion?: string | number
+  ianaResponse?: string
+  rawWhois?: string
+}
+
 interface WhoisResultsProps {
-  data: any
+  data: WhoisDisplayData | WhoisFallbackResult
   query: string
 }
 
@@ -282,7 +384,7 @@ function CopyButton({ value, className }: { value: string; className?: string })
     trigger("success")
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }, [value])
+  }, [trigger, value])
 
   return (
     <Button
@@ -300,6 +402,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
   const queryType: QueryType = data._queryType || "domain"
   const source = data._source || "rdap"
   const isWhoisFallback = source === "whois"
+  const rdap = data as WhoisDisplayData
   const [showRawJson, setShowRawJson] = useState(false)
 
   const formatDate = (dateString: string) => {
@@ -312,18 +415,18 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
   }
 
   const getStatus = () => {
-    if (data.status && Array.isArray(data.status)) {
-      return data.status
+    if (rdap.status && Array.isArray(rdap.status)) {
+      return rdap.status
     }
     return []
   }
 
   const getEntities = (role?: string) => {
-    if (!data.entities) return []
+    if (!rdap.entities) return []
     if (role) {
-      return data.entities.filter((e: any) => e.roles?.includes(role))
+      return rdap.entities.filter((entity: RdapEntity) => entity.roles?.includes(role))
     }
-    return data.entities
+    return rdap.entities
   }
 
   const registrant = getEntities("registrant")[0]
@@ -356,7 +459,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
     }
   }
 
-  const displayName = data.name || data.handle || data.ldhName || query
+  const displayName = data.name || rdap.handle || rdap.ldhName || query
   const parsedWhois = data.parsedWhois || null
 
   if (isWhoisFallback) {
@@ -657,11 +760,11 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
                     Parsed Contacts
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {[
+                    {([
                       { key: "registrant", label: "Registrant" },
                       { key: "admin", label: "Admin" },
                       { key: "tech", label: "Tech" },
-                    ].map(({ key, label }) => {
+                    ] as const).map(({ key, label }) => {
                       const contact = parsedWhois.contacts[key]
                       const hasData = contact && Object.values(contact).some(Boolean)
                       if (!hasData) return null
@@ -774,18 +877,18 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
                 </div>
               </div>
             </div>
-            {data.objectClassName && (
+            {rdap.objectClassName && (
               <Badge variant="secondary" className="shrink-0 font-mono text-xs uppercase">
-                {data.objectClassName}
+                {rdap.objectClassName}
               </Badge>
             )}
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Key Dates */}
-          {data.events && data.events.length > 0 && (
+          {rdap.events && rdap.events.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {data.events.slice(0, 4).map((event: any, idx: number) => (
+              {rdap.events.slice(0, 4).map((event: RdapEvent, idx: number) => (
                 <div
                   key={idx}
                   className="group relative overflow-hidden rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4 transition-colors hover:border-primary/30"
@@ -794,7 +897,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
                     <Calendar className="h-3.5 w-3.5" />
                     {event.eventAction?.replace(/([A-Z])/g, " $1").trim()}
                   </div>
-                  <p className="mt-1 text-sm font-semibold">{formatDate(event.eventDate)}</p>
+                  <p className="mt-1 text-sm font-semibold">{formatDate(event.eventDate || "")}</p>
                 </div>
               ))}
             </div>
@@ -818,14 +921,14 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
           </div>
 
           {/* Nameservers (Domain only) */}
-          {queryType === "domain" && data.nameservers && data.nameservers.length > 0 && (
+          {queryType === "domain" && rdap.nameservers && rdap.nameservers.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <Server className="h-3.5 w-3.5" />
-                Nameservers ({data.nameservers.length})
+                Nameservers ({rdap.nameservers.length})
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
-                {data.nameservers.map((ns: any, idx: number) => (
+                {rdap.nameservers.map((ns: NameServer, idx: number) => (
                   <div
                     key={idx}
                     className="group flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:border-primary/30"
@@ -847,7 +950,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
                         </div>
                       )}
                     </div>
-                    <CopyButton value={ns.ldhName || ns.unicodeName} />
+                    <CopyButton value={ns.ldhName || ns.unicodeName || query} />
                   </div>
                 ))}
               </div>
@@ -859,47 +962,47 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
             <div className="space-y-4">
               {/* IP Version & Handle */}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.ipVersion && (
+                {rdap.ipVersion && (
                   <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <Network className="h-3.5 w-3.5" />
                       IP Version
                     </div>
-                    <p className="mt-1 text-sm font-semibold">IPv{data.ipVersion}</p>
+                    <p className="mt-1 text-sm font-semibold">IPv{rdap.ipVersion}</p>
                   </div>
                 )}
-                {data.handle && (
+                {rdap.handle && (
                   <div className="group rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         <Hash className="h-3.5 w-3.5" />
                         Handle
                       </div>
-                      <CopyButton value={data.handle} />
+                      <CopyButton value={rdap.handle} />
                     </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">{data.handle}</p>
+                    <p className="mt-1 font-mono text-sm font-semibold">{rdap.handle}</p>
                   </div>
                 )}
-                {data.type && (
+                {rdap.type && (
                   <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <FileText className="h-3.5 w-3.5" />
                       Type
                     </div>
-                    <p className="mt-1 text-sm font-semibold">{data.type}</p>
+                    <p className="mt-1 text-sm font-semibold">{rdap.type}</p>
                   </div>
                 )}
               </div>
 
               {/* CIDR Blocks */}
-              {data.cidr0_cidrs && data.cidr0_cidrs.length > 0 && (
+              {rdap.cidr0_cidrs && rdap.cidr0_cidrs.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     <Network className="h-3.5 w-3.5" />
                     CIDR Blocks
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {data.cidr0_cidrs.map((cidr: any, idx: number) => (
+                    {rdap.cidr0_cidrs.map((cidr: CidrBlock, idx: number) => (
                       <Badge key={idx} variant="outline" className="font-mono text-xs">
                         {cidr.v4prefix || cidr.v6prefix}/{cidr.length}
                       </Badge>
@@ -909,41 +1012,41 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
               )}
 
               {/* Start/End Address */}
-              {(data.startAddress || data.endAddress) && (
+              {(rdap.startAddress || rdap.endAddress) && (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {data.startAddress && (
+                  {rdap.startAddress && (
                     <div className="group rounded-lg border bg-card p-4">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Start Address
                         </div>
-                        <CopyButton value={data.startAddress} />
+                        <CopyButton value={rdap.startAddress} />
                       </div>
-                      <p className="mt-1 font-mono text-sm font-medium">{data.startAddress}</p>
+                      <p className="mt-1 font-mono text-sm font-medium">{rdap.startAddress}</p>
                     </div>
                   )}
-                  {data.endAddress && (
+                  {rdap.endAddress && (
                     <div className="group rounded-lg border bg-card p-4">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           End Address
                         </div>
-                        <CopyButton value={data.endAddress} />
+                        <CopyButton value={rdap.endAddress} />
                       </div>
-                      <p className="mt-1 font-mono text-sm font-medium">{data.endAddress}</p>
+                      <p className="mt-1 font-mono text-sm font-medium">{rdap.endAddress}</p>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Parent Handle */}
-              {data.parentHandle && (
+              {rdap.parentHandle && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     <LinkIcon className="h-3.5 w-3.5" />
                     Parent Network
                   </div>
-                  <p className="font-mono text-sm">{data.parentHandle}</p>
+                  <p className="font-mono text-sm">{rdap.parentHandle}</p>
                 </div>
               )}
             </div>
@@ -953,50 +1056,50 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
           {queryType === "asn" && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.startAutnum !== undefined && (
+                {rdap.startAutnum !== undefined && (
                   <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <Hash className="h-3.5 w-3.5" />
                       ASN Range Start
                     </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">AS{data.startAutnum}</p>
+                    <p className="mt-1 font-mono text-sm font-semibold">AS{rdap.startAutnum}</p>
                   </div>
                 )}
-                {data.endAutnum !== undefined && (
+                {rdap.endAutnum !== undefined && (
                   <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <Hash className="h-3.5 w-3.5" />
                       ASN Range End
                     </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">AS{data.endAutnum}</p>
+                    <p className="mt-1 font-mono text-sm font-semibold">AS{rdap.endAutnum}</p>
                   </div>
                 )}
-                {data.type && (
+                {rdap.type && (
                   <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       <FileText className="h-3.5 w-3.5" />
                       Type
                     </div>
-                    <p className="mt-1 text-sm font-semibold">{data.type}</p>
+                    <p className="mt-1 text-sm font-semibold">{rdap.type}</p>
                   </div>
                 )}
               </div>
 
               {/* Country */}
-              {data.country && (
+              {rdap.country && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     <Globe className="h-3.5 w-3.5" />
                     Country
                   </div>
-                  <p className="text-sm font-medium">{data.country}</p>
+                  <p className="text-sm font-medium">{rdap.country}</p>
                 </div>
               )}
             </div>
           )}
 
           {/* DNSSEC */}
-          {data.secureDNS && (
+          {rdap.secureDNS && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <Lock className="h-3.5 w-3.5" />
@@ -1006,23 +1109,23 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Zone Signed:</span>
-                    <Badge variant={data.secureDNS.zoneSigned ? "default" : "secondary"} className="text-xs">
-                      {data.secureDNS.zoneSigned ? "Yes" : "No"}
+                    <Badge variant={rdap.secureDNS.zoneSigned ? "default" : "secondary"} className="text-xs">
+                      {rdap.secureDNS.zoneSigned ? "Yes" : "No"}
                     </Badge>
                   </div>
-                  {data.secureDNS.delegationSigned !== undefined && (
+                  {rdap.secureDNS.delegationSigned !== undefined && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">Delegation:</span>
-                      <Badge variant={data.secureDNS.delegationSigned ? "default" : "secondary"} className="text-xs">
-                        {data.secureDNS.delegationSigned ? "Yes" : "No"}
+                      <Badge variant={rdap.secureDNS.delegationSigned ? "default" : "secondary"} className="text-xs">
+                        {rdap.secureDNS.delegationSigned ? "Yes" : "No"}
                       </Badge>
                     </div>
                   )}
                 </div>
-                {data.secureDNS.dsData && data.secureDNS.dsData.length > 0 && (
+                {rdap.secureDNS.dsData && rdap.secureDNS.dsData.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">DS Records</p>
-                    {data.secureDNS.dsData.map((ds: any, idx: number) => (
+                    {rdap.secureDNS.dsData.map((ds: SecureDnsDsRecord, idx: number) => (
                       <div key={idx} className="space-y-0.5 rounded-md bg-muted/50 p-3 font-mono text-xs">
                         <div>
                           Key: {ds.keyTag} | Algo: {ds.algorithm} | Type: {ds.digestType}
@@ -1036,13 +1139,13 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
             </div>
           )}
 
-          {data.port43 && (
+          {rdap.port43 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 <Globe className="h-3.5 w-3.5" />
                 Legacy WHOIS
               </div>
-              <p className="font-mono text-sm">{data.port43}</p>
+              <p className="font-mono text-sm">{rdap.port43}</p>
             </div>
           )}
         </CardContent>
@@ -1110,7 +1213,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
               </TabsContent>
 
               <TabsContent value="detailed" className="mt-6 space-y-4">
-                {allEntities.map((entity: any, idx: number) => (
+                {allEntities.map((entity, idx: number) => (
                   <div key={idx} className="space-y-4 rounded-lg border bg-card p-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
@@ -1134,7 +1237,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
       )}
 
       {/* Notices & Remarks */}
-      {((data.notices && data.notices.length > 0) || (data.remarks && data.remarks.length > 0)) && (
+      {((rdap.notices && rdap.notices.length > 0) || (rdap.remarks && rdap.remarks.length > 0)) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -1143,7 +1246,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {data.notices?.map((notice: any, idx: number) => (
+            {rdap.notices?.map((notice: RdapNotice, idx: number) => (
               <div key={`notice-${idx}`} className="space-y-2 rounded-lg border bg-card p-4">
                 {notice.title && <p className="text-sm font-medium">{notice.title}</p>}
                 {notice.description?.map((desc: string, i: number) => (
@@ -1153,7 +1256,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
                 ))}
                 {notice.links && notice.links.length > 0 && (
                   <div className="flex flex-wrap gap-2 pt-2">
-                    {notice.links.map((link: any, i: number) => (
+                    {notice.links.map((link: RdapLink, i: number) => (
                       <a
                         key={i}
                         href={link.href}
@@ -1170,7 +1273,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
               </div>
             ))}
 
-            {data.remarks?.map((remark: any, idx: number) => (
+            {rdap.remarks?.map((remark: RdapNotice, idx: number) => (
               <div key={`remark-${idx}`} className="space-y-2 rounded-lg border bg-muted/30 p-4">
                 {remark.title && <p className="text-sm font-medium">{remark.title}</p>}
                 {remark.description?.map((desc: string, i: number) => (
@@ -1185,7 +1288,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
       )}
 
       {/* Links */}
-      {data.links && data.links.length > 0 && (
+      {rdap.links && rdap.links.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -1195,7 +1298,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2">
-              {data.links.map((link: any, idx: number) => (
+              {rdap.links.map((link: RdapLink, idx: number) => (
                 <a
                   key={idx}
                   href={link.href}
@@ -1222,7 +1325,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
       )}
 
       {/* Public IDs */}
-      {data.publicIds && data.publicIds.length > 0 && (
+      {rdap.publicIds && rdap.publicIds.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -1232,7 +1335,7 @@ export function WhoisResults({ data, query }: WhoisResultsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {data.publicIds.map((id: any, idx: number) => (
+              {rdap.publicIds.map((id: PublicId, idx: number) => (
                 <div key={idx} className="flex items-center justify-between rounded-lg border bg-card p-3">
                   <span className="text-sm font-medium">{id.type}</span>
                   <code className="rounded bg-muted px-2 py-1 font-mono text-xs">{id.identifier}</code>
@@ -1278,11 +1381,11 @@ function EntityInfo({
   entity,
   compact = false,
   detailed = false,
-}: { entity: any; compact?: boolean; detailed?: boolean }) {
+}: { entity: RdapEntity; compact?: boolean; detailed?: boolean }) {
   const vcard = entity.vcardArray?.[1]
 
   const getVcardValue = (type: string) => {
-    const item = vcard?.find((v: any) => v[0] === type)
+    const item = vcard?.find((vcardEntry) => vcardEntry[0] === type)
     if (Array.isArray(item?.[3])) {
       return item[3].filter(Boolean).join(", ")
     }
@@ -1290,7 +1393,7 @@ function EntityInfo({
   }
 
   const getAllVcardValues = (type: string) => {
-    return vcard?.filter((v: any) => v[0] === type) || []
+    return vcard?.filter((vcardEntry) => vcardEntry[0] === type) || []
   }
 
   const name = getVcardValue("fn")
@@ -1312,7 +1415,7 @@ function EntityInfo({
 
       {emails.length > 0 && (
         <div className="space-y-1">
-          {emails.slice(0, compact ? 1 : emails.length).map((email: any, idx: number) => (
+          {emails.slice(0, compact ? 1 : emails.length).map((email, idx: number) => (
             <div key={idx} className="flex items-start gap-2 text-sm">
               <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="font-mono text-xs">{email[3]}</span>
@@ -1323,7 +1426,7 @@ function EntityInfo({
 
       {phones.length > 0 && detailed && (
         <div className="space-y-1">
-          {phones.map((phone: any, idx: number) => (
+          {phones.map((phone, idx: number) => (
             <div key={idx} className="flex items-start gap-2 text-sm">
               <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="font-mono text-xs">{phone[3]}</span>
@@ -1334,8 +1437,8 @@ function EntityInfo({
 
       {addresses.length > 0 && detailed && (
         <div className="space-y-1">
-          {addresses.map((addr: any, idx: number) => {
-            const parts = addr[3].filter(Boolean)
+          {addresses.map((addr, idx: number) => {
+            const parts = Array.isArray(addr[3]) ? addr[3].filter(Boolean) : []
             if (parts.length === 0) return null
             return (
               <div key={idx} className="flex items-start gap-2 text-sm">
@@ -1360,9 +1463,9 @@ function EntityInfo({
       {detailed && entity.events && entity.events.length > 0 && (
         <div className="space-y-1 pt-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Events</p>
-          {entity.events.map((event: any, idx: number) => (
+          {entity.events.map((event, idx: number) => (
             <div key={idx} className="text-xs text-muted-foreground">
-              {event.eventAction}: {new Date(event.eventDate).toLocaleDateString()}
+              {event.eventAction}: {event.eventDate ? new Date(event.eventDate).toLocaleDateString() : "N/A"}
             </div>
           ))}
         </div>
@@ -1371,7 +1474,7 @@ function EntityInfo({
       {detailed && entity.entities && entity.entities.length > 0 && (
         <div className="space-y-2 border-t pt-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Sub-Entities</p>
-          {entity.entities.map((subEntity: any, idx: number) => (
+          {entity.entities.map((subEntity, idx: number) => (
             <div key={idx} className="space-y-1 border-l-2 pl-4">
               <div className="flex items-center gap-2">
                 <span className="font-mono text-xs">{subEntity.handle}</span>

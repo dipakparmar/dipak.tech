@@ -31,7 +31,7 @@ export function Portfolio() {
     level: DetailLevel
   ): T[] => {
     return data.map((item) => {
-      let description = item.description ? item.description.split('\n') : [];
+      const description = item.description ? item.description.split('\n') : [];
 
       switch (level) {
         case DetailLevel.SUMMARY:

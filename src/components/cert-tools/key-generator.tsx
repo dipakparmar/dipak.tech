@@ -123,7 +123,7 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
     } finally {
       setLoading(false)
     }
-  }, [settings])
+  }, [settings, trigger])
 
   const handleCopy = useCallback(async (type: "public" | "private", content: string) => {
     await navigator.clipboard.writeText(content)

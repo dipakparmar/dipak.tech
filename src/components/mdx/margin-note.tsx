@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useInView, useReducedMotion } from 'motion/react';
 import {
   annotate,
@@ -31,15 +31,16 @@ const ANNOTATION_DURATION_MS = 800;
 const STROKE_WIDTH = 1.2;
 
 function useIsDesktop(query = '(min-width: 1280px)') {
-  const [isDesktop, setIsDesktop] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    setIsDesktop(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, [query]);
-  return isDesktop;
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      const mq = window.matchMedia(query);
+      const handler = () => onStoreChange();
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    },
+    () => window.matchMedia(query).matches,
+    () => false
+  );
 }
 
 interface RoughBracketProps {

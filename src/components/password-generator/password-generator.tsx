@@ -11,11 +11,6 @@ import {
   generateSalt,
   generateSecret,
   generateUUID,
-  type PasswordOptions,
-  type PassphraseOptions,
-  type MemorableOptions,
-  type SaltOptions,
-  type SecretOptions,
 } from '@/lib/password-generator/generators';
 import {
   calculatePasswordEntropy,
@@ -156,10 +151,8 @@ export function PasswordGenerator() {
     return secPrefix;
   }, [secPrefix, secCustomPrefix]);
 
-  const [results, setResults] = useState<string[]>([]);
-
-  // Generate results client-side only to avoid SSR hydration mismatch
-  useEffect(() => {
+  const results = useMemo(() => {
+    void regenKey;
     const generated: string[] = [];
     for (let i = 0; i < count; i++) {
       switch (mode) {
@@ -208,7 +201,7 @@ export function PasswordGenerator() {
           break;
       }
     }
-    setResults(generated);
+    return generated;
   }, [
     mode, count, regenKey,
     pwLength, pwUpper, pwLower, pwNum, pwSym, pwSafe, pwNoAmbig, pwExclude,

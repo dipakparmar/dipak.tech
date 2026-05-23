@@ -68,6 +68,7 @@ import {
     createContext,
     useContext,
     useEffect,
+    useEffectEvent,
     useRef,
     useState,
     type ComponentType,
@@ -245,7 +246,7 @@ function MapTileLayer({
                 attribution: resolvedAttribution,
             })
         }
-    }, [context, name, url, attribution])
+    }, [context, name, resolvedAttribution, resolvedUrl])
 
     if (context && context.selectedTileLayer !== name) {
         return null
@@ -315,7 +316,7 @@ function MapLayers({
     defaultLayerGroups?: string[]
 }) {
     const [tileLayers, setTileLayers] = useState<MapTileLayerOption[]>([])
-    const [selectedTileLayer, setSelectedTileLayer] = useState<string>(
+    const [selectedTileLayerState, setSelectedTileLayer] = useState<string>(
         defaultTileLayer || ""
     )
     const [layerGroups, setLayerGroups] = useState<MapLayerGroupOption[]>([])
@@ -342,47 +343,35 @@ function MapLayers({
         })
     }
 
-    useEffect(() => {
-        // Error: Invalid defaultValue
-        if (
-            defaultTileLayer &&
-            tileLayers.length > 0 &&
-            !tileLayers.some((tileLayer) => tileLayer.name === defaultTileLayer)
-        ) {
-            throw new Error(
-                `Invalid defaultTileLayer "${defaultTileLayer}" provided to MapLayers. It must match a MapTileLayer's name prop.`
-            )
-        }
+    if (
+        defaultTileLayer &&
+        tileLayers.length > 0 &&
+        !tileLayers.some((tileLayer) => tileLayer.name === defaultTileLayer)
+    ) {
+        throw new Error(
+            `Invalid defaultTileLayer "${defaultTileLayer}" provided to MapLayers. It must match a MapTileLayer's name prop.`
+        )
+    }
 
-        // Set initial selected tile layer
-        if (tileLayers.length > 0 && !selectedTileLayer) {
-            const validDefaultValue =
-                defaultTileLayer &&
-                tileLayers.some((layer) => layer.name === defaultTileLayer)
-                    ? defaultTileLayer
-                    : tileLayers[0].name
-            setSelectedTileLayer(validDefaultValue)
-        }
+    if (
+        defaultLayerGroups.length > 0 &&
+        layerGroups.length > 0 &&
+        defaultLayerGroups.some(
+            (name) => !layerGroups.some((group) => group.name === name)
+        )
+    ) {
+        throw new Error(
+            `Invalid defaultLayerGroups value provided to MapLayers. All names must match a MapLayerGroup's name prop.`
+        )
+    }
 
-        // Error: Invalid defaultActiveLayerGroups
-        if (
-            defaultLayerGroups.length > 0 &&
-            layerGroups.length > 0 &&
-            defaultLayerGroups.some(
-                (name) => !layerGroups.some((group) => group.name === name)
-            )
-        ) {
-            throw new Error(
-                `Invalid defaultLayerGroups value provided to MapLayers. All names must match a MapLayerGroup's name prop.`
-            )
-        }
-    }, [
-        tileLayers,
-        defaultTileLayer,
-        selectedTileLayer,
-        layerGroups,
-        defaultLayerGroups,
-    ])
+    const selectedTileLayer =
+        selectedTileLayerState ||
+        (tileLayers.length > 0
+            ? defaultTileLayer && tileLayers.some((layer) => layer.name === defaultTileLayer)
+                ? defaultTileLayer
+                : tileLayers[0].name
+            : "")
 
     return (
         <MapLayersContext.Provider
@@ -803,7 +792,15 @@ function MapLocateControl({
         setIsLocating(false)
     }
 
-    useEffect(() => () => stopLocating(), [])
+    useEffect(() => {
+        return () => {
+            map.stopLocate()
+            map.off("locationfound")
+            map.off("locationerror")
+            setPosition(null)
+            setIsLocating(false)
+        }
+    }, [map, setIsLocating])
 
     return (
         <MapControlContainer className={cn("right-1 bottom-1", className)}>
@@ -877,27 +874,27 @@ function MapDrawControl({
 }) {
     const { L, LeafletDraw } = useLeaflet()
     const map = useMap()
-    const featureGroupRef = useRef<L.FeatureGroup | null>(null)
+    const [featureGroup, setFeatureGroup] = useState<L.FeatureGroup | null>(null)
     const editControlRef = useRef<EditToolbar.Edit | null>(null)
     const deleteControlRef = useRef<EditToolbar.Delete | null>(null)
     const [activeMode, setActiveMode] = useState<MapDrawMode>(null)
 
-    function handleDrawCreated(event: DrawEvents.Created) {
-        if (!featureGroupRef.current) return
+    const handleDrawCreated = useEffectEvent((event: DrawEvents.Created) => {
+        if (!featureGroup) return
         const { layer } = event
-        featureGroupRef.current.addLayer(layer)
-        onLayersChange?.(featureGroupRef.current)
+        featureGroup.addLayer(layer)
+        onLayersChange?.(featureGroup)
         setActiveMode(null)
-    }
+    })
 
-    function handleDrawEditedOrDeleted() {
-        if (!featureGroupRef.current) return
-        onLayersChange?.(featureGroupRef.current)
+    const handleDrawEditedOrDeleted = useEffectEvent(() => {
+        if (!featureGroup) return
+        onLayersChange?.(featureGroup)
         setActiveMode(null)
-    }
+    })
 
     useEffect(() => {
-        if (!L || !LeafletDraw) return
+        if (!L || !LeafletDraw || !featureGroup) return
 
         map.on(
             L.Draw.Event.CREATED,
@@ -914,18 +911,18 @@ function MapDrawControl({
             map.off(L.Draw.Event.EDITED, handleDrawEditedOrDeleted)
             map.off(L.Draw.Event.DELETED, handleDrawEditedOrDeleted)
         }
-    }, [L, LeafletDraw, map, onLayersChange])
+    }, [L, LeafletDraw, featureGroup, map])
 
     return (
         <MapDrawContext.Provider
             value={{
-                featureGroup: featureGroupRef.current,
+                featureGroup,
                 activeMode,
                 setActiveMode,
                 editControlRef,
                 deleteControlRef,
             }}>
-            <LeafletFeatureGroup ref={featureGroupRef} />
+            <LeafletFeatureGroup ref={setFeatureGroup} />
             <MapControlContainer className={cn("bottom-1 left-1", className)}>
                 <ButtonGroup orientation="vertical" {...props} />
             </MapControlContainer>
@@ -1163,7 +1160,7 @@ function MapDrawActionButton<T extends EditToolbar.Edit | EditToolbar.Delete>({
             control.disable?.()
             controlRef.current = null
         }
-    }, [L, map, isActive, featureGroup, createDrawTool])
+    }, [L, map, isActive, featureGroup, createDrawTool, controlRef])
 
     function handleClick() {
         controlRef.current?.save()
@@ -1216,14 +1213,8 @@ function MapDrawEdit({
             touchMoveIcon: mapDrawHandleIcon,
             touchResizeIcon: mapDrawHandleIcon,
         })
-        L.drawLocal.edit.handlers.edit.tooltip = {
-            text: "Drag handles or markers to edit.",
-            subtext: "",
-        }
-        L.drawLocal.edit.handlers.remove.tooltip = {
-            text: "Click on a shape to remove.",
-        }
-    }, [mapDrawHandleIcon])
+        configureDrawTooltips(L)
+    }, [L, mapDrawHandleIcon])
 
     return (
         <MapDrawActionButton
@@ -1340,13 +1331,20 @@ function useLeaflet() {
 
     useEffect(() => {
         if (L && LeafletDraw) return
-        if (typeof window !== "undefined") {
-            if (!L) {
-                setL(require("leaflet"))
+        if (typeof window === "undefined") return
+
+        let isCancelled = false
+
+        void Promise.all([import("leaflet"), import("leaflet-draw")]).then(
+            ([leafletModule, leafletDrawModule]) => {
+                if (isCancelled) return
+                setL((current) => current ?? leafletModule)
+                setLeafletDraw((current) => current ?? leafletDrawModule)
             }
-            if (!LeafletDraw) {
-                setLeafletDraw(require("leaflet-draw"))
-            }
+        )
+
+        return () => {
+            isCancelled = true
         }
     }, [L, LeafletDraw])
 
@@ -1359,16 +1357,21 @@ function useDebounceLoadingState(delay = 200) {
     const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+        }
+
         if (isLoading) {
             timeoutRef.current = setTimeout(() => {
                 setShowLoading(true)
+                timeoutRef.current = null
             }, delay)
         } else {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current)
+            timeoutRef.current = setTimeout(() => {
+                setShowLoading(false)
                 timeoutRef.current = null
-            }
-            setShowLoading(false)
+            }, 0)
         }
 
         return () => {
@@ -1379,6 +1382,28 @@ function useDebounceLoadingState(delay = 200) {
     }, [isLoading, delay])
 
     return [showLoading, setIsLoading] as const
+}
+
+interface DrawTooltipConfig {
+    edit: {
+        handlers: {
+            edit: { tooltip: { text: string; subtext: string } }
+            remove: { tooltip: { text: string } }
+        }
+    }
+}
+
+function configureDrawTooltips(leaflet: typeof import("leaflet")) {
+    const drawLocal = leaflet.drawLocal as typeof leaflet.drawLocal &
+        DrawTooltipConfig
+
+    drawLocal.edit.handlers.edit.tooltip = {
+        text: "Drag handles or markers to edit.",
+        subtext: "",
+    }
+    drawLocal.edit.handlers.remove.tooltip = {
+        text: "Click on a shape to remove.",
+    }
 }
 
 export {

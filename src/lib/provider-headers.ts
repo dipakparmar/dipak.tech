@@ -3,7 +3,6 @@ import type { AnnotationReference } from '@/lib/header-annotations';
 import {
   parseMicrosoftAntispam,
   parseMicrosoftForefrontAntispamReport,
-  type ProviderHeaderValueGuide,
   type ProviderHeaderValueToken
 } from '@/lib/provider-header-values';
 

@@ -9,7 +9,7 @@ import {
   findRDAPServerForIP,
   findRDAPServerForASN,
 } from "@/lib/rdap"
-import { queryDomainWhoisFallback } from "@/lib/whois"
+import { queryDomainWhoisFallback, type WhoisFallbackResult } from "@/lib/whois"
 
 export const runtime = "nodejs"
 
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
     }
 
     const queryType = detectQueryType(normalizedQuery)
-    let payload: Record<string, unknown>
+    let payload: Record<string, unknown> | WhoisFallbackResult
 
     try {
       payload = await fetchRdapPayload(normalizedQuery, queryType)

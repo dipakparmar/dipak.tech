@@ -13,7 +13,7 @@ class RoughAnnotationImpl implements RoughAnnotation {
   private _state: AnnotationState = 'unattached';
   private _config: RoughAnnotationConfig;
   private _resizing = false;
-  private _ro?: any; // ResizeObserver is not supported in typescript std lib yet
+  private _ro?: ResizeObserver;
   private _seed = randomSeed();
 
   private _e: HTMLElement;
@@ -115,7 +115,7 @@ class RoughAnnotationImpl implements RoughAnnotation {
     this.detachListeners();
     window.addEventListener('resize', this._resizeListener, { passive: true });
     if ((!this._ro) && ('ResizeObserver' in window)) {
-      this._ro = new (window as any).ResizeObserver((entries: any) => {
+      this._ro = new ResizeObserver((entries: ResizeObserverEntry[]) => {
         for (const entry of entries) {
           if (entry.contentRect) {
             this._resizeListener();

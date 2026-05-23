@@ -1,4 +1,4 @@
-import { Apple, Lock, Shield, Clock } from "lucide-react"
+import { Lock, Shield, Clock } from "lucide-react"
 
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { Suspense } from "react"

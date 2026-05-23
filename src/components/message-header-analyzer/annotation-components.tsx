@@ -303,7 +303,8 @@ export function DesktopCommentCards() {
   }, [openAnnotations, getRowEl, containerEl, setCardSides])
 
   useEffect(() => {
-    recompute()
+    const frame = requestAnimationFrame(recompute)
+    return () => cancelAnimationFrame(frame)
   }, [recompute])
 
   // Reposition on scroll/resize
@@ -366,15 +367,9 @@ export function DesktopCommentCards() {
 
 export function MobileCommentSheet() {
   const { openAnnotations, lastOpenedId, close } = useAnnotation()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
 
   const info = lastOpenedId ? openAnnotations.get(lastOpenedId) : undefined
-  if (!mounted || !info || !lastOpenedId) return null
+  if (typeof document === "undefined" || !document.body || !info || !lastOpenedId) return null
 
   return createPortal(
     <div className="fixed inset-0 z-40 flex flex-col justify-end xl:hidden">
@@ -510,7 +505,6 @@ export function ConnectorLines() {
       requestAnimationFrame(measure)
     })
     return () => cancelAnimationFrame(outer)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [measure, cardSides])
 
   useEffect(() => {

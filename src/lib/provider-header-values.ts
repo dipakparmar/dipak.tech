@@ -98,7 +98,7 @@ const MICROSOFT_FOREGROUND_FIELD_EXPLAINERS: Record<
       ]
     );
   },
-  CIP: (fieldValue) =>
+  CIP: () =>
     makeValueGuide(
       'X-Forefront-Antispam-Report • CIP',
       'Connecting IP address observed by Microsoft.',

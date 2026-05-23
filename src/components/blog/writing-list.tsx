@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
 import type { PostMeta } from '@/lib/blog';
 import { NewStamp } from '@/components/blog/new-stamp';
 
@@ -31,9 +34,9 @@ export function WritingList({
   newThresholdDays = 21,
   className,
 }: WritingListProps) {
+  const [now] = useState(() => Date.now());
   if (posts.length === 0) return null;
   const groups = groupByYear(posts);
-  const now = Date.now();
   const threshold = newThresholdDays * 24 * 60 * 60 * 1000;
 
   return (

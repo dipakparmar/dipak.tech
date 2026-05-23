@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { compile, run } from '@mdx-js/mdx';
+import type { Element, ElementContent, Properties, Root, RootContent } from 'hast';
 import * as runtime from 'react/jsx-runtime';
 import remarkGfm from 'remark-gfm';
 import { createHighlighter } from 'shiki';
@@ -36,6 +37,40 @@ export interface Post {
   meta: PostMeta;
   content: ComponentType<{ components?: MDXComponents }>;
   toc: TocEntry[];
+}
+
+type HastElementWithChildren = Element & { children: ElementContent[] };
+
+function isElement(node: RootContent | undefined): node is HastElementWithChildren {
+  return Boolean(node && node.type === 'element');
+}
+
+function getClassName(properties?: Properties): string[] {
+  const className = properties?.className;
+
+  if (Array.isArray(className)) {
+    return className
+      .map((value) => (typeof value === 'string' ? value : ''))
+      .filter(Boolean);
+  }
+
+  if (typeof className === 'string') {
+    return [className];
+  }
+
+  return [];
+}
+
+function getTextValue(node: RootContent): string {
+  if ('value' in node && typeof node.value === 'string') {
+    return node.value;
+  }
+
+  if (isElement(node)) {
+    return node.children.map(getTextValue).join('');
+  }
+
+  return '';
 }
 
 function slugify(text: string): string {
@@ -93,21 +128,21 @@ function getHighlighter() {
 }
 
 function rehypeShiki() {
-  return async (tree: any) => {
+  return async (tree: Root) => {
     const highlighter = await getHighlighter();
     const { visit, SKIP } = await import('unist-util-visit');
 
-    visit(tree, 'element', (node: any) => {
+    visit(tree, 'element', (node) => {
       if (node.tagName !== 'pre') return;
       const codeNode = node.children?.[0];
-      if (!codeNode || codeNode.tagName !== 'code') return;
+      if (!isElement(codeNode) || codeNode.tagName !== 'code') return;
 
-      const className = codeNode.properties?.className?.[0] || '';
+      const className = getClassName(codeNode.properties)[0] ?? '';
       const langMatch = className.match(/language-(\w+)/);
       const lang = langMatch ? langMatch[1] : 'text';
 
       const code = codeNode.children
-        ?.map((child: any) => child.value || '')
+        .map(getTextValue)
         .join('')
         .replace(/\n$/, '');
 
@@ -117,17 +152,24 @@ function rehypeShiki() {
       });
 
       // codeToHast returns a root with a single <pre> child
-      const preNode = hast.children[0] as any;
+      const preNode = hast.children[0];
+      if (!isElement(preNode)) {
+        return SKIP;
+      }
 
       // For shell languages, mark each line as command or comment/empty
       const shellLangs = ['shell', 'bash', 'sh', 'zsh', 'terminal'];
       if (shellLangs.includes(lang)) {
-        const codeEl = preNode.children?.find((c: any) => c.tagName === 'code');
+        const codeEl = preNode.children.find(
+          (child): child is HastElementWithChildren =>
+            isElement(child) && child.tagName === 'code'
+        );
         if (codeEl) {
           for (const line of codeEl.children) {
-            if (line.tagName !== 'span' || !line.properties?.className?.includes('line')) continue;
+            if (!isElement(line) || line.tagName !== 'span') continue;
+            if (!getClassName(line.properties).includes('line')) continue;
             const text = (line.children || [])
-              .map((c: any) => c.children?.[0]?.value || c.value || '')
+              .map(getTextValue)
               .join('')
               .trimStart();
             const isCommand = text.length > 0 && !text.startsWith('#');
@@ -138,7 +180,7 @@ function rehypeShiki() {
 
       // Build header with icon + language label
       const iconPath = `/icons/lang/${lang}.svg`;
-      const headerChildren: any[] = [];
+      const headerChildren: ElementContent[] = [];
 
       // Shell languages get dot header, others get icon + label
       if (shellLangs.includes(lang)) {
@@ -174,7 +216,7 @@ function rehypeShiki() {
         tagName: 'div',
         properties: { className: ['shiki-header'] },
         children: headerChildren,
-      };
+      } satisfies Element;
 
       // Wrap in a div with lang label
       node.tagName = 'div';
@@ -187,13 +229,13 @@ function rehypeShiki() {
 }
 
 function rehypeSlug() {
-  return async (tree: any) => {
+  return async (tree: Root) => {
     const { visit } = await import('unist-util-visit');
     const getUniqueSlug = createUniqueSlugger();
-    visit(tree, 'element', (node: any) => {
+    visit(tree, 'element', (node) => {
       if (!['h2', 'h3', 'h4'].includes(node.tagName)) return;
       const text = node.children
-        ?.map((child: any) => child.value || '')
+        .map(getTextValue)
         .join('');
       if (text) {
         node.properties = node.properties || {};

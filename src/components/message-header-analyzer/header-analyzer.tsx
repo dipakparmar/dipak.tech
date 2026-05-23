@@ -40,11 +40,47 @@ function decodeHeaders(encoded: string): string | null {
   }
 }
 
+function getInitialHeaderState() {
+  if (typeof window === "undefined") {
+    return {
+      rawHeaders: "",
+      parsed: null as ParsedHeaders | null,
+      collapsed: false,
+    }
+  }
+
+  const hash = window.location.hash.slice(1)
+  if (!hash) {
+    return {
+      rawHeaders: "",
+      parsed: null as ParsedHeaders | null,
+      collapsed: false,
+    }
+  }
+
+  const decoded = decodeHeaders(hash)
+  if (!decoded) {
+    return {
+      rawHeaders: "",
+      parsed: null as ParsedHeaders | null,
+      collapsed: false,
+    }
+  }
+
+  const result = parseEmailHeaders(decoded)
+  return {
+    rawHeaders: decoded,
+    parsed: result.headers.length > 0 ? result : null,
+    collapsed: result.headers.length > 0,
+  }
+}
+
 function HeaderAnalyzerInner() {
-  const [rawHeaders, setRawHeaders] = useState("")
-  const [parsed, setParsed] = useState<ParsedHeaders | null>(null)
+  const [initialState] = useState(getInitialHeaderState)
+  const [rawHeaders, setRawHeaders] = useState(initialState.rawHeaders)
+  const [parsed, setParsed] = useState<ParsedHeaders | null>(initialState.parsed)
   const [error, setError] = useState<string | null>(null)
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(initialState.collapsed)
   const [copied, setCopied] = useState(false)
   const { trigger: hapticTrigger } = useHaptics()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -55,22 +91,6 @@ function HeaderAnalyzerInner() {
     if (containerRef.current) setContainerEl(containerRef.current)
     return () => setContainerEl(null)
   }, [parsed, setContainerEl])
-
-  // Load headers from URL hash on mount
-  useEffect(() => {
-    const hash = window.location.hash.slice(1)
-    if (!hash) return
-
-    const decoded = decodeHeaders(hash)
-    if (!decoded) return
-
-    setRawHeaders(decoded)
-    const result = parseEmailHeaders(decoded)
-    if (result.headers.length > 0) {
-      setParsed(result)
-      setCollapsed(true)
-    }
-  }, [])
 
   const updateHash = useCallback((raw: string) => {
     const encoded = encodeHeaders(raw)

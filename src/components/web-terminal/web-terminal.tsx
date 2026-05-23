@@ -1639,7 +1639,11 @@ export function WebTerminal() {
             onChange={(e) => handleSearch(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                e.shiftKey ? handleSearchPrevious() : handleSearchNext();
+                if (e.shiftKey) {
+                  handleSearchPrevious();
+                } else {
+                  handleSearchNext();
+                }
               } else if (e.key === 'Escape') {
                 toggleSearch();
               }

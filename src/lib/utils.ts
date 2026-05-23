@@ -1,6 +1,10 @@
-import { clsx, type ClassValue } from "clsx"
+import { ApolloClient, HttpLink, InMemoryCache, type NormalizedCacheObject } from '@apollo/client';
+import { clsx, type ClassValue } from 'clsx';
 import { unstable_noStore as noStore } from 'next/cache';
-import { twMerge } from "tailwind-merge"
+import { twMerge } from 'tailwind-merge';
+
+type ApolloCacheState = NormalizedCacheObject;
+type ApolloHeaders = Record<string, string>;
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -8,15 +12,15 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(date: string) {
   noStore();
-  let currentDate = new Date().getTime();
+  const currentDate = new Date().getTime();
   if (!date.includes('T')) {
     date = `${date}T00:00:00`;
   }
-  let targetDate = new Date(date).getTime();
-  let timeDifference = Math.abs(currentDate - targetDate);
-  let daysAgo = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+  const targetDate = new Date(date).getTime();
+  const timeDifference = Math.abs(currentDate - targetDate);
+  const daysAgo = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
 
-  let fullDate = new Date(date).toLocaleString('en-us', {
+  const fullDate = new Date(date).toLocaleString('en-us', {
     month: 'long',
     day: 'numeric',
     year: 'numeric'
@@ -38,21 +42,17 @@ export function formatDate(date: string) {
   }
 }
 
-import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
-
 export function createApolloClient({
   initialState,
   headers,
   endpoint
 }: {
-  initialState: any;
-  headers: any;
+  initialState: ApolloCacheState;
+  headers: ApolloHeaders;
   endpoint: string;
 }) {
   const ssrMode = typeof window === 'undefined';
-  let link;
-
-  link = new HttpLink({
+  const link = new HttpLink({
     uri: endpoint,
     headers
   });

@@ -1,18 +1,26 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { MDXComponents } from 'mdx/types';
-import type { AnchorHTMLAttributes, ImgHTMLAttributes, ReactNode } from 'react';
+import {
+  isValidElement,
+  type AnchorHTMLAttributes,
+  type ComponentPropsWithoutRef,
+  type ReactNode
+} from 'react';
 import { CopyButton } from '@/components/blog/copy-button';
 import { Annotate } from '@/components/mdx/annotate';
 import { MarginNote } from '@/components/mdx/margin-note';
+
+type ImageProps = ComponentPropsWithoutRef<typeof Image>;
+type PreProps = ComponentPropsWithoutRef<'pre'>;
 
 function extractText(node: ReactNode): string {
   if (typeof node === 'string') return node;
   if (typeof node === 'number') return String(node);
   if (!node) return '';
   if (Array.isArray(node)) return node.map(extractText).join('');
-  if (typeof node === 'object' && 'props' in node) {
-    return extractText((node as any).props.children);
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return extractText(node.props.children);
   }
   return '';
 }
@@ -36,7 +44,7 @@ function MdxLink(props: AnchorHTMLAttributes<HTMLAnchorElement>) {
   );
 }
 
-function MdxImage(props: ImgHTMLAttributes<HTMLImageElement>) {
+function MdxImage(props: ImageProps) {
   const { src, alt, width, height } = props;
   if (!src || typeof src !== 'string') return null;
 
@@ -168,7 +176,7 @@ function Acknowledgements({ children }: { children: ReactNode }) {
   );
 }
 
-function MdxPre(props: any) {
+function MdxPre(props: PreProps) {
   const code = extractText(props.children);
 
   return (

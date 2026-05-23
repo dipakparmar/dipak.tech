@@ -18,6 +18,8 @@ const EXAMPLE_QUERIES = [
   { label: "AS15169", icon: Hash, type: "asn" },
 ]
 
+type WhoisLookupResponse = Record<string, unknown>
+
 export function WhoisTool() {
   const router = useRouter()
   const pathname = usePathname()
@@ -28,7 +30,7 @@ export function WhoisTool() {
   const [query, setQuery] = useState(initialQuery)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [rdapData, setRdapData] = useState<any>(null)
+  const [rdapData, setRdapData] = useState<WhoisLookupResponse | null>(null)
   const [copied, setCopied] = useState(false)
   const hasAutoSearched = useRef(false)
   const prevUrlQuery = useRef(initialQuery)

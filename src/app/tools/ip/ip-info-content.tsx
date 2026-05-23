@@ -35,7 +35,6 @@ import {
   Loader2,
   Search,
   Info,
-  ChevronRight,
   Router,
   Waypoints,
 } from "lucide-react"
@@ -499,11 +498,12 @@ function NetworkIntelSections({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const hasFetched = useRef(false)
+  const fetchDataRef = useRef<() => Promise<void>>(async () => {})
   const [openSections, setOpenSections] = useState<string[]>(
     isCidr ? ["network-block"] : []
   )
 
-  const fetchData = async () => {
+  fetchDataRef.current = async () => {
     if (hasFetched.current) return
     hasFetched.current = true
     setLoading(true)
@@ -523,7 +523,7 @@ function NetworkIntelSections({
   // Auto-fetch for CIDR input
   useEffect(() => {
     if (isCidr) {
-      fetchData()
+      void fetchDataRef.current()
     }
   }, [isCidr])
 
@@ -531,7 +531,7 @@ function NetworkIntelSections({
     setOpenSections(value)
     // Lazy-load on first expand of any section
     if (value.length > 0 && !hasFetched.current) {
-      fetchData()
+      void fetchDataRef.current()
     }
   }
 
@@ -725,7 +725,6 @@ export default function IPInfoContent() {
   const [customIp, setCustomIp] = useState("")
   const [copied, setCopied] = useState(false)
   const [isCustomLookup, setIsCustomLookup] = useState(false)
-  const [showSearch, setShowSearch] = useState(true)
   const [baseUrl, setBaseUrl] = useState("")
   const [parsedInput, setParsedInput] = useState<ParsedInput | null>(null)
   const [networkData, setNetworkData] = useState<NetworkIntelResponse | null>(null)

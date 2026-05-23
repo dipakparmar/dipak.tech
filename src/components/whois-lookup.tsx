@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { OsintResults } from "@/components/osint-results"
 import { useHaptics } from "@/hooks/use-haptics"
 import type { SecurityData, IdentityData, ThreatData } from "@/lib/osint-types"
+import type { WhoisFallbackResult } from "@/lib/whois"
 
 const EXAMPLE_QUERIES = [
   { label: "google.com", icon: Globe, type: "domain" },
@@ -20,6 +21,31 @@ const EXAMPLE_QUERIES = [
 ]
 
 type QueryType = "domain" | "ipv4" | "ipv6" | "asn"
+type RdapLookupResponse = Record<string, unknown> | WhoisFallbackResult
+type DNSLookupResponse = {
+  records?: Record<string, string[]>
+}
+type HTTPLookupResponse = {
+  ok: boolean
+  status: number
+  redirected?: boolean
+  headers?: Record<string, string>
+  url: string
+  title?: string
+  securityHeaders?: Record<string, string>
+  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>
+}
+type CertificateLookupResponse = {
+  uniqueEntries: number
+  latestExpiry?: string | null
+  issuers?: string[]
+  names?: string[]
+}
+type IPLookupResponse = Record<string, unknown>
+type LookupTask = {
+  key: string
+  promise: Promise<unknown>
+}
 
 function detectQueryType(query: string): QueryType {
   if (/^(AS)?(\\d+)$/i.test(query)) {
@@ -47,14 +73,14 @@ export function WhoisLookup() {
   const [query, setQuery] = useState(initialQuery)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [rdapData, setRdapData] = useState<any>(null)
-  const [dnsData, setDnsData] = useState<any>(null)
-  const [httpData, setHttpData] = useState<any>(null)
-  const [certData, setCertData] = useState<any>(null)
-  const [ipData, setIpData] = useState<any>(null)
+  const [rdapData, setRdapData] = useState<RdapLookupResponse | null>(null)
+  const [dnsData, setDnsData] = useState<DNSLookupResponse | null>(null)
+  const [httpData, setHttpData] = useState<HTTPLookupResponse | null>(null)
+  const [certData, setCertData] = useState<CertificateLookupResponse | null>(null)
+  const [ipData, setIpData] = useState<IPLookupResponse | null>(null)
   const [osintErrors, setOsintErrors] = useState<Record<string, string>>({})
   const [pending, setPending] = useState<Record<string, boolean>>({})
-  const [certDnsData, setCertDnsData] = useState<Record<string, any> | null>(null)
+  const [certDnsData, setCertDnsData] = useState<Record<string, DNSLookupResponse> | null>(null)
   const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>({})
   const [securityData, setSecurityData] = useState<SecurityData | null>(null)
   const [identityData, setIdentityData] = useState<IdentityData | null>(null)
@@ -114,7 +140,7 @@ export function WhoisLookup() {
         }
 
         const queryType = detectQueryType(trimmed)
-        const tasks: Array<{ key: string; promise: Promise<any> }> = [
+        const tasks: LookupTask[] = [
           { key: "rdap", promise: fetchJson(`/api/whois?query=${encodeURIComponent(trimmed)}`) },
         ]
 
@@ -156,14 +182,14 @@ export function WhoisLookup() {
         tasks.forEach((task) => {
           task.promise
             .then((value) => {
-              if (task.key === "rdap") setRdapData(value)
-              if (task.key === "dns") setDnsData(value)
-              if (task.key === "http") setHttpData(value)
-              if (task.key === "certs") setCertData(value)
-              if (task.key === "ip") setIpData(value)
-              if (task.key === "security") setSecurityData(value)
-              if (task.key === "identity") setIdentityData(value)
-              if (task.key === "threat") setThreatData(value)
+              if (task.key === "rdap") setRdapData(value as RdapLookupResponse)
+              if (task.key === "dns") setDnsData(value as DNSLookupResponse)
+              if (task.key === "http") setHttpData(value as HTTPLookupResponse)
+              if (task.key === "certs") setCertData(value as CertificateLookupResponse)
+              if (task.key === "ip") setIpData(value as IPLookupResponse)
+              if (task.key === "security") setSecurityData(value as SecurityData)
+              if (task.key === "identity") setIdentityData(value as IdentityData)
+              if (task.key === "threat") setThreatData(value as ThreatData)
             })
             .catch((err) => {
               setOsintErrors((prev) => ({

@@ -12,7 +12,17 @@ import { SecurityPosture } from "@/components/osint/security-posture"
 import { SiteIdentity } from "@/components/osint/site-identity"
 import { ThreatHistory } from "@/components/osint/threat-history"
 import { RedirectChain } from "@/components/osint/redirect-chain"
-import type { SecurityData, IdentityData, ThreatData, RedirectHop } from "@/lib/osint-types"
+import type {
+  CookieInfo,
+  EmailSecurityResult,
+  IdentityData,
+  SecurityData,
+  SocialTagsResult,
+  TechStackResult,
+  ThreatData,
+  WAFResult,
+} from "@/lib/osint-types"
+import type { WhoisFallbackResult } from "@/lib/whois"
 
 // Known security headers to filter out from regular headers
 const SECURITY_HEADER_KEYS = new Set([
@@ -29,11 +39,11 @@ const SECURITY_HEADER_KEYS = new Set([
 ])
 
 interface OsintResultsProps {
-  rdapData: any | null
-  dnsData: any | null
-  httpData: any | null
-  certData: any | null
-  ipData: any | null
+  rdapData: (Record<string, unknown> | WhoisFallbackResult) | null
+  dnsData: DNSData | null
+  httpData: HTTPData | null
+  certData: CertificateData | null
+  ipData: IPIntelData | null
   query: string
   errors: {
     rdap?: string
@@ -46,11 +56,64 @@ interface OsintResultsProps {
     threat?: string
   }
   pending: Record<string, boolean>
-  certDnsData?: Record<string, any> | null
+  certDnsData?: Record<string, CertificateDNSData> | null
   certDnsPending?: Record<string, boolean>
   securityData?: SecurityData | null
   identityData?: IdentityData | null
   threatData?: ThreatData | null
+}
+
+interface DNSData {
+  records?: Record<string, string[]>
+  emailSecurity?: EmailSecurityResult | null
+}
+
+interface HTTPData {
+  ok: boolean
+  status: number
+  redirected?: boolean
+  headers?: Record<string, string>
+  url: string
+  title?: string
+  securityHeaders?: Record<string, string>
+  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>
+  waf?: WAFResult | null
+  techStack?: TechStackResult | null
+  socialTags?: SocialTagsResult | null
+  cookies?: CookieInfo[] | null
+}
+
+interface CertificateData {
+  uniqueEntries: number
+  latestExpiry?: string | null
+  issuers?: string[]
+  names?: string[]
+}
+
+interface IPIntelData {
+  ip?: string
+  proxy?: boolean
+  tor?: boolean
+  hosting?: boolean
+  city?: string
+  region?: string
+  country?: string
+  continent?: string
+  reverse?: string
+  timezone?: string
+  connection?: {
+    asn?: string | number
+    org?: string
+    isp?: string
+  }
+}
+
+interface CertificateDNSData {
+  error?: string
+  records?: {
+    A?: string[]
+    AAAA?: string[]
+  }
 }
 
 export function OsintResults({
@@ -91,7 +154,7 @@ export function OsintResults({
     const domainToIps: Record<string, string[]> = {}
     const unresolved: string[] = []
 
-    Object.entries(certDnsData).forEach(([domain, dns]: [string, any]) => {
+    Object.entries(certDnsData).forEach(([domain, dns]) => {
       if (dns?.error || (!dns?.records?.A?.length && !dns?.records?.AAAA?.length)) {
         unresolved.push(domain)
         return
@@ -598,7 +661,7 @@ export function OsintResults({
                   </div>
 
                   {/* Issuers */}
-                  {certData.issuers?.length > 0 && (
+                  {Array.isArray(certData.issuers) && certData.issuers.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Issuers</p>
                       <div className="flex flex-wrap gap-1.5">
@@ -612,7 +675,7 @@ export function OsintResults({
                   )}
 
                   {/* All Names - no limit */}
-                  {certData.names?.length > 0 && (
+                  {Array.isArray(certData.names) && certData.names.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Observed Names ({certData.names.length})

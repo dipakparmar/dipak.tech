@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { HapticButton as Button } from "@/components/haptic-wrappers"
 import {
-  Shield,
   Building,
   Calendar,
   Globe,
@@ -14,7 +13,6 @@ import {
   FileText,
   Copy,
   Check,
-  Key,
 } from "lucide-react"
 
 // Normalized certificate data interface
@@ -65,7 +63,7 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
     trigger("success")
     setCopied(id)
     setTimeout(() => setCopied(null), 2000)
-  }, [])
+  }, [trigger])
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === "string" ? new Date(date) : date

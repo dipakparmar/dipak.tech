@@ -482,7 +482,7 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
     } finally {
       setLoading(false)
     }
-  }, [formData, sans, keyMode, existingKey])
+  }, [formData, sans, keyMode, existingKey, trigger])
 
   const handleCopy = useCallback(async (type: "csr" | "key", content: string) => {
     await navigator.clipboard.writeText(content)

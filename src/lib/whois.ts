@@ -5,7 +5,7 @@ const WHOIS_PORT = 43;
 const WHOIS_TIMEOUT_MS = 12000;
 const MAX_WHOIS_RESPONSE_BYTES = 256 * 1024;
 
-export interface WhoisFallbackResult extends Record<string, unknown> {
+export interface WhoisFallbackResult {
   _query: string;
   _queryType: 'domain';
   _source: 'whois';
@@ -22,7 +22,7 @@ export interface WhoisFallbackResult extends Record<string, unknown> {
   parsedWhois: ParsedWhoisData;
 }
 
-export interface ParsedWhoisData extends Record<string, unknown> {
+export interface ParsedWhoisData {
   registrar: string | null;
   registrarUrl: string | null;
   registrarIanaId: string | null;
@@ -46,7 +46,7 @@ export interface ParsedWhoisData extends Record<string, unknown> {
   contacts: ParsedWhoisContacts;
 }
 
-export interface ParsedWhoisContact extends Record<string, unknown> {
+export interface ParsedWhoisContact {
   name: string | null;
   organization: string | null;
   email: string | null;
@@ -56,7 +56,7 @@ export interface ParsedWhoisContact extends Record<string, unknown> {
   city: string | null;
 }
 
-export interface ParsedWhoisContacts extends Record<string, ParsedWhoisContact> {
+export interface ParsedWhoisContacts {
   registrant: ParsedWhoisContact;
   admin: ParsedWhoisContact;
   tech: ParsedWhoisContact;
