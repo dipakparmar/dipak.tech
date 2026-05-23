@@ -16,6 +16,16 @@ export const hosts = {
 
 export type HostKey = keyof typeof hosts;
 
+export const canonicalBaseUrls: Record<HostKey, string> = {
+  portfolio: siteConfig.portfolio.baseUrl,
+  tools: siteConfig.tools.baseUrl,
+  ip: siteConfig.ip.baseUrl,
+  whois: siteConfig.whois.baseUrl,
+  goPkg: siteConfig.goPkg.baseUrl,
+  containerRegistry: siteConfig.containerRegistry.baseUrl,
+  links: siteConfig.links.baseUrl,
+};
+
 // Route prefixes when accessed from the main portfolio site
 export const routePrefixes: Record<HostKey, string> = {
   portfolio: '',
@@ -91,6 +101,22 @@ export function buildHref(
   }
 
   return `${basePath}${normalizedPath}`;
+}
+
+/**
+ * Get the canonical base URL for a host-routed site.
+ */
+export function getCanonicalBaseUrl(hostKey: HostKey): string {
+  return canonicalBaseUrls[hostKey];
+}
+
+/**
+ * Build an absolute canonical URL for a host-routed site.
+ */
+export function buildCanonicalUrl(hostKey: HostKey, path = '/'): string {
+  const baseUrl = getCanonicalBaseUrl(hostKey);
+  const normalizedPath = path === '/' ? '' : path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${normalizedPath}`;
 }
 
 /**
