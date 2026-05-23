@@ -62,8 +62,6 @@ export async function generateMetadata({
   }
 }
 
-const BLUR_FADE_DELAY = 0.04;
-
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
   let post;
