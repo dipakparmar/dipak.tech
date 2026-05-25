@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { captureAPIError } from "@/lib/sentry-utils"
 import type { LiveAuthLookupContext } from "@/lib/message-auth-context"
 import type { CheckStatus, LiveAuthVerificationResponse, LiveCheck } from "@/lib/message-auth-live"
-import { parseSpfMechanisms, parseTagList } from "@/lib/message-auth-live"
+import { detectDmarcStandard, parseSpfMechanisms, parseTagList } from "@/lib/message-auth-live"
 
 interface SpfEvaluationState {
   lookups: number
@@ -470,20 +470,48 @@ export async function GET(request: Request) {
 
     const dmarcRecord = dmarcTxt.find((record) => record.toLowerCase().startsWith("v=dmarc1")) ?? null
     const dmarcTags = dmarcRecord ? parseTagList(dmarcRecord) : {}
+    const dmarcStandard = detectDmarcStandard(dmarcTags)
     const dmarcChecks: LiveCheck[] = [
       dmarcRecord
         ? toCheck("ok", "DMARC Record Published", "DMARC record found.")
         : toCheck("problem", "DMARC Record Published", `No DMARC record found at _dmarc.${fromDomain}.`)
     ]
 
-    if (dmarcRecord) {
+    if (dmarcRecord && dmarcStandard) {
+      const standardLabels: Record<string, string> = {
+        rfc9989: "RFC 9989 (DMARCbis) - np, psd, or t tags detected.",
+        rfc7489: "RFC 7489 - pct tag present; not compatible with DMARCbis.",
+        mixed: "Mixed - both RFC 7489 (pct) and RFC 9989 tags present. Consider removing pct.",
+        compatible: "Compatible with both RFC 7489 and RFC 9989; no standard-specific tags."
+      }
       dmarcChecks.push(
         toCheck(
-          dmarcTags.p === "reject" || dmarcTags.p === "quarantine" ? "ok" : "warning",
-          "DMARC Policy",
-          dmarcTags.p ? `Policy is ${dmarcTags.p}.` : "Policy tag p= is missing."
+          dmarcStandard === "mixed" ? "warning" : "info",
+          "DMARC Standard",
+          standardLabels[dmarcStandard]
         )
       )
+    }
+
+    if (dmarcRecord) {
+      // RFC 9989: p= is RECOMMENDED; absent defaults to "none"
+      const effectivePolicy = dmarcTags.p ?? "none"
+      dmarcChecks.push(
+        toCheck(
+          effectivePolicy === "reject" || effectivePolicy === "quarantine" ? "ok" : "warning",
+          "DMARC Policy",
+          dmarcTags.p ? `Policy is ${dmarcTags.p}.` : "Policy tag p= is missing; defaults to none."
+        )
+      )
+
+      // RFC 9989 t= test mode: policy is downgraded one level (reject→quarantine, quarantine→none)
+      if (dmarcTags.t === "y") {
+        const downgraded = effectivePolicy === "reject" ? "quarantine" : effectivePolicy === "quarantine" ? "none" : "none"
+        dmarcChecks.push(
+          toCheck("warning", "DMARC Test Mode", `Test mode (t=y) is active. Policy ${effectivePolicy} is applied as ${downgraded}.`)
+        )
+      }
+
       dmarcChecks.push(
         toCheck(
           "info",
@@ -491,6 +519,43 @@ export async function GET(request: Request) {
           `adkim=${dmarcTags.adkim ?? "r"}, aspf=${dmarcTags.aspf ?? "r"}.`
         )
       )
+
+      // RFC 9989 sp= applies to existing subdomains; np= (new) applies to non-existent subdomains
+      if (dmarcTags.sp) {
+        dmarcChecks.push(toCheck("info", "DMARC Subdomain Policy", `sp=${dmarcTags.sp} applies to existing subdomains.`))
+      }
+      if (dmarcTags.np) {
+        dmarcChecks.push(toCheck("info", "DMARC Non-Existent Subdomain Policy", `np=${dmarcTags.np} applies to NXDOMAIN subdomains (RFC 9989).`))
+      }
+
+      // RFC 9989 psd= Public Suffix Domain indicator
+      if (dmarcTags.psd) {
+        const psdMsg = dmarcTags.psd === "y"
+          ? "Domain is a Public Suffix Domain (psd=y)."
+          : dmarcTags.psd === "n"
+            ? "Domain is its own Organizational Domain (psd=n)."
+            : "PSD status unknown (psd=u); DNS Tree Walk will be used."
+        dmarcChecks.push(toCheck("info", "DMARC PSD", psdMsg))
+      }
+
+      // RFC 9989 removed pct=; flag it as deprecated when present
+      if (dmarcTags.pct) {
+        dmarcChecks.push(
+          toCheck("warning", "DMARC pct Deprecated", `pct=${dmarcTags.pct} is present but removed in RFC 9989/DMARCbis. Receivers may ignore it.`)
+        )
+      }
+
+      // fo= failure reporting options
+      if (dmarcTags.fo) {
+        const foDescriptions: Record<string, string> = {
+          "0": "report when all auth mechanisms fail",
+          "1": "report when any auth mechanism fails",
+          "d": "DKIM-specific failure reports",
+          "s": "SPF-specific failure reports"
+        }
+        const foLabels = dmarcTags.fo.split(":").map((v) => foDescriptions[v] ?? v).join("; ")
+        dmarcChecks.push(toCheck("info", "DMARC Failure Reporting", `fo=${dmarcTags.fo}: ${foLabels}.`))
+      }
     }
 
     const spfRecords = spfTxt.filter((record) => record.toLowerCase().startsWith("v=spf1"))
@@ -642,11 +707,16 @@ export async function GET(request: Request) {
       dmarc: {
         domain: fromDomain,
         record: dmarcRecord,
+        standard: dmarcStandard,
         tags: {
           p: dmarcTags.p ?? null,
           sp: dmarcTags.sp ?? null,
+          np: dmarcTags.np ?? null,
           adkim: dmarcTags.adkim ?? null,
           aspf: dmarcTags.aspf ?? null,
+          fo: dmarcTags.fo ?? null,
+          psd: dmarcTags.psd ?? null,
+          t: dmarcTags.t ?? null,
           pct: dmarcTags.pct ? Number.parseInt(dmarcTags.pct, 10) : null,
           rua: dmarcTags.rua ? dmarcTags.rua.split(",").map((item) => item.trim()).filter(Boolean) : [],
           ruf: dmarcTags.ruf ? dmarcTags.ruf.split(",").map((item) => item.trim()).filter(Boolean) : []

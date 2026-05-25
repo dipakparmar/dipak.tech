@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { enforceSpfLookupLimit, enforceSpfVoidLookupLimit, isIpInCidr, parseSpfToken } from "./route"
+import { detectDmarcStandard } from "@/lib/message-auth-live"
 
 describe("message-header-auth SPF helpers", () => {
   test("matches IPv6 addresses against ip6 CIDR ranges", () => {
@@ -146,5 +147,38 @@ describe("parseSpfToken", () => {
   test("does not parse modifiers (those must be checked before calling)", () => {
     // redirect= contains '=' which is not a mechanism character after the name
     expect(parseSpfToken("redirect=other.com")).toBeNull()
+  })
+})
+
+describe("detectDmarcStandard", () => {
+  test("returns null when no v= tag present", () => {
+    expect(detectDmarcStandard({})).toBeNull()
+    expect(detectDmarcStandard({ p: "reject" })).toBeNull()
+  })
+
+  test("returns compatible when only common tags present", () => {
+    expect(detectDmarcStandard({ v: "DMARC1", p: "reject", rua: "mailto:dmarc@example.com" })).toBe("compatible")
+    expect(detectDmarcStandard({ v: "DMARC1", p: "none" })).toBe("compatible")
+  })
+
+  test("returns rfc7489 when pct tag present", () => {
+    expect(detectDmarcStandard({ v: "DMARC1", p: "quarantine", pct: "50" })).toBe("rfc7489")
+  })
+
+  test("returns rfc9989 when np tag present", () => {
+    expect(detectDmarcStandard({ v: "DMARC1", p: "reject", np: "none" })).toBe("rfc9989")
+  })
+
+  test("returns rfc9989 when psd tag present", () => {
+    expect(detectDmarcStandard({ v: "DMARC1", p: "reject", psd: "n" })).toBe("rfc9989")
+  })
+
+  test("returns rfc9989 when t tag present", () => {
+    expect(detectDmarcStandard({ v: "DMARC1", p: "reject", t: "y" })).toBe("rfc9989")
+  })
+
+  test("returns mixed when both pct and rfc9989 tags present", () => {
+    expect(detectDmarcStandard({ v: "DMARC1", p: "reject", pct: "100", np: "none" })).toBe("mixed")
+    expect(detectDmarcStandard({ v: "DMARC1", p: "reject", pct: "100", t: "y" })).toBe("mixed")
   })
 })

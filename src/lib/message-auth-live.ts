@@ -16,19 +16,36 @@ export interface SpfMechanismRow {
   description: string
 }
 
+export type DmarcStandard = "rfc9989" | "rfc7489" | "mixed" | "compatible"
+
 export interface LiveDmarcResult {
   domain: string
   record: string | null
+  standard: DmarcStandard | null  // detected DMARC standard based on tags present
   tags: {
     p: string | null
     sp: string | null
+    np: string | null    // RFC 9989: policy for non-existent subdomains (NXDOMAIN), distinct from sp
     adkim: string | null
     aspf: string | null
-    pct: number | null
+    fo: string | null    // failure reporting options
+    psd: string | null   // RFC 9989: Public Suffix Domain indicator (y/n/u)
+    t: string | null     // RFC 9989: test mode - downgrades policy one level when "y"
+    pct: number | null   // RFC 7489 only; removed in RFC 9989/DMARCbis
     rua: string[]
     ruf: string[]
   }
   checks: LiveCheck[]
+}
+
+export function detectDmarcStandard(tags: Record<string, string>): DmarcStandard | null {
+  if (!tags.v) return null
+  const hasRfc9989Tags = !!(tags.np || tags.psd || tags.t)
+  const hasRfc7489Tags = !!tags.pct
+  if (hasRfc9989Tags && hasRfc7489Tags) return "mixed"
+  if (hasRfc9989Tags) return "rfc9989"
+  if (hasRfc7489Tags) return "rfc7489"
+  return "compatible" // valid for both; no standard-specific tags
 }
 
 export interface LiveSpfResult {
