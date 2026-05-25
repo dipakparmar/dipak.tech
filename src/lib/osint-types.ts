@@ -1,7 +1,7 @@
 export interface EmailSecurityResult {
   spf: {
     record: string | null
-    policy: "fail" | "softfail" | "neutral" | "none"
+    policy: "fail" | "softfail" | "neutral" | "none" | "pass"
   }
   dmarc: {
     record: string | null

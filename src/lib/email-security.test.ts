@@ -13,6 +13,32 @@ describe("parseEmailSecurity", () => {
     expect(result.spf.policy).toBe("softfail")
   })
 
+  test("parses SPF with ?all policy", () => {
+    const result = parseEmailSecurity(["v=spf1 ip4:1.2.3.4 ?all"])
+    expect(result.spf.policy).toBe("neutral")
+  })
+
+  test("parses SPF with +all policy (permissive)", () => {
+    const result = parseEmailSecurity(["v=spf1 +all"])
+    expect(result.spf.policy).toBe("pass")
+  })
+
+  test("parses SPF with bare all (implicit +)", () => {
+    const result = parseEmailSecurity(["v=spf1 ip4:1.2.3.4 all"])
+    expect(result.spf.policy).toBe("pass")
+  })
+
+  test("does not false-positive on domains containing -all as substring", () => {
+    // 'example-alliance.net' contains '-all' as a substring; should not match as fail policy
+    const result = parseEmailSecurity(["v=spf1 include:example-alliance.net ~all"])
+    expect(result.spf.policy).toBe("softfail")
+  })
+
+  test("does not false-positive on domain ending in -all", () => {
+    const result = parseEmailSecurity(["v=spf1 include:mx-all.example.com ~all"])
+    expect(result.spf.policy).toBe("softfail")
+  })
+
   test("parses DMARC p=reject", () => {
     const result = parseEmailSecurity([
       "v=DMARC1; p=reject; rua=mailto:dmarc@example.com; pct=100",
@@ -44,5 +70,10 @@ describe("parseEmailSecurity", () => {
     expect(result.spf.policy).toBe("none")
     expect(result.dmarc.record).toBeNull()
     expect(result.bimi.present).toBe(false)
+  })
+
+  test("returns neutral when SPF record has no all mechanism", () => {
+    const result = parseEmailSecurity(["v=spf1 include:_spf.google.com"])
+    expect(result.spf.policy).toBe("neutral")
   })
 })

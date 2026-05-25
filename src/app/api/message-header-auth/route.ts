@@ -18,6 +18,16 @@ interface SpfEvaluationResult {
   state: SpfEvaluationState
 }
 
+// Parsed representation of a single SPF token (mechanism with optional qualifier and CIDR).
+// Modifiers (redirect=, exp=) are handled separately before calling parseSpfToken.
+export interface ParsedSpfToken {
+  qualifier: string   // "+", "-", "~", or "?" (always set; defaults to "+")
+  mechanism: string   // lowercased mechanism name
+  domainValue: string // value after ":", before first "/" (empty string if absent)
+  cidr4: string       // digits after first "/", or "" if absent
+  cidr6: string       // digits after second "/", or "" if absent (dual-CIDR form per RFC 7208 s5.3)
+}
+
 const DNS_PROVIDER_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
   { name: "Cloudflare", pattern: /cloudflare\.com\.?$/i },
   { name: "Amazon Route 53", pattern: /awsdns-\d+\.(com|net|org|co\.uk)\.?$/i },
@@ -135,19 +145,78 @@ export function enforceSpfLookupLimit(state: SpfEvaluationState): SpfEvaluationR
   return null
 }
 
-async function resolveAddresses(host: string) {
-  const [a, aaaa] = await Promise.all([dohQuery(host, "A"), dohQuery(host, "AAAA")])
-  return [...a, ...aaaa]
+export function enforceSpfVoidLookupLimit(state: SpfEvaluationState): SpfEvaluationResult | null {
+  if (state.voidLookups > 2) {
+    return {
+      result: "permerror",
+      explanation: `SPF evaluation exceeded the RFC 7208 limit of 2 void DNS lookups (${state.voidLookups}).`,
+      state
+    }
+  }
+  return null
 }
 
-async function resolveMxAddresses(domain: string) {
-  const mxRecords = await dohQuery(domain, "MX")
-  const hosts = mxRecords
-    .map((entry) => entry.trim().split(/\s+/).slice(1).join(" ").replace(/\.$/, ""))
-    .filter(Boolean)
+// Parses a single SPF mechanism token per RFC 7208 grammar.
+// Valid CIDR forms: /24 (IPv4 only), //64 (IPv6 only), /24//64 (dual - note double slash).
+// Does NOT handle modifiers (redirect=, exp=) - those must be checked before calling this.
+export function parseSpfToken(token: string): ParsedSpfToken | null {
+  let i = 0
 
-  const addresses = await Promise.all(hosts.map((host) => resolveAddresses(host)))
-  return addresses.flat()
+  const qualifier = "+-~?".includes(token[0]) ? token[0] : "+"
+  if ("+-~?".includes(token[0])) i = 1
+
+  // Mechanism name: letters and digits, must start with a letter
+  const mechStart = i
+  while (i < token.length && /[a-z0-9]/i.test(token[i])) i++
+  if (i === mechStart) return null
+  const mechanism = token.slice(mechStart, i).toLowerCase()
+
+  // Optional domain value after ":"
+  let domainValue = ""
+  if (i < token.length && token[i] === ":") {
+    i++
+    const start = i
+    while (i < token.length && token[i] !== "/") i++
+    domainValue = token.slice(start, i)
+  }
+
+  // Optional dual-cidr per RFC 7208 Section 5.3:
+  //   dual-cidr-length = [ ip4-cidr-length ] [ "/" ip6-cidr-length ]
+  //   ip4-cidr-length  = "/" digits  (e.g. "/24")
+  //   ip6-cidr-length  = "/" digits  (e.g. "/64")
+  // Combined forms: "/24" (IPv4 only), "//64" (IPv6 only), "/24//64" (dual)
+  // "/24/64" with a single slash before the IPv6 length is NOT valid per RFC.
+  let cidr4 = ""
+  let cidr6 = ""
+  if (i < token.length) {
+    if (token[i] !== "/") return null // unexpected character
+    i++
+    if (i < token.length && token[i] === "/") {
+      // "//cidr6" form - IPv6 CIDR only
+      i++
+      const start = i
+      while (i < token.length && /\d/.test(token[i])) i++
+      cidr6 = token.slice(start, i)
+    } else {
+      // "/cidr4" form, optionally followed by "//cidr6"
+      const start = i
+      while (i < token.length && /\d/.test(token[i])) i++
+      cidr4 = token.slice(start, i)
+      // After ip4-cidr-length, the RFC allows ["/" ip6-cidr-length] which expands to ["//digits"]
+      if (i < token.length && token[i] === "/") {
+        i++ // consume separator "/"
+        if (i >= token.length || token[i] !== "/") return null // must be "//" not a bare "/"
+        i++ // consume the leading "/" of ip6-cidr-length
+        const start2 = i
+        while (i < token.length && /\d/.test(token[i])) i++
+        cidr6 = token.slice(start2, i)
+      }
+    }
+  }
+
+  if (i !== token.length) return null // unexpected trailing characters
+
+  return { qualifier, mechanism, domainValue, cidr4, cidr6 }
 }
 
 async function evaluateSpf(domain: string, ip: string, visited = new Set<string>()): Promise<SpfEvaluationResult> {
@@ -185,19 +254,21 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
   const tokens = record.trim().split(/\s+/).slice(1)
   const state: SpfEvaluationState = { lookups: 0, voidLookups: 0, loopDetected: false, unsupported: [] }
   let redirectTarget: string | null = null
+  const ipFamily = isIP(ip)
 
   for (const token of tokens) {
-    const redirectMatch = token.match(/^redirect=(.+)$/i)
-    if (redirectMatch) {
-      redirectTarget = redirectMatch[1]
+    // Modifiers use name=value syntax; unrecognized ones are silently ignored per RFC 7208 Section 3.1
+    if (token.includes("=")) {
+      const redirectMatch = token.match(/^redirect=(.+)$/i)
+      if (redirectMatch) {
+        redirectTarget = redirectMatch[1]
+      }
+      // exp= and all other modifiers: skip
       continue
     }
 
-    const expMatch = token.match(/^exp=(.+)$/i)
-    if (expMatch) continue
-
-    const match = token.match(/^([+?~-]?)([a-z0-9]+)(?::([^/]+(?:\/[^/]+)?))?$/i)
-    if (!match) {
+    const parsed = parseSpfToken(token)
+    if (!parsed) {
       return {
         result: "permerror",
         explanation: `SPF token "${token}" is malformed.`,
@@ -205,9 +276,7 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
       }
     }
 
-    const [, qualifier = "", mechanismRaw, valueRaw = ""] = match
-    const mechanism = mechanismRaw.toLowerCase()
-    const target = valueRaw || domain
+    const { qualifier, mechanism, domainValue } = parsed
 
     if (["include", "a", "mx", "exists", "ptr"].includes(mechanism)) {
       state.lookups += 1
@@ -215,15 +284,25 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
       if (lookupLimitError) return lookupLimitError
     }
 
-    if (mechanism === "ip4" && isIpInCidr(ip, target)) {
-      return { result: qualifierToResult(qualifier), explanation: `Matched ip4:${target}.`, state }
+    if (mechanism === "ip4") {
+      const cidrStr = parsed.cidr4 ? `${domainValue}/${parsed.cidr4}` : domainValue
+      if (isIpInCidr(ip, cidrStr)) {
+        return { result: qualifierToResult(qualifier), explanation: `Matched ip4:${cidrStr}.`, state }
+      }
+      continue
     }
 
-    if (mechanism === "ip6" && isIpInCidr(ip, target)) {
-      return { result: qualifierToResult(qualifier), explanation: `Matched ip6:${target}.`, state }
+    if (mechanism === "ip6") {
+      // cidr4 slot holds the IPv6 prefix length when written as ip6:addr/cidr
+      const cidrStr = parsed.cidr4 ? `${domainValue}/${parsed.cidr4}` : domainValue
+      if (isIpInCidr(ip, cidrStr)) {
+        return { result: qualifierToResult(qualifier), explanation: `Matched ip6:${cidrStr}.`, state }
+      }
+      continue
     }
 
     if (mechanism === "include") {
+      const target = domainValue || domain
       const included = await evaluateSpf(target, ip, nextVisited)
       state.lookups += included.state.lookups
       state.voidLookups += included.state.voidLookups
@@ -245,26 +324,71 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
     }
 
     if (mechanism === "a") {
-      const addresses = await resolveAddresses(target)
-      if (addresses.length === 0) state.voidLookups += 1
-      if (addresses.includes(ip)) {
-        return { result: qualifierToResult(qualifier), explanation: `Matched A/AAAA for ${target}.`, state }
+      const host = domainValue || domain
+      const [aRecords, aaaaRecords] = await Promise.all([
+        dohQuery(host, "A"),
+        dohQuery(host, "AAAA")
+      ])
+      if (aRecords.length === 0 && aaaaRecords.length === 0) {
+        state.voidLookups += 1
+        const voidLimitError = enforceSpfVoidLookupLimit(state)
+        if (voidLimitError) return voidLimitError
+      }
+      // Apply CIDR matching per RFC 7208 Section 5.3; defaults to /32 (IPv4) or /128 (IPv6)
+      const cidr4Len = parsed.cidr4 || "32"
+      const cidr6Len = parsed.cidr6 || "128"
+      const matched =
+        (ipFamily === 4 && aRecords.some((addr) => isIpv4InCidr(ip, `${addr}/${cidr4Len}`))) ||
+        (ipFamily === 6 && aaaaRecords.some((addr) => isIpv6InCidr(ip, `${addr}/${cidr6Len}`)))
+      if (matched) {
+        return { result: qualifierToResult(qualifier), explanation: `Matched A/AAAA for ${host}.`, state }
       }
       continue
     }
 
     if (mechanism === "mx") {
-      const addresses = await resolveMxAddresses(target)
-      if (addresses.length === 0) state.voidLookups += 1
-      if (addresses.includes(ip)) {
-        return { result: qualifierToResult(qualifier), explanation: `Matched MX host IPs for ${target}.`, state }
+      const host = domainValue || domain
+      const mxRecords = await dohQuery(host, "MX")
+      const mxHosts = mxRecords
+        .map((entry) => entry.trim().split(/\s+/).slice(1).join(" ").replace(/\.$/, ""))
+        .filter(Boolean)
+      if (mxHosts.length === 0) {
+        state.voidLookups += 1
+        const voidLimitError = enforceSpfVoidLookupLimit(state)
+        if (voidLimitError) return voidLimitError
+        continue
+      }
+      // Apply CIDR matching per RFC 7208 Section 5.4; defaults to /32 (IPv4) or /128 (IPv6)
+      const cidr4Len = parsed.cidr4 || "32"
+      const cidr6Len = parsed.cidr6 || "128"
+      let matched = false
+      for (const mxHost of mxHosts) {
+        const [aRecords, aaaaRecords] = await Promise.all([
+          dohQuery(mxHost, "A"),
+          dohQuery(mxHost, "AAAA")
+        ])
+        if (
+          (ipFamily === 4 && aRecords.some((addr) => isIpv4InCidr(ip, `${addr}/${cidr4Len}`))) ||
+          (ipFamily === 6 && aaaaRecords.some((addr) => isIpv6InCidr(ip, `${addr}/${cidr6Len}`)))
+        ) {
+          matched = true
+          break
+        }
+      }
+      if (matched) {
+        return { result: qualifierToResult(qualifier), explanation: `Matched MX host IPs for ${host}.`, state }
       }
       continue
     }
 
     if (mechanism === "exists") {
+      const target = domainValue || domain
       const addresses = await dohQuery(target, "A")
-      if (addresses.length === 0) state.voidLookups += 1
+      if (addresses.length === 0) {
+        state.voidLookups += 1
+        const voidLimitError = enforceSpfVoidLookupLimit(state)
+        if (voidLimitError) return voidLimitError
+      }
       if (addresses.length > 0) {
         return { result: qualifierToResult(qualifier), explanation: `Matched exists:${target}.`, state }
       }
@@ -272,7 +396,7 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
     }
 
     if (mechanism === "all") {
-      return { result: qualifierToResult(qualifier), explanation: `Reached ${qualifier || "+"}all.`, state }
+      return { result: qualifierToResult(qualifier), explanation: `Reached ${qualifier}all.`, state }
     }
 
     if (mechanism === "ptr") {
@@ -281,12 +405,25 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
     }
   }
 
+  // RFC 7208 Section 6.1: redirect is only evaluated when no mechanism matched AND no 'all' mechanism
   if (redirectTarget) {
-    const redirected = await evaluateSpf(redirectTarget, ip, nextVisited)
-    redirected.state.lookups += 1
-    const lookupLimitError = enforceSpfLookupLimit(redirected.state)
+    state.lookups += 1
+    const lookupLimitError = enforceSpfLookupLimit(state)
     if (lookupLimitError) return lookupLimitError
-    return redirected
+
+    const redirected = await evaluateSpf(redirectTarget, ip, nextVisited)
+    state.lookups += redirected.state.lookups
+    state.voidLookups += redirected.state.voidLookups
+    state.loopDetected ||= redirected.state.loopDetected
+    state.unsupported.push(...redirected.state.unsupported)
+
+    const finalLookupLimitError = enforceSpfLookupLimit(state)
+    if (finalLookupLimitError) return finalLookupLimitError
+
+    const finalVoidLimitError = enforceSpfVoidLookupLimit(state)
+    if (finalVoidLimitError) return finalVoidLimitError
+
+    return { result: redirected.result, explanation: redirected.explanation, state }
   }
 
   return {

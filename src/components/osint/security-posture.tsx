@@ -110,6 +110,8 @@ export function SecurityPosture({ securityData, emailSecurity, waf, pending, err
             <>
               {spfPolicy === "softfail" ? (
                 <WarnBadge label="Soft Fail" />
+              ) : spfPolicy === "pass" ? (
+                <WarnBadge label="Permissive (+all)" />
               ) : (
                 <StatusBadge
                   pass={spfPolicy === "fail"}

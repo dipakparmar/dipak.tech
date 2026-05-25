@@ -83,7 +83,9 @@ const SPF_MECHANISM_DESCRIPTIONS: Record<string, string> = {
   a: "Authorizes the current domain's A or AAAA records, or another named host.",
   mx: "Authorizes the IPs behind the domain's MX hosts.",
   exists: "Matches if the named domain returns any DNS A record.",
-  ptr: "Deprecated mechanism based on reverse DNS."
+  ptr: "Deprecated mechanism based on reverse DNS.",
+  redirect: "Modifier: delegates SPF evaluation to another domain.",
+  exp: "Modifier: provides an explanation string for failures."
 }
 
 export function parseTagList(record: string): Record<string, string> {
@@ -107,7 +109,23 @@ export function parseSpfMechanisms(record: string): SpfMechanismRow[] {
     .split(/\s+/)
     .slice(1)
     .map((token) => {
-      const match = token.match(/^([+?~-]?)([a-z0-9]+)(?::([^/]+(?:\/[^/]+)?))?$/i)
+      // Modifiers use name=value syntax (redirect=, exp=, or unknown per RFC 7208 Section 3.1)
+      const modifierMatch = token.match(/^([a-z][a-z0-9]*)=(.+)$/i)
+      if (modifierMatch) {
+        const [, type, value] = modifierMatch
+        return {
+          prefix: "",
+          type: type.toLowerCase(),
+          value,
+          prefixDescription: "",
+          description: SPF_MECHANISM_DESCRIPTIONS[type.toLowerCase()] ?? "SPF modifier"
+        }
+      }
+
+      // Mechanisms: [qualifier][name][:value][/cidr4][//cidr6] or [//cidr6]
+      // RFC 7208 dual-cidr form is /24//64 (double slash before IPv6 length), not /24/64.
+      // Handles: a, a/24, a//64, a/24//64, a:dom, a:dom/24, a:dom/24//64, ip4:addr/24, etc.
+      const match = token.match(/^([+?~-]?)([a-z][a-z0-9]*)(?::([^/]+))?(?:\/\d+(?:\/\/\d+)?|\/\/\d+)?$/i)
       if (!match) {
         return {
           prefix: "",
