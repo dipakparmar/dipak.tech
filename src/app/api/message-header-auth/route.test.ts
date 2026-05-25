@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { enforceSpfLookupLimit, enforceSpfVoidLookupLimit, isIpInCidr, parseSpfToken } from "./route"
+import { buildAtpsDnsName, enforceSpfLookupLimit, enforceSpfVoidLookupLimit, isIpInCidr, parseSpfToken } from "./route"
 import { detectDmarcStandard } from "@/lib/message-auth-live"
 
 describe("message-header-auth SPF helpers", () => {
@@ -180,5 +180,39 @@ describe("detectDmarcStandard", () => {
   test("returns mixed when both pct and rfc9989 tags present", () => {
     expect(detectDmarcStandard({ v: "DMARC1", p: "reject", pct: "100", np: "none" })).toBe("mixed")
     expect(detectDmarcStandard({ v: "DMARC1", p: "reject", pct: "100", t: "y" })).toBe("mixed")
+  })
+})
+
+describe("buildAtpsDnsName (RFC 6541 Section 4)", () => {
+  test("atpsh=none: uses signer domain directly", () => {
+    // RFC 6541 s4: when atpsh=none, signer domain is used unencoded
+    expect(buildAtpsDnsName("forwarder.com", "example.com", "none"))
+      .toBe("forwarder.com._atps.example.com")
+  })
+
+  test("atpsh=none: normalises signer domain to lowercase", () => {
+    expect(buildAtpsDnsName("Forwarder.COM", "example.com", "none"))
+      .toBe("forwarder.com._atps.example.com")
+  })
+
+  test("atpsh=sha256: produces base32(sha256(signerDomain))._atps.<authorDomain>", () => {
+    // RFC 6541 s4: SHA-256 digest encoded as base32 (RFC 4648, no padding)
+    const name = buildAtpsDnsName("forwarder.com", "example.com", "sha256")
+    expect(name).toMatch(/^[a-z2-7]+\._atps\.example\.com$/)
+    // sha256 of "forwarder.com" = 32 bytes = 52 base32 chars
+    const label = name.split("._atps.")[0]
+    expect(label).toHaveLength(52)
+  })
+
+  test("sha256 label is deterministic for the same input", () => {
+    const a = buildAtpsDnsName("list.example.org", "sender.com", "sha256")
+    const b = buildAtpsDnsName("list.example.org", "sender.com", "sha256")
+    expect(a).toBe(b)
+  })
+
+  test("different signer domains produce different sha256 labels", () => {
+    const a = buildAtpsDnsName("forwarder.com", "example.com", "sha256")
+    const b = buildAtpsDnsName("other.com", "example.com", "sha256")
+    expect(a).not.toBe(b)
   })
 })

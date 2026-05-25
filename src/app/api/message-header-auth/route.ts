@@ -1,9 +1,40 @@
+import { createHash } from "node:crypto"
 import { isIP } from "node:net"
 import { NextResponse } from "next/server"
 import { captureAPIError } from "@/lib/sentry-utils"
 import type { LiveAuthLookupContext } from "@/lib/message-auth-context"
 import type { CheckStatus, LiveAuthVerificationResponse, LiveCheck } from "@/lib/message-auth-live"
+import type { AtpsCheckedSigner } from "@/lib/message-auth-live"
 import { detectDmarcStandard, parseSpfMechanisms, parseTagList } from "@/lib/message-auth-live"
+
+// Base32 encoding per RFC 4648 Section 6 (no padding), used for ATPS DNS name construction.
+// RFC 6541 Section 4: sha256 digest of signer domain encoded as base32, appended to ._atps.<author_domain>
+const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+function base32Encode(buf: Buffer): string {
+  let result = ""
+  let bits = 0
+  let value = 0
+  for (let i = 0; i < buf.length; i++) {
+    value = (value << 8) | buf[i]
+    bits += 8
+    while (bits >= 5) {
+      bits -= 5
+      result += BASE32_ALPHABET[(value >> bits) & 0x1f]
+    }
+  }
+  if (bits > 0) result += BASE32_ALPHABET[(value << (5 - bits)) & 0x1f]
+  return result.toLowerCase()
+}
+
+// Constructs the ATPS DNS query name per RFC 6541 Section 4.
+// atpsh=sha256: base32(sha256(signerDomain))._atps.<authorDomain>
+// atpsh=none:   signerDomain._atps.<authorDomain>
+export function buildAtpsDnsName(signerDomain: string, authorDomain: string, hashAlg: "sha256" | "none"): string {
+  const label = hashAlg === "none"
+    ? signerDomain.toLowerCase()
+    : base32Encode(createHash("sha256").update(signerDomain.toLowerCase()).digest())
+  return `${label}._atps.${authorDomain}`
+}
 
 interface SpfEvaluationState {
   lookups: number
@@ -698,6 +729,44 @@ export async function GET(request: Request) {
       })
     )
 
+    // ATPS: RFC 6541 (Experimental) - https://www.rfc-editor.org/rfc/rfc6541
+    // For each DKIM signer, check both hash variants against <author_domain>.
+    // Full ATPS also requires atps= and atpsh= in the DKIM-Signature header (RFC 6541 s3),
+    // which is not available here - this is a DNS-authorization-only check.
+    const atpsChecks: LiveCheck[] = []
+    const atpsSigners: AtpsCheckedSigner[] = []
+
+    if (context.dkimSignatures.length === 0) {
+      atpsChecks.push(
+        toCheck("info", "ATPS Check", "No DKIM signers provided; cannot perform ATPS DNS lookup (RFC 6541).")
+      )
+    } else {
+      for (const sig of context.dkimSignatures) {
+        for (const hashAlg of ["sha256", "none"] as const) {
+          const dnsName = buildAtpsDnsName(sig.domain, fromDomain, hashAlg)
+          const records = await getTxtRecords(dnsName)
+          const atpsRecord = records.find((r) => r.toLowerCase().startsWith("v=atps1")) ?? null
+          const authorized = atpsRecord !== null
+          atpsSigners.push({ signerDomain: sig.domain, hashAlgorithm: hashAlg, dnsName, record: atpsRecord, authorized })
+          if (authorized) {
+            atpsChecks.push(
+              toCheck("ok", "ATPS Authorized Resigner",
+                `${sig.domain} authorized via ${dnsName} (atpsh=${hashAlg}, RFC 6541).`)
+            )
+          }
+        }
+      }
+      if (!atpsSigners.some((s) => s.authorized)) {
+        atpsChecks.push(
+          toCheck("info", "ATPS Authorization", `No ATPS records found under _atps.${fromDomain} for provided DKIM signers.`)
+        )
+      }
+      atpsChecks.push(
+        toCheck("info", "ATPS Note",
+          "Full ATPS evaluation requires atps= and atpsh= tags in the DKIM-Signature header (RFC 6541 s3). This is a DNS-level check only.")
+      )
+    }
+
     const payload: LiveAuthVerificationResponse = {
       context,
       dnsProvider: {
@@ -733,6 +802,12 @@ export async function GET(request: Request) {
         checks: spfChecks
       } : null,
       dkim,
+      dara: null,
+      atps: {
+        authorDomain: fromDomain,
+        signers: atpsSigners,
+        checks: atpsChecks
+      },
       checkedAt: new Date().toISOString()
     }
 

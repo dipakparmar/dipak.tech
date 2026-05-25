@@ -73,6 +73,27 @@ export interface LiveDkimResult {
   checks: LiveCheck[]
 }
 
+// ATPS - RFC 6541 (Experimental), https://www.rfc-editor.org/rfc/rfc6541
+// Domain owner publishes <hash(signer)>._atps.<author_domain> TXT records.
+// Third-party signer adds atps=<author_domain> and atpsh=<alg> to DKIM-Signature header.
+// DNS lookup: base32(sha256(signer_domain))._atps.<author_domain> OR
+//             <signer_domain>._atps.<author_domain> when atpsh=none
+export interface AtpsCheckedSigner {
+  signerDomain: string
+  hashAlgorithm: "sha256" | "none"
+  dnsName: string       // the DNS name that was queried
+  record: string | null // raw TXT response, null if NXDOMAIN/NODATA
+  authorized: boolean   // true if record contained v=ATPS1
+}
+
+export interface LiveAtpsResult {
+  authorDomain: string
+  // Note: full ATPS evaluation also requires atps= and atpsh= tags in the
+  // DKIM-Signature header (RFC 6541 s3). This is a DNS-level authorization check only.
+  signers: AtpsCheckedSigner[]
+  checks: LiveCheck[]
+}
+
 export interface LiveAuthVerificationResponse {
   context: LiveAuthLookupContext
   dnsProvider: {
@@ -82,6 +103,8 @@ export interface LiveAuthVerificationResponse {
   dmarc: LiveDmarcResult | null
   spf: LiveSpfResult | null
   dkim: LiveDkimResult[]
+  dara: null
+  atps: LiveAtpsResult | null
   checkedAt: string
 }
 
