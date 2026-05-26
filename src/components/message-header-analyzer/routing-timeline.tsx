@@ -7,6 +7,7 @@ import type { Hop } from "@/lib/email-header-parser"
 import { formatDelay } from "@/lib/email-header-parser"
 import { CommentMarker, AnnotatedRow } from "./annotation-components"
 import { getHeaderAnnotation, getCardAnnotation } from "@/lib/header-annotations"
+import { HostLink } from "./mha-links"
 
 interface RoutingTimelineProps {
   hops: Hop[]
@@ -126,13 +127,13 @@ export function RoutingTimeline({ hops, totalDeliveryTime }: RoutingTimelineProp
                         {hop.from && (
                           <div className="flex items-baseline gap-1.5 text-xs">
                             <span className="shrink-0 text-muted-foreground">from</span>
-                            <span className="font-mono font-medium break-all">{hop.from}</span>
+                            <HostLink host={hop.from} />
                           </div>
                         )}
                         {hop.by && (
                           <div className="flex items-baseline gap-1.5 text-xs">
                             <span className="shrink-0 text-muted-foreground">by</span>
-                            <span className="font-mono font-medium break-all">{hop.by}</span>
+                            <HostLink host={hop.by} />
                           </div>
                         )}
                       </div>

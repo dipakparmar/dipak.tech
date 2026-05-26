@@ -9,6 +9,7 @@ import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { CheckCircle2, AlertTriangle, Globe, MinusCircle, XCircle, ChevronDown, ChevronRight, GitBranch } from "lucide-react"
 import type { LiveAuthLookupContext } from "@/lib/message-auth-context"
 import type { CheckStatus, LiveAuthVerificationResponse, LiveCheck, SpfTreeNode } from "@/lib/message-auth-live"
+import { apexDomain, DomainBadge, DomainLink, IpBadge } from "./mha-links"
 
 interface LiveAuthChecksProps {
   context: LiveAuthLookupContext
@@ -100,6 +101,38 @@ function depthStyle(depth: number) {
   return DEPTH_STYLES[depth % DEPTH_STYLES.length]
 }
 
+const DOMAIN_MECHANISMS = new Set(["include", "a", "mx", "exists", "ptr", "redirect"])
+const IP_MECHANISMS = new Set(["ip4", "ip6"])
+
+function SpfValueCell({ type, value }: { type: string; value: string }) {
+  if (!value) return <span className="text-muted-foreground">-</span>
+  if (DOMAIN_MECHANISMS.has(type)) {
+    if (value.includes("%{")) return <span>{value}</span>
+    const domain = value.replace(/\/.*$/, "")
+    return (
+      <span onClick={(e) => e.stopPropagation()}>
+        <DomainLink domain={domain} />
+        {value !== domain ? <span className="text-muted-foreground">{value.slice(domain.length)}</span> : null}
+      </span>
+    )
+  }
+  if (IP_MECHANISMS.has(type)) {
+    return (
+      <span onClick={(e) => e.stopPropagation()}>
+        <a
+          href={`https://tools.dipak.io/ip?ip=${encodeURIComponent(value)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+        >
+          {value}
+        </a>
+      </span>
+    )
+  }
+  return <span>{value}</span>
+}
+
 function SpfMechanismRow({ node, m, depth, index }: {
   node: SpfTreeNode
   m: SpfTreeNode["mechanisms"][number]
@@ -139,7 +172,9 @@ function SpfMechanismRow({ node, m, depth, index }: {
             : null}
         </td>
         <td className="px-3 py-2 font-mono">{m.type}</td>
-        <td className="px-3 py-2 font-mono break-all">{m.value || <span className="text-muted-foreground">-</span>}</td>
+        <td className="px-3 py-2 font-mono break-all">
+          <SpfValueCell type={m.type} value={m.value} />
+        </td>
         <td className="hidden px-3 py-2 text-muted-foreground sm:table-cell">{m.description}</td>
       </tr>
       {open && childNode && (
@@ -335,12 +370,17 @@ export function LiveAuthChecks({ context }: LiveAuthChecksProps) {
         {approved && data && !pending && (
           <div className="space-y-5">
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" className="font-mono">{data.context.fromDomain}</Badge>
+              {data.context.fromDomain && <DomainBadge domain={data.context.fromDomain} />}
               {data.dnsProvider.name && (
-                <span>DNS provider appears to be {data.dnsProvider.name}{data.dnsProvider.nameserver ? ` via ${data.dnsProvider.nameserver}` : ""}.</span>
+                <span>
+                  DNS provider appears to be {data.dnsProvider.name}
+                  {data.dnsProvider.nameserver && (
+                    <> via <DomainLink domain={data.dnsProvider.nameserver} /></>
+                  )}.
+                </span>
               )}
               {!data.dnsProvider.name && data.dnsProvider.nameserver && (
-                <span>Authoritative nameserver: {data.dnsProvider.nameserver}</span>
+                <span>Authoritative nameserver: <DomainLink domain={data.dnsProvider.nameserver} /></span>
               )}
             </div>
 
@@ -366,8 +406,8 @@ export function LiveAuthChecks({ context }: LiveAuthChecksProps) {
               <section className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-sm font-semibold">SPF</h3>
-                  <Badge variant="outline" className="font-mono">{data.spf.domain}</Badge>
-                  {data.spf.clientIp && <Badge variant="outline" className="font-mono">{data.spf.clientIp}</Badge>}
+                  <DomainBadge domain={data.spf.domain} />
+                  {data.spf.clientIp && <IpBadge ip={data.spf.clientIp} />}
                   {data.spf.evaluation && <Badge variant="secondary">{data.spf.evaluation.result.toUpperCase()}</Badge>}
                 </div>
                 {data.spf.tree && (
@@ -395,7 +435,7 @@ export function LiveAuthChecks({ context }: LiveAuthChecksProps) {
                   <div key={`${entry.selector}@${entry.domain}`} className="space-y-3 rounded-xl border p-3">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className="font-mono">{entry.selector}</Badge>
-                      <Badge variant="outline" className="font-mono">{entry.domain}</Badge>
+                      <DomainBadge domain={entry.domain} />
                       {entry.tags.v && <Badge variant="secondary">{entry.tags.v}</Badge>}
                       {entry.tags.k && <Badge variant="secondary">k={entry.tags.k}</Badge>}
                     </div>
