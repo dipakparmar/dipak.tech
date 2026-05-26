@@ -6,6 +6,7 @@ import type { LiveAuthLookupContext } from "@/lib/message-auth-context"
 import type { CheckStatus, LiveAuthVerificationResponse, LiveCheck } from "@/lib/message-auth-live"
 import type { AtpsCheckedSigner } from "@/lib/message-auth-live"
 import { detectDmarcStandard, parseSpfMechanisms, parseTagList } from "@/lib/message-auth-live"
+import type { SpfTreeNode } from "@/lib/message-auth-live"
 
 // Base32 encoding per RFC 4648 Section 6 (no padding), used for ATPS DNS name construction.
 // RFC 6541 Section 4: sha256 digest of signer domain encoded as base32, appended to ._atps.<author_domain>
@@ -248,6 +249,42 @@ export function parseSpfToken(token: string): ParsedSpfToken | null {
   if (i !== token.length) return null // unexpected trailing characters
 
   return { qualifier, mechanism, domainValue, cidr4, cidr6 }
+}
+
+// Recursively fetches SPF records to build an include/redirect tree (RFC 7208 Sections 5.2, 6.1).
+// Does not evaluate - use evaluateSpf() for pass/fail decisions.
+async function buildSpfTree(domain: string, visited = new Set<string>()): Promise<SpfTreeNode> {
+  if (visited.has(domain)) {
+    return { domain, record: null, error: "loop detected", mechanisms: [], includes: [], redirect: null }
+  }
+  const nextVisited = new Set(visited)
+  nextVisited.add(domain)
+
+  const txtRecords = await getTxtRecords(domain)
+  const spfRecords = txtRecords.filter((r) => r.toLowerCase().startsWith("v=spf1"))
+
+  if (spfRecords.length === 0) {
+    return { domain, record: null, error: "no SPF record", mechanisms: [], includes: [], redirect: null }
+  }
+  if (spfRecords.length > 1) {
+    return { domain, record: spfRecords[0], error: "multiple SPF records (permerror)", mechanisms: [], includes: [], redirect: null }
+  }
+
+  const record = spfRecords[0]
+  const mechanisms = parseSpfMechanisms(record)
+  const tokens = record.trim().split(/\s+/).slice(1)
+
+  const includeTargets = tokens
+    .filter((t) => /^[+?~-]?include:/i.test(t))
+    .map((t) => t.replace(/^[+?~-]?include:/i, ""))
+
+  const redirectToken = tokens.find((t) => /^redirect=/i.test(t))
+  const redirectTarget = redirectToken ? redirectToken.replace(/^redirect=/i, "") : null
+
+  const includes = await Promise.all(includeTargets.map((target) => buildSpfTree(target, nextVisited)))
+  const redirect = redirectTarget ? await buildSpfTree(redirectTarget, nextVisited) : null
+
+  return { domain, record, error: null, mechanisms, includes, redirect }
 }
 
 async function evaluateSpf(domain: string, ip: string, visited = new Set<string>()): Promise<SpfEvaluationResult> {
@@ -592,10 +629,14 @@ export async function GET(request: Request) {
     const spfRecords = spfTxt.filter((record) => record.toLowerCase().startsWith("v=spf1"))
     const spfRecord = spfRecords[0] ?? null
     const spfMechanisms = spfRecord ? parseSpfMechanisms(spfRecord) : []
-    const spfEvaluation =
+    const [spfEvaluation, spfTree] = await Promise.all([
       context.spfDomain && context.spfClientIp && isIP(context.spfClientIp)
-        ? await evaluateSpf(context.spfDomain, context.spfClientIp)
-        : null
+        ? evaluateSpf(context.spfDomain, context.spfClientIp)
+        : Promise.resolve(null),
+      context.spfDomain
+        ? buildSpfTree(context.spfDomain)
+        : Promise.resolve(null)
+    ])
 
     const spfChecks: LiveCheck[] = []
     if (context.spfDomain) {
@@ -799,6 +840,7 @@ export async function GET(request: Request) {
         recordsFound: spfRecords.length,
         evaluation: spfEvaluation ? { result: spfEvaluation.result, explanation: spfEvaluation.explanation } : null,
         mechanisms: spfMechanisms,
+        tree: spfTree,
         checks: spfChecks
       } : null,
       dkim,

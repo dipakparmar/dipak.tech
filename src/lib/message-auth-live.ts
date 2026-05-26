@@ -48,6 +48,15 @@ export function detectDmarcStandard(tags: Record<string, string>): DmarcStandard
   return "compatible" // valid for both; no standard-specific tags
 }
 
+export interface SpfTreeNode {
+  domain: string
+  record: string | null
+  error: string | null
+  mechanisms: SpfMechanismRow[]
+  includes: SpfTreeNode[]
+  redirect: SpfTreeNode | null
+}
+
 export interface LiveSpfResult {
   domain: string
   clientIp: string | null
@@ -58,6 +67,7 @@ export interface LiveSpfResult {
     explanation: string
   } | null
   mechanisms: SpfMechanismRow[]
+  tree: SpfTreeNode | null
   checks: LiveCheck[]
 }
 

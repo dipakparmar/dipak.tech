@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { CheckCircle2, AlertTriangle, Globe, MinusCircle, XCircle } from "lucide-react"
+import { CheckCircle2, AlertTriangle, Globe, MinusCircle, XCircle, ChevronDown, ChevronRight, GitBranch } from "lucide-react"
 import type { LiveAuthLookupContext } from "@/lib/message-auth-context"
-import type { CheckStatus, LiveAuthVerificationResponse, LiveCheck } from "@/lib/message-auth-live"
+import type { CheckStatus, LiveAuthVerificationResponse, LiveCheck, SpfTreeNode } from "@/lib/message-auth-live"
 
 interface LiveAuthChecksProps {
   context: LiveAuthLookupContext
@@ -77,6 +77,114 @@ function CheckList({
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+const QUALIFIER_COLORS: Record<string, string> = {
+  "+": "text-emerald-500",
+  "-": "text-red-500",
+  "~": "text-amber-500",
+  "?": "text-muted-foreground",
+}
+
+const DEPTH_STYLES: Array<{ row: string; record: string }> = [
+  { row: "",                 record: "bg-muted/20" },
+  { row: "bg-blue-500/5",   record: "bg-blue-500/10" },
+  { row: "bg-violet-500/5", record: "bg-violet-500/10" },
+  { row: "bg-amber-500/5",  record: "bg-amber-500/10" },
+  { row: "bg-emerald-500/5",record: "bg-emerald-500/10" },
+]
+
+function depthStyle(depth: number) {
+  return DEPTH_STYLES[depth % DEPTH_STYLES.length]
+}
+
+function SpfMechanismRow({ node, m, depth, index }: {
+  node: SpfTreeNode
+  m: SpfTreeNode["mechanisms"][number]
+  depth: number
+  index: number
+}) {
+  const childNode = m.type === "include"
+    ? node.includes.find((n) => n.domain === m.value) ?? null
+    : m.type === "redirect"
+    ? node.redirect
+    : null
+  const isExpandable = childNode !== null
+  const [open, setOpen] = useState(false)
+  const indent = depth * 16
+  const ds = depthStyle(depth)
+  const childDs = depthStyle(depth + 1)
+
+  return (
+    <>
+      <tr
+        key={`${m.type}-${m.value}-${index}`}
+        className={`border-t ${ds.row} ${isExpandable ? "cursor-pointer hover:brightness-95 dark:hover:brightness-110" : ""}`}
+        onClick={isExpandable ? () => setOpen((v) => !v) : undefined}
+      >
+        <td className="w-8 px-2 py-2">
+          <span className="flex h-3 w-3 items-center justify-center">
+            {isExpandable && (open
+              ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              : <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            )}
+          </span>
+        </td>
+        <td className={`py-2 font-mono font-semibold ${QUALIFIER_COLORS[m.prefix || "+"] ?? ""}`} style={{ paddingLeft: indent }}>
+          {m.prefix || "+"}
+          {m.prefixDescription
+            ? <span className="ml-1 hidden font-normal text-muted-foreground sm:inline">({m.prefixDescription})</span>
+            : null}
+        </td>
+        <td className="px-3 py-2 font-mono">{m.type}</td>
+        <td className="px-3 py-2 font-mono break-all">{m.value || <span className="text-muted-foreground">-</span>}</td>
+        <td className="hidden px-3 py-2 text-muted-foreground sm:table-cell">{m.description}</td>
+      </tr>
+      {open && childNode && (
+        <>
+          <tr className={`border-t ${childDs.record}`}>
+            <td colSpan={5} className="px-3 py-1.5" style={{ paddingLeft: indent + 24 }}>
+              {childNode.error
+                ? <Badge variant="destructive" className="text-[10px]">{childNode.error}</Badge>
+                : <code className="font-mono text-xs break-all text-muted-foreground">{childNode.record}</code>}
+            </td>
+          </tr>
+          <SpfMechanismRows node={childNode} depth={depth + 1} />
+        </>
+      )}
+    </>
+  )
+}
+
+function SpfMechanismRows({ node, depth }: { node: SpfTreeNode; depth: number }) {
+  return (
+    <>
+      {node.mechanisms.map((m, i) => (
+        <SpfMechanismRow key={`${m.type}-${m.value}-${i}`} node={node} m={m} depth={depth} index={i} />
+      ))}
+    </>
+  )
+}
+
+function SpfTree({ node }: { node: SpfTreeNode }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border">
+      <table className="w-full text-left text-xs">
+        <thead className="bg-muted/40 text-muted-foreground">
+          <tr>
+            <th className="w-8 px-2 py-2" />
+            <th className="px-3 py-2 font-medium">Qualifier</th>
+            <th className="px-3 py-2 font-medium">Type</th>
+            <th className="px-3 py-2 font-medium">Value</th>
+            <th className="hidden px-3 py-2 font-medium sm:table-cell">Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <SpfMechanismRows node={node} depth={0} />
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -262,35 +370,18 @@ export function LiveAuthChecks({ context }: LiveAuthChecksProps) {
                   {data.spf.clientIp && <Badge variant="outline" className="font-mono">{data.spf.clientIp}</Badge>}
                   {data.spf.evaluation && <Badge variant="secondary">{data.spf.evaluation.result.toUpperCase()}</Badge>}
                 </div>
-                {data.spf.record && (
-                  <div className="rounded-md bg-muted/50 p-2">
-                    <code className="font-mono text-xs break-all">{data.spf.record}</code>
-                  </div>
-                )}
-                {data.spf.mechanisms.length > 0 && (
-                  <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full min-w-[520px] text-left text-xs">
-                      <thead className="bg-muted/40 text-muted-foreground">
-                        <tr>
-                          <th className="px-3 py-2 font-medium">Prefix</th>
-                          <th className="px-3 py-2 font-medium">Type</th>
-                          <th className="px-3 py-2 font-medium">Value</th>
-                          <th className="px-3 py-2 font-medium">Prefix Desc</th>
-                          <th className="px-3 py-2 font-medium">Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.spf.mechanisms.map((mechanism, index) => (
-                          <tr key={`${mechanism.type}-${mechanism.value}-${index}`} className="border-t">
-                            <td className="px-3 py-2 font-mono">{mechanism.prefix || "+"}</td>
-                            <td className="px-3 py-2 font-mono">{mechanism.type}</td>
-                            <td className="px-3 py-2 font-mono break-all">{mechanism.value || "—"}</td>
-                            <td className="px-3 py-2">{mechanism.prefixDescription || "—"}</td>
-                            <td className="px-3 py-2 text-muted-foreground">{mechanism.description}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {data.spf.tree && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <GitBranch className="h-3.5 w-3.5" />
+                      Mechanisms
+                    </div>
+                    {data.spf.record && (
+                      <div className="rounded-md bg-muted/50 p-2">
+                        <code className="font-mono text-xs break-all">{data.spf.record}</code>
+                      </div>
+                    )}
+                    <SpfTree node={data.spf.tree} />
                   </div>
                 )}
                 <CheckList checks={data.spf.checks} />
