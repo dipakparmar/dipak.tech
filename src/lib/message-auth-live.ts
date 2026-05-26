@@ -175,7 +175,7 @@ export function parseSpfMechanisms(record: string): SpfMechanismRow[] {
       // Mechanisms: [qualifier][name][:value][/cidr4][//cidr6] or [//cidr6]
       // RFC 7208 dual-cidr form is /24//64 (double slash before IPv6 length), not /24/64.
       // Handles: a, a/24, a//64, a/24//64, a:dom, a:dom/24, a:dom/24//64, ip4:addr/24, etc.
-      const match = token.match(/^([+?~-]?)([a-z][a-z0-9]*)(?::([^/]+))?(?:\/\d+(?:\/\/\d+)?|\/\/\d+)?$/i)
+      const match = token.match(/^([+?~-]?)([a-z][a-z0-9]*)(?::([^/]+))?((?:\/\d+(?:\/\/\d+)?|\/\/\d+)?)$/i)
       if (!match) {
         return {
           prefix: "",
@@ -186,11 +186,11 @@ export function parseSpfMechanisms(record: string): SpfMechanismRow[] {
         }
       }
 
-      const [, qualifier = "", type, rawValue = ""] = match
+      const [, qualifier = "", type, rawValue = "", cidrSuffix = ""] = match
       return {
         prefix: qualifier,
         type: type.toLowerCase(),
-        value: rawValue,
+        value: rawValue + cidrSuffix,
         prefixDescription: SPF_PREFIX_DESCRIPTIONS[qualifier || "+"] ?? "",
         description: SPF_MECHANISM_DESCRIPTIONS[type.toLowerCase()] ?? "SPF mechanism or modifier"
       }
