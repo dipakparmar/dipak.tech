@@ -1387,7 +1387,7 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         exact: 'x-auto-response-suppress',
         headerName: 'x-auto-response-suppress',
         valuePattern: /\bAll\b/i,
-        title: 'X-Auto-Response-Suppress: All',
+        title: 'Auto-Response Suppression',
         description: 'GitHub instruction to suppress automated replies such as out-of-office responses.',
         why: 'Prevents reply-storm loops when automated systems receive GitHub notifications.',
         howToRead:
