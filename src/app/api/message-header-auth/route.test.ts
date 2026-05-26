@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { buildAtpsDnsName, enforceSpfLookupLimit, enforceSpfVoidLookupLimit, isIpInCidr, parseSpfToken } from "./route"
+import { buildAtpsDnsName, enforceSpfLookupLimit, enforceSpfVoidLookupLimit, expandSpfMacros, hasMacros, isIpInCidr, parseSpfToken } from "./route"
 import { detectDmarcStandard } from "@/lib/message-auth-live"
 
 describe("message-header-auth SPF helpers", () => {
@@ -147,6 +147,53 @@ describe("parseSpfToken", () => {
   test("does not parse modifiers (those must be checked before calling)", () => {
     // redirect= contains '=' which is not a mechanism character after the name
     expect(parseSpfToken("redirect=other.com")).toBeNull()
+  })
+})
+
+describe("hasMacros / expandSpfMacros (RFC 7208 Section 7)", () => {
+  test("hasMacros detects macro placeholders", () => {
+    expect(hasMacros("%{i}._spf.mta.salesforce.com")).toBe(true)
+    expect(hasMacros("_spf.google.com")).toBe(false)
+    expect(hasMacros("%%literal")).toBe(true)
+  })
+
+  test("expands %{i} to IPv4 client address", () => {
+    expect(expandSpfMacros("%{i}._spf.mta.salesforce.com", "1.2.3.4", "example.com"))
+      .toBe("1.2.3.4._spf.mta.salesforce.com")
+  })
+
+  test("expands %{d} to current domain", () => {
+    expect(expandSpfMacros("%{d}", "1.2.3.4", "example.com")).toBe("example.com")
+  })
+
+  test("expands %{v} to in-addr for IPv4 and ip6 for IPv6", () => {
+    expect(expandSpfMacros("%{v}", "1.2.3.4", "example.com")).toBe("in-addr")
+    expect(expandSpfMacros("%{v}", "2001:db8::1", "example.com")).toBe("ip6")
+  })
+
+  test("expands %{ir} to reversed IPv4 (PTR-style)", () => {
+    expect(expandSpfMacros("%{ir}.in-addr.arpa", "1.2.3.4", "example.com"))
+      .toBe("4.3.2.1.in-addr.arpa")
+  })
+
+  test("expands %{i} for IPv6 to nibble-dotted format", () => {
+    // 2001:0db8:0000:0000:0000:0000:0000:0001 → nibbles
+    const result = expandSpfMacros("%{i}", "2001:db8::1", "example.com")
+    expect(result).toBe("2.0.0.1.0.d.b.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1")
+  })
+
+  test("returns null when template contains unknown macros (%{s}, %{h}, etc.)", () => {
+    expect(expandSpfMacros("%{s}._spf.example.com", "1.2.3.4", "example.com")).toBeNull()
+    expect(expandSpfMacros("%{h}._spf.example.com", "1.2.3.4", "example.com")).toBeNull()
+  })
+
+  test("expands %% to literal percent", () => {
+    expect(expandSpfMacros("100%%valid", "1.2.3.4", "example.com")).toBe("100%valid")
+  })
+
+  test("digit transformer takes rightmost N labels", () => {
+    // %{d2} on "sub.example.com" → "example.com"
+    expect(expandSpfMacros("%{d2}", "1.2.3.4", "sub.example.com")).toBe("example.com")
   })
 })
 

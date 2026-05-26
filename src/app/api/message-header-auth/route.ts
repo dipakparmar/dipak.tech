@@ -68,6 +68,45 @@ const DNS_PROVIDER_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
   { name: "DigitalOcean", pattern: /digitalocean\.com\.?$/i }
 ]
 
+// RFC 7208 Section 7.3: IPv6 addresses expand to nibble format (full 128-bit, each nibble dot-separated).
+function ipv6ToNibbles(ip: string): string {
+  const halves = ip.split("::")
+  const left = halves[0] ? halves[0].split(":").map((p) => p.padStart(4, "0")) : []
+  const right = halves.length > 1 && halves[1] ? halves[1].split(":").map((p) => p.padStart(4, "0")) : []
+  const mid = Array(8 - left.length - right.length).fill("0000")
+  return [...left, ...mid, ...right].join("").split("").join(".")
+}
+
+// RFC 7208 Section 7.1: expands SPF macro-strings for the macros we have context for.
+// Returns null when the template contains macros that require sender/HELO context (%{s}, %{l}, %{o}, %{h}, %{p}).
+export function expandSpfMacros(template: string, ip: string, domain: string): string | null {
+  const ipFamily = isIP(ip)
+  const ipValue = ipFamily === 6 ? ipv6ToNibbles(ip) : ip
+  const available: Record<string, string> = {
+    i: ipValue, c: ipValue,
+    d: domain,
+    v: ipFamily === 4 ? "in-addr" : "ip6",
+  }
+  let ok = true
+  const expanded = template.replace(/%(?:%|_|-|\{([a-zA-Z])(\d*)(r?)\})/g, (match, letter, digits, rev) => {
+    if (match === "%%") return "%"
+    if (match === "%_") return " "
+    if (match === "%-") return "%20"
+    const key = letter.toLowerCase()
+    if (!(key in available)) { ok = false; return match }
+    let parts = available[key].split(".")
+    if (digits) parts = parts.slice(-Number(digits))
+    if (rev === "r") parts = [...parts].reverse()
+    return parts.join(".")
+  })
+  return ok ? expanded : null
+}
+
+// Returns true when a domain-spec contains at least one macro placeholder.
+export function hasMacros(template: string): boolean {
+  return /%[{%_-]/.test(template)
+}
+
 function normalizeTxtRecord(raw: string): string {
   const quotedParts = Array.from(raw.matchAll(/"([^"]*)"/g)).map((match) => match[1])
   if (quotedParts.length > 0) return quotedParts.join("")
@@ -281,8 +320,18 @@ async function buildSpfTree(domain: string, visited = new Set<string>()): Promis
   const redirectToken = tokens.find((t) => /^redirect=/i.test(t))
   const redirectTarget = redirectToken ? redirectToken.replace(/^redirect=/i, "") : null
 
-  const includes = await Promise.all(includeTargets.map((target) => buildSpfTree(target, nextVisited)))
-  const redirect = redirectTarget ? await buildSpfTree(redirectTarget, nextVisited) : null
+  const includes = await Promise.all(
+    includeTargets.map((target) =>
+      hasMacros(target)
+        ? Promise.resolve<SpfTreeNode>({ domain: target, record: null, error: "macro: resolved at delivery time", mechanisms: [], includes: [], redirect: null })
+        : buildSpfTree(target, nextVisited)
+    )
+  )
+  const redirect = redirectTarget
+    ? hasMacros(redirectTarget)
+      ? { domain: redirectTarget, record: null, error: "macro: resolved at delivery time", mechanisms: [], includes: [], redirect: null }
+      : await buildSpfTree(redirectTarget, nextVisited)
+    : null
 
   return { domain, record, error: null, mechanisms, includes, redirect }
 }
@@ -370,7 +419,12 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
     }
 
     if (mechanism === "include") {
-      const target = domainValue || domain
+      const rawTarget = domainValue || domain
+      const expanded = hasMacros(rawTarget) ? expandSpfMacros(rawTarget, ip, domain) : rawTarget
+      if (expanded === null) {
+        return { result: "permerror", explanation: `SPF include:${rawTarget} contains macros that require sender context (RFC 7208 s7).`, state }
+      }
+      const target = expanded
       const included = await evaluateSpf(target, ip, nextVisited)
       state.lookups += included.state.lookups
       state.voidLookups += included.state.voidLookups
@@ -392,7 +446,8 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
     }
 
     if (mechanism === "a") {
-      const host = domainValue || domain
+      const rawHost = domainValue || domain
+      const host = hasMacros(rawHost) ? (expandSpfMacros(rawHost, ip, domain) ?? rawHost) : rawHost
       const [aRecords, aaaaRecords] = await Promise.all([
         dohQuery(host, "A"),
         dohQuery(host, "AAAA")
@@ -415,7 +470,8 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
     }
 
     if (mechanism === "mx") {
-      const host = domainValue || domain
+      const rawHost = domainValue || domain
+      const host = hasMacros(rawHost) ? (expandSpfMacros(rawHost, ip, domain) ?? rawHost) : rawHost
       const mxRecords = await dohQuery(host, "MX")
       const mxHosts = mxRecords
         .map((entry) => entry.trim().split(/\s+/).slice(1).join(" ").replace(/\.$/, ""))
@@ -450,7 +506,12 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
     }
 
     if (mechanism === "exists") {
-      const target = domainValue || domain
+      const rawTarget = domainValue || domain
+      const expanded = hasMacros(rawTarget) ? expandSpfMacros(rawTarget, ip, domain) : rawTarget
+      if (expanded === null) {
+        return { result: "permerror", explanation: `SPF exists:${rawTarget} contains macros that require sender context (RFC 7208 s7).`, state }
+      }
+      const target = expanded
       const addresses = await dohQuery(target, "A")
       if (addresses.length === 0) {
         state.voidLookups += 1
@@ -475,11 +536,15 @@ async function evaluateSpf(domain: string, ip: string, visited = new Set<string>
 
   // RFC 7208 Section 6.1: redirect is only evaluated when no mechanism matched AND no 'all' mechanism
   if (redirectTarget) {
+    const expandedRedirect = hasMacros(redirectTarget) ? expandSpfMacros(redirectTarget, ip, domain) : redirectTarget
+    if (expandedRedirect === null) {
+      return { result: "permerror", explanation: `SPF redirect=${redirectTarget} contains macros that require sender context (RFC 7208 s7).`, state }
+    }
     state.lookups += 1
     const lookupLimitError = enforceSpfLookupLimit(state)
     if (lookupLimitError) return lookupLimitError
 
-    const redirected = await evaluateSpf(redirectTarget, ip, nextVisited)
+    const redirected = await evaluateSpf(expandedRedirect, ip, nextVisited)
     state.lookups += redirected.state.lookups
     state.voidLookups += redirected.state.voidLookups
     state.loopDetected ||= redirected.state.loopDetected
