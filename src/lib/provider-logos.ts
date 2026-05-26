@@ -10,7 +10,8 @@ export const PROVIDER_LOGO_DOMAINS = {
   hubspot: 'hubspot.com',
   'salesforce-core': 'salesforce.com',
   sfmc: 'salesforce.com',
-  github: 'github.com'
+  github: 'github.com',
+  'zoho-mail': 'zoho.com'
 } as const
 
 export type ProviderLogoId = keyof typeof PROVIDER_LOGO_DOMAINS
