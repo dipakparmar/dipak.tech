@@ -9,7 +9,8 @@ export const PROVIDER_LOGO_DOMAINS = {
   microsoft365: 'microsoft.com',
   hubspot: 'hubspot.com',
   'salesforce-core': 'salesforce.com',
-  sfmc: 'salesforce.com'
+  sfmc: 'salesforce.com',
+  github: 'github.com'
 } as const
 
 export type ProviderLogoId = keyof typeof PROVIDER_LOGO_DOMAINS

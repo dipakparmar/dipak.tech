@@ -68,6 +68,12 @@ const SALESFORCE_EMAIL_CATEGORY_SOURCE =
 const SALESFORCE_TLS_VERIFIED_SOURCE =
   'https://dfc-org-production.my.site.com/forums/?id=906F00000008pSkIAI';
 const SFMC_STACK_SOURCE = 'https://www.youtube.com/watch?v=0dtTgppiG9I';
+const GITHUB_NOTIFICATIONS_DOC =
+  'https://docs.github.com/en/account-and-profile/managing-subscriptions-and-notifications-on-github/setting-up-notifications/configuring-notifications';
+const GITHUB_NOTIFICATION_REASONS_DOC =
+  'https://docs.github.com/en/account-and-profile/managing-subscriptions-and-notifications-on-github/setting-up-notifications/configuring-notifications#filtering-email-notifications';
+const GITHUB_AUTO_RESPONSE_DOC =
+  'https://docs.github.com/en/account-and-profile/managing-subscriptions-and-notifications-on-github/setting-up-notifications/about-notifications';
 const SENDGRID_RESERVED_HEADERS_DOC =
   'https://www.twilio.com/docs/sendgrid/api-reference/mail-send/errors';
 const SENDGRID_X_MESSAGE_ID_DOC =
@@ -1277,6 +1283,130 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         why: 'Useful for identifying SFMC-originated mail and understanding which business unit and send job produced it.',
         howToRead:
           'A pattern like SubscriberID.JobID.MID@bounce.example.com is a strong SFMC clue.'
+      }
+    ]
+  },
+  {
+    id: 'github',
+    name: 'GitHub',
+    summary:
+      'GitHub notification emails carry event-specific headers that identify the sender, recipient, notification reason, and resource state.',
+    note: 'These headers describe the GitHub notification context rather than transport trust. They are useful for filtering, routing, and attributing GitHub-originated mail.',
+    rules: [
+      {
+        exact: 'x-github-sender',
+        title: 'X-GitHub-Sender',
+        description: 'GitHub username of the actor who triggered the notification.',
+        why: 'Identifies which GitHub user performed the action that generated this email.',
+        howToRead:
+          'The value is a GitHub username, not an email address. Cross-reference with the From display name to confirm they match.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
+      },
+      {
+        exact: 'x-github-recipient',
+        title: 'X-GitHub-Recipient',
+        description: 'GitHub username of the notification recipient.',
+        why: 'Confirms which GitHub account this notification was addressed to, useful when a mailbox receives mail for multiple GitHub identities.',
+        howToRead:
+          'Compare with X-GitHub-Recipient-Address to map the GitHub username to the delivery email address.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
+      },
+      {
+        exact: 'x-github-recipient-address',
+        title: 'X-GitHub-Recipient-Address',
+        description: 'Email address GitHub delivered this notification to.',
+        why: 'Useful when diagnosing why a notification arrived at a non-obvious address.',
+        howToRead:
+          'The address reflects the GitHub account email setting at send time, not necessarily the current primary email.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
+      },
+      {
+        exact: 'x-github-reason',
+        title: 'X-GitHub-Reason',
+        description: 'The subscription reason that caused GitHub to send this notification.',
+        why: 'Explains why you received the email without reading the body. Common values include review_requested, mention, assign, author, comment, subscribed, and team_mention.',
+        howToRead:
+          'Use this for mail filtering rules. For example, route review_requested to a high-priority folder and subscribed to a lower-priority one.',
+        references: [
+          {
+            label: 'GitHub notification filtering docs',
+            url: GITHUB_NOTIFICATION_REASONS_DOC
+          }
+        ]
+      },
+      {
+        exact: 'x-github-notify-platform',
+        title: 'X-GitHub-Notify-Platform',
+        description: 'Internal GitHub notification delivery system identifier.',
+        why: 'Primarily a platform fingerprint confirming the mail came from GitHub internal notification infrastructure.',
+        howToRead: 'Treat as an opaque internal label rather than a user-facing value.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
+      },
+      {
+        exact: 'x-github-labels',
+        title: 'X-GitHub-Labels',
+        description: 'Labels applied to the issue or pull request at notification time.',
+        why: 'Enables label-based mail filtering without parsing the email body.',
+        howToRead:
+          'Comma-separated label names. An empty value means no labels were applied when the notification was sent.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
+      },
+      {
+        exact: 'x-github-assignees',
+        title: 'X-GitHub-Assignees',
+        description: 'GitHub usernames assigned to the issue or pull request.',
+        why: 'Useful for routing notifications to the right person in a shared inbox scenario.',
+        howToRead:
+          'Comma-separated GitHub usernames. Empty when no assignees are set.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
+      },
+      {
+        exact: 'x-github-pullrequeststatus',
+        title: 'X-GitHub-PullRequestStatus',
+        description: 'Current state of the pull request that triggered the notification.',
+        why: 'Lets you classify incoming GitHub mail by PR lifecycle state without opening the message.',
+        howToRead:
+          'Common values are open, merged, and closed. Use alongside X-GitHub-Reason to understand both the state and the triggering event.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
+      },
+      {
+        exact: 'x-auto-response-suppress',
+        headerName: 'x-auto-response-suppress',
+        valuePattern: /\bAll\b/i,
+        title: 'X-Auto-Response-Suppress: All',
+        description: 'GitHub instruction to suppress automated replies such as out-of-office responses.',
+        why: 'Prevents reply-storm loops when automated systems receive GitHub notifications.',
+        howToRead:
+          'A value of All means the sender explicitly asked mail systems not to auto-reply. Other providers use this header too, so treat it as a GitHub signal only when paired with other X-GitHub-* headers.',
+        references: [
+          { label: 'GitHub about notifications', url: GITHUB_AUTO_RESPONSE_DOC }
+        ]
+      },
+      {
+        headerName: 'list-id',
+        valuePattern: /\.github\.com>?\s*$/i,
+        title: 'List-ID from github.com',
+        description: 'Mailing list identifier stamped by GitHub for repository notification threads.',
+        why: 'Confirms the notification belongs to a specific GitHub repository list and enables thread-level mail filtering.',
+        howToRead:
+          'The format is typically <repo-name.OrgOrUser.github.com>. Use the repository slug to build filter rules in your mail client.',
+        references: [
+          { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
+        ]
       }
     ]
   }
