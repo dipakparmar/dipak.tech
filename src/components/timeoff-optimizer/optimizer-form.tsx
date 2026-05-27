@@ -416,7 +416,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                               value={day.startDate ?? ""}
                               onChange={(v) => updateTakenDay(idx, { startDate: v })}
                               placeholder="Start"
-                              defaultMonth={new Date(year, 0, 1)}
+                              defaultMonth={new Date()}
                             />
                           </div>
                           <div>
@@ -425,7 +425,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                               value={day.endDate ?? ""}
                               onChange={(v) => updateTakenDay(idx, { endDate: v })}
                               placeholder="End"
-                              defaultMonth={new Date(year, 0, 1)}
+                              defaultMonth={new Date()}
                             />
                           </div>
                         </div>
@@ -437,7 +437,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                               value={day.date ?? ""}
                               onChange={(v) => updateTakenDay(idx, { date: v })}
                               placeholder="Pick a date"
-                              defaultMonth={new Date(year, 0, 1)}
+                              defaultMonth={new Date()}
                             />
                           </div>
 
@@ -478,7 +478,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                                     type="time"
                                     value={day.startTime ?? "09:00"}
                                     onChange={(e) => updateTakenDay(idx, { startTime: e.target.value })}
-                                    className="h-8 text-xs"
+                                    className="h-8 appearance-none bg-background text-xs [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                                   />
                                 </div>
                                 <div>
@@ -487,7 +487,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                                     type="time"
                                     value={day.endTime ?? "17:00"}
                                     onChange={(e) => updateTakenDay(idx, { endTime: e.target.value })}
-                                    className="h-8 text-xs"
+                                    className="h-8 appearance-none bg-background text-xs [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                                   />
                                 </div>
                               </div>
@@ -594,7 +594,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                             value={day.startDate ?? ""}
                             onChange={(v) => updateCustomDay(idx, { startDate: v })}
                             placeholder="Start"
-                            defaultMonth={new Date(year, 0, 1)}
+                            defaultMonth={new Date()}
                           />
                         </div>
                         <div>
@@ -603,7 +603,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                             value={day.endDate ?? ""}
                             onChange={(v) => updateCustomDay(idx, { endDate: v })}
                             placeholder="End"
-                            defaultMonth={new Date(year, 11, 1)}
+                            defaultMonth={new Date()}
                           />
                         </div>
                       </div>
@@ -614,7 +614,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                           value={day.date ?? ""}
                           onChange={(v) => updateCustomDay(idx, { date: v })}
                           placeholder="Pick a date"
-                          defaultMonth={new Date(year, 0, 1)}
+                          defaultMonth={new Date()}
                         />
                       </div>
                     )}
