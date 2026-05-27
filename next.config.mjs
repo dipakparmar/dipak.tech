@@ -316,6 +316,17 @@ const nextConfig = {
         ],
         destination: '/tools'
       },
+      // Short links
+      {
+        source: '/mha',
+        has: [
+          {
+            type: 'host',
+            value: 'tools.dipak.io'
+          }
+        ],
+        destination: '/tools/message-header-analyzer'
+      },
       {
         source: '/:path*',
         has: [
