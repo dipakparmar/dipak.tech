@@ -6,6 +6,7 @@ import type {
   PlanResult,
   PlanStrategy,
   PlanSummary,
+  TakenDayOff,
 } from "./types"
 
 /**
@@ -111,6 +112,7 @@ function buildWindow(year: number): WindowInfo {
       inOffBlock: false,
       isPublicHoliday: false,
       isCustomDayOff: false,
+      isAlreadyTaken: false,
     })
   }
   return { start, end: dec31, days }
@@ -170,6 +172,55 @@ function applyCompanyDays(days: DayPlan[], customDaysOff: CustomDayOff[] | undef
 }
 
 /**
+ * Computes fractional PTO cost for a time-bounded taken day.
+ * Assumes an 8-hour workday. Returns 1 when no times are specified.
+ */
+function computeTimeCost(startTime?: string, endTime?: string): number {
+  if (!startTime || !endTime) return 1
+  const [sh, sm] = startTime.split(":").map(Number)
+  const [eh, em] = endTime.split(":").map(Number)
+  const mins = Math.max(0, eh * 60 + em - (sh * 60 + sm))
+  return Math.min(1, Math.round((mins / 480) * 100) / 100)
+}
+
+/**
+ * Annotates days that the user has already taken as PTO.
+ * Single-date entries carry a fractional PTO cost based on start/end times.
+ * Date-range entries always cost 1 working day per day in the range.
+ */
+function applyTakenDays(days: DayPlan[], takenDaysOff: TakenDayOff[] | undefined): void {
+  if (!takenDaysOff || takenDaysOff.length === 0) return
+  // Map date string -> { name, ptoCost }
+  const map = new Map<string, { name: string; cost: number }>()
+  for (const td of takenDaysOff) {
+    if (td.startDate && td.endDate) {
+      const startD = fromIso(td.startDate)
+      const endD = fromIso(td.endDate)
+      if (endD.getTime() < startD.getTime()) continue
+      for (let cur = new Date(startD); cur.getTime() <= endD.getTime(); cur = addDays(cur, 1)) {
+        const iso = toIso(cur)
+        if (!map.has(iso)) map.set(iso, { name: td.name, cost: 1 })
+      }
+    } else if (td.date) {
+      if (!map.has(td.date)) {
+        map.set(td.date, {
+          name: td.name,
+          cost: computeTimeCost(td.startTime, td.endTime),
+        })
+      }
+    }
+  }
+  for (const day of days) {
+    const entry = map.get(day.date)
+    if (entry !== undefined) {
+      day.isAlreadyTaken = true
+      day.takenName = entry.name
+      day.takenPtoCost = entry.cost
+    }
+  }
+}
+
+/**
  * Candidate off block expressed as indexes into the planning window.
  */
 interface Candidate {
@@ -181,10 +232,10 @@ interface Candidate {
 }
 
 /**
- * Returns whether a day is already off without spending PTO.
+ * Returns whether a day is already off without spending PTO (or already consumed PTO).
  */
 function isFixedOff(day: DayPlan): boolean {
-  return day.isWeekend || day.isPublicHoliday || day.isCustomDayOff
+  return day.isWeekend || day.isPublicHoliday || day.isCustomDayOff || day.isAlreadyTaken
 }
 
 /**
@@ -465,9 +516,9 @@ function collectBreaks(days: DayPlan[]): OffBlock[] {
 }
 
 /**
- * Aggregates summary counters from the computed break list.
+ * Aggregates summary counters from the computed break list and all days.
  */
-function computeStats(breaks: OffBlock[]): PlanSummary {
+function computeStats(breaks: OffBlock[], allDays: DayPlan[]): PlanSummary {
   let totalDayOffs = 0
   let totalHolidays = 0
   let totalWeekendDays = 0
@@ -480,8 +531,17 @@ function computeStats(breaks: OffBlock[]): PlanSummary {
     totalCustomDays += b.customDayCount
     totalDaysOff += b.totalDays
   }
+  // Sum fractional PTO cost for already-taken working days
+  let totalTakenDays = 0
+  for (const day of allDays) {
+    if (day.isAlreadyTaken && !day.isWeekend && !day.isPublicHoliday && !day.isCustomDayOff) {
+      totalTakenDays += day.takenPtoCost ?? 1
+    }
+  }
+  totalTakenDays = Math.round(totalTakenDays * 100) / 100
   return {
     totalDayOffs,
+    totalTakenDays,
     totalHolidays,
     totalWeekendDays,
     totalCustomDays,
@@ -507,24 +567,36 @@ export function optimizeDays(params: PlanInputs): PlanResult {
   const { days } = buildWindow(year)
   applyHolidays(days, params.holidays)
   applyCompanyDays(days, params.customDaysOff)
+  applyTakenDays(days, params.takenDaysOff)
+
+  // Deduct already-taken working days from the budget before optimizing.
+  // Uses fractional costs for time-based entries (e.g. half-day = 0.5).
+  let takenPtoFloat = 0
+  for (const day of days) {
+    if (day.isAlreadyTaken && !day.isWeekend && !day.isPublicHoliday && !day.isCustomDayOff) {
+      takenPtoFloat += day.takenPtoCost ?? 1
+    }
+  }
+  // Floor to whole days - the block optimizer works in integer day units.
+  const effectiveBudget = Math.max(0, Math.floor(budget - takenPtoFloat))
 
   // Zero-budget short circuit: emit annotated days with no breaks.
-  if (budget === 0 || days.length === 0) {
-    return { days, breaks: [], stats: computeStats([]) }
+  if (effectiveBudget === 0 || days.length === 0) {
+    return { days, breaks: [], stats: computeStats([], days) }
   }
 
   // Main pass.
-  const rawCandidates = enumerateCandidates(days, cfg, budget)
+  const rawCandidates = enumerateCandidates(days, cfg, effectiveBudget)
   const pruned = prune(rawCandidates)
-  const chosen = selectBlocks(pruned, cfg.spacing, budget, days.length)
+  const chosen = selectBlocks(pruned, cfg.spacing, effectiveBudget, days.length)
   const ptoSpent = markChosen(days, chosen)
 
   // Forced extension + forced segments to spend the rest of the budget.
-  const remaining = budget - ptoSpent
+  const remaining = effectiveBudget - ptoSpent
   spendRemaining(days, remaining)
 
   const breaks = collectBreaks(days)
-  const stats = computeStats(breaks)
+  const stats = computeStats(breaks, days)
 
   return { days, breaks, stats }
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarPlus, MapPin, Trash2, Wand2 } from "lucide-react"
+import { CalendarPlus, Info, MapPin, Navigation, Trash2, Wand2 } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -25,12 +25,18 @@ import {
 } from "@/components/haptic-wrappers"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Spinner } from "@/components/ui/spinner"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { LocationRow } from "./location-row"
 import { STRATEGIES } from "@/lib/timeoff-optimizer/strategies"
 import type {
   CustomDayOff,
   Location,
   PlanStrategy,
+  TakenDayOff,
 } from "@/lib/timeoff-optimizer/types"
 
 const WEEKDAYS = [
@@ -59,9 +65,13 @@ export interface OptimizerFormProps {
   isLoadingCountries: boolean
   loadingStateCountries: Set<string>
   loadingRegionKeys: Set<string>
+  detectedLocation?: string | null
 
   customDays: CustomDayOff[]
   onCustomDaysChange: (days: CustomDayOff[]) => void
+
+  takenDays: TakenDayOff[]
+  onTakenDaysChange: (days: TakenDayOff[]) => void
 
   isOptimizing: boolean
   onSubmit: () => void
@@ -92,6 +102,9 @@ export function OptimizerForm(props: OptimizerFormProps) {
     loadingRegionKeys,
     customDays,
     onCustomDaysChange,
+    takenDays,
+    onTakenDaysChange,
+    detectedLocation,
     isOptimizing,
     onSubmit,
   } = props
@@ -140,6 +153,43 @@ export function OptimizerForm(props: OptimizerFormProps) {
   const removeCustomDay = (idx: number) =>
     onCustomDaysChange(customDays.filter((_, i) => i !== idx))
 
+  const addTakenDate = () =>
+    onTakenDaysChange([...takenDays, { name: "Time off", date: "" }])
+  const addTakenRange = () =>
+    onTakenDaysChange([
+      ...takenDays,
+      { name: "Vacation", startDate: "", endDate: "" },
+    ])
+  const updateTakenDay = (idx: number, patch: Partial<TakenDayOff>) =>
+    onTakenDaysChange(takenDays.map((d, i) => (i === idx ? { ...d, ...patch } : d)))
+  const removeTakenDay = (idx: number) =>
+    onTakenDaysChange(takenDays.filter((_, i) => i !== idx))
+
+  const takenPtoCost = React.useMemo(() => {
+    let total = 0
+    for (const d of takenDays) {
+      if (d.startDate && d.endDate) {
+        // Count calendar days in range as full days (weekends still counted here - just an estimate)
+        const start = new Date(d.startDate)
+        const end = new Date(d.endDate)
+        const days = Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000) + 1)
+        total += days
+      } else if (d.date) {
+        if (!d.startTime || !d.endTime) {
+          total += 1
+        } else {
+          const [sh, sm] = d.startTime.split(":").map(Number)
+          const [eh, em] = d.endTime.split(":").map(Number)
+          const mins = Math.max(0, eh * 60 + em - (sh * 60 + sm))
+          total += Math.min(1, Math.round((mins / 480) * 100) / 100)
+        }
+      }
+    }
+    return Math.round(total * 100) / 100
+  }, [takenDays])
+
+  const remainingBudget = Math.max(0, dayOffBudget - takenPtoCost)
+
   const hasAnyCountry = locations.some((l) => !!l.country)
   const canOptimize = hasAnyCountry && !isOptimizing
 
@@ -155,7 +205,17 @@ export function OptimizerForm(props: OptimizerFormProps) {
       <CardContent className="space-y-5">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium">PTO days available</Label>
+            <div className="flex items-center gap-1">
+              <Label className="text-xs font-medium">PTO days available</Label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="size-3 cursor-help text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-52 text-center text-[11px]">
+                  Enter your total annual PTO balance. Days already taken are deducted automatically to find how many are left to plan.
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Input
               type="number"
               min={1}
@@ -172,9 +232,18 @@ export function OptimizerForm(props: OptimizerFormProps) {
             value={[dayOffBudget]}
             onValueChange={handleSliderChange}
           />
-          <p className="text-[11px] text-muted-foreground">
-            {dayOffBudget === 1 ? "1 PTO day" : `${dayOffBudget} PTO days`} to allocate
-          </p>
+          {takenPtoCost > 0 ? (
+            <p className="text-[11px] text-muted-foreground">
+              {dayOffBudget} total -{" "}
+              <span className="text-amber-500">{takenPtoCost} taken</span>
+              {" = "}
+              <span className="font-medium text-foreground">{remainingBudget} days left to plan</span>
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              {dayOffBudget === 1 ? "1 PTO day" : `${dayOffBudget} PTO days`} to allocate
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -209,6 +278,12 @@ export function OptimizerForm(props: OptimizerFormProps) {
           <p className="text-[11px] text-muted-foreground">
             Add multiple if you split time between places. Holidays from every location are merged.
           </p>
+          {detectedLocation && (
+            <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Navigation className="size-3 shrink-0 text-primary" />
+              Detected: <span className="font-medium text-foreground">{detectedLocation}</span>
+            </p>
+          )}
           <div className="space-y-2">
             {locations.map((location, idx) => (
               <LocationRow
@@ -274,7 +349,180 @@ export function OptimizerForm(props: OptimizerFormProps) {
           )}
         </div>
 
-        <Accordion type="single" collapsible>
+        <Accordion type="multiple">
+          <AccordionItem value="taken-days">
+            <AccordionTrigger>
+              <span className="flex items-center gap-2">
+                <CalendarPlus className="size-3.5" />
+                Already taken time off
+                {takenDays.length > 0 && (
+                  <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    {takenDays.length}
+                  </span>
+                )}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="h-auto!">
+              <div className="space-y-3">
+                {takenDays.length === 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Optional. Add days you&rsquo;ve already used so they&rsquo;re deducted from your
+                    remaining PTO budget.
+                  </p>
+                )}
+
+                {takenDays.map((day, idx) => {
+                  const isRange = day.startDate !== undefined || day.endDate !== undefined
+                  const preset =
+                    !day.startTime && !day.endTime
+                      ? "full"
+                      : day.startTime === "09:00" && day.endTime === "13:00"
+                        ? "morning"
+                        : day.startTime === "13:00" && day.endTime === "17:00"
+                          ? "afternoon"
+                          : "custom"
+                  const applyPreset = (p: "full" | "morning" | "afternoon") => {
+                    if (p === "full") updateTakenDay(idx, { startTime: undefined, endTime: undefined })
+                    else if (p === "morning") updateTakenDay(idx, { startTime: "09:00", endTime: "13:00" })
+                    else updateTakenDay(idx, { startTime: "13:00", endTime: "17:00" })
+                  }
+                  return (
+                    <div
+                      key={idx}
+                      className="space-y-2 rounded-md border border-dashed border-border bg-muted/30 p-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={day.name}
+                          onChange={(e) => updateTakenDay(idx, { name: e.target.value })}
+                          placeholder="Label (e.g. Spring trip)"
+                        />
+                        <HapticButton
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeTakenDay(idx)}
+                          aria-label="Remove taken day"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </HapticButton>
+                      </div>
+
+                      {isRange ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[11px] text-muted-foreground">From</Label>
+                            <DatePicker
+                              value={day.startDate ?? ""}
+                              onChange={(v) => updateTakenDay(idx, { startDate: v })}
+                              placeholder="Start"
+                              defaultMonth={new Date(year, 0, 1)}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[11px] text-muted-foreground">To</Label>
+                            <DatePicker
+                              value={day.endDate ?? ""}
+                              onChange={(v) => updateTakenDay(idx, { endDate: v })}
+                              placeholder="End"
+                              defaultMonth={new Date(year, 0, 1)}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <Label className="text-[11px] text-muted-foreground">Date</Label>
+                            <DatePicker
+                              value={day.date ?? ""}
+                              onChange={(v) => updateTakenDay(idx, { date: v })}
+                              placeholder="Pick a date"
+                              defaultMonth={new Date(year, 0, 1)}
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <Label className="text-[11px] text-muted-foreground">Duration</Label>
+                            <div className="flex gap-1">
+                              {(["full", "morning", "afternoon"] as const).map((p) => (
+                                <HapticButton
+                                  key={p}
+                                  type="button"
+                                  variant={preset === p ? "default" : "outline"}
+                                  size="sm"
+                                  className="h-7 flex-1 text-[11px]"
+                                  onClick={() => applyPreset(p)}
+                                >
+                                  {p === "full" ? "Full day" : p === "morning" ? "Morning" : "Afternoon"}
+                                </HapticButton>
+                              ))}
+                              <HapticButton
+                                type="button"
+                                variant={preset === "custom" ? "default" : "outline"}
+                                size="sm"
+                                className="h-7 flex-1 text-[11px]"
+                                onClick={() => {
+                                  if (preset !== "custom") {
+                                    updateTakenDay(idx, { startTime: "09:00", endTime: "17:00" })
+                                  }
+                                }}
+                              >
+                                Custom
+                              </HapticButton>
+                            </div>
+                            {(preset === "custom" || (day.startTime && day.endTime)) && (
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-[11px] text-muted-foreground">Start</Label>
+                                  <Input
+                                    type="time"
+                                    value={day.startTime ?? "09:00"}
+                                    onChange={(e) => updateTakenDay(idx, { startTime: e.target.value })}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[11px] text-muted-foreground">End</Label>
+                                  <Input
+                                    type="time"
+                                    value={day.endTime ?? "17:00"}
+                                    onChange={(e) => updateTakenDay(idx, { endTime: e.target.value })}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+
+                <div className="flex gap-2">
+                  <HapticButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addTakenDate}
+                    className="flex-1"
+                  >
+                    + Single date
+                  </HapticButton>
+                  <HapticButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addTakenRange}
+                    className="flex-1"
+                  >
+                    + Date range
+                  </HapticButton>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
           <AccordionItem value="company-days">
             <AccordionTrigger>
               <span className="flex items-center gap-2">

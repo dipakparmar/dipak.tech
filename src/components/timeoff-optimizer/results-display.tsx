@@ -72,7 +72,10 @@ export function ResultsDisplay({
             <h2 className="text-sm font-semibold">Your optimized {year} plan</h2>
             <p className="text-xs text-muted-foreground">
               {breaks.length} break{breaks.length === 1 ? "" : "s"} · {stats.totalDaysOff} days off ·{" "}
-              {stats.totalDayOffs}/{ptoBudget} PTO used
+              {stats.totalDayOffs + stats.totalTakenDays}/{ptoBudget} PTO used
+              {stats.totalTakenDays > 0 && (
+                <span className="text-amber-500"> ({stats.totalTakenDays} already taken)</span>
+              )}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -121,13 +124,21 @@ export function ResultsDisplay({
           <TabsContent value="stats" className="pt-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <StatTile label="Total days off" value={stats.totalDaysOff} accent="text-primary" />
-              <StatTile label="PTO used" value={`${stats.totalDayOffs} / ${ptoBudget}`} />
+              <StatTile label="PTO planned" value={`${stats.totalDayOffs} / ${ptoBudget}`} />
               <StatTile
                 label="Efficiency"
                 value={`${efficiency}x`}
                 hint="Days off per PTO day"
                 accent="text-primary"
               />
+              {stats.totalTakenDays > 0 && (
+                <StatTile
+                  label="Already taken"
+                  value={stats.totalTakenDays}
+                  hint="PTO days deducted"
+                  accent="text-amber-500"
+                />
+              )}
               <StatTile
                 label="Public holidays"
                 value={stats.totalHolidays}

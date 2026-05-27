@@ -58,6 +58,17 @@ function groupByMonth(days: DayPlan[], year: number): MonthGrid[] {
 }
 
 function dayStyles(day: DayPlan): { className: string; label?: string } {
+  if (day.isAlreadyTaken) {
+    const cost = day.takenPtoCost ?? 1
+    const costLabel = cost < 1 ? ` (${cost * 8}h)` : ""
+    return {
+      className: cn(
+        "bg-amber-500/20 text-amber-600 dark:text-amber-400",
+        day.inOffBlock && "ring-1 ring-primary/50"
+      ),
+      label: (day.takenName ?? "Already taken") + costLabel,
+    }
+  }
   if (day.isDayOff) {
     return {
       className: "bg-primary text-primary-foreground ring-1 ring-primary/40",
@@ -101,6 +112,7 @@ export function CalendarView({ days, year }: CalendarViewProps) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
         <Legend swatch="bg-primary" label="PTO day" />
+        <Legend swatch="bg-amber-500/30" label="Already taken" />
         <Legend swatch="bg-accent-green/40" label="Public holiday" />
         <Legend swatch="bg-accent-blue/40" label="Company day off" />
         <Legend swatch="bg-muted" label="Weekend" />

@@ -14,6 +14,9 @@ export interface DayPlan {
   holidayName?: string
   isCustomDayOff: boolean
   customDayName?: string
+  isAlreadyTaken: boolean
+  takenName?: string
+  takenPtoCost?: number
 }
 
 export interface OffBlock {
@@ -29,6 +32,7 @@ export interface OffBlock {
 
 export interface PlanSummary {
   totalDayOffs: number
+  totalTakenDays: number
   totalHolidays: number
   totalWeekendDays: number
   totalCustomDays: number
@@ -50,12 +54,22 @@ export interface CustomDayOff {
   weekday?: number
 }
 
+export interface TakenDayOff {
+  name: string
+  date?: string
+  startDate?: string
+  endDate?: string
+  startTime?: string  // "HH:MM", only for single-date entries
+  endTime?: string    // "HH:MM", only for single-date entries
+}
+
 export interface PlanInputs {
   dayOffBudget: number
   strategy?: PlanStrategy
   year?: number
   holidays?: Array<{ date: string; name: string }>
   customDaysOff?: Array<CustomDayOff>
+  takenDaysOff?: Array<TakenDayOff>
 }
 
 export interface CountryInfo {

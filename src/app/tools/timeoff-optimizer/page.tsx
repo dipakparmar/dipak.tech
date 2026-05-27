@@ -3,6 +3,7 @@ import { Suspense } from "react"
 
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { TimeoffOptimizerTool } from "@/components/timeoff-optimizer/timeoff-optimizer-tool"
+import { detectGeoFromHeaders } from "@/lib/geo"
 import { ogUrls } from "@/lib/og-config"
 
 const ogImageUrl = ogUrls.tools({
@@ -34,7 +35,8 @@ export const metadata = {
 
 const BLUR_FADE_DELAY = 0.04
 
-export default function TimeoffOptimizerPage() {
+export default async function TimeoffOptimizerPage() {
+  const detectedGeo = await detectGeoFromHeaders()
   return (
     <main className="min-h-screen bg-background">
       <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]">
@@ -78,7 +80,7 @@ export default function TimeoffOptimizerPage() {
 
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
-              <TimeoffOptimizerTool />
+              <TimeoffOptimizerTool detectedGeo={detectedGeo} />
             </Suspense>
           </BlurFade>
         </div>

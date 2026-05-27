@@ -15,11 +15,13 @@ import {
   listStates,
 } from "@/lib/timeoff-optimizer/holidays"
 import { optimizeDaysAsync } from "@/lib/timeoff-optimizer/optimizer"
+import type { DetectedGeo } from "@/lib/geo"
 import type {
   CustomDayOff,
   Location,
   PlanResult,
   PlanStrategy,
+  TakenDayOff,
 } from "@/lib/timeoff-optimizer/types"
 
 const STRATEGIES = [
@@ -95,6 +97,11 @@ function decodeCustomDays(encoded: string | null): CustomDayOff[] {
   return Array.isArray(parsed) ? (parsed as CustomDayOff[]) : []
 }
 
+function decodeTakenDays(encoded: string | null): TakenDayOff[] {
+  const parsed = base64DecodeJSON<unknown>(encoded)
+  return Array.isArray(parsed) ? (parsed as TakenDayOff[]) : []
+}
+
 function locationsEqual(a: Location[], b: Location[]): boolean {
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i++) {
@@ -105,7 +112,7 @@ function locationsEqual(a: Location[], b: Location[]): boolean {
   return true
 }
 
-function initialLocations(searchParams: URLSearchParams): Location[] {
+function initialLocations(searchParams: URLSearchParams, detectedGeo?: DetectedGeo | null): Location[] {
   const fromLoc = decodeLocations(searchParams.get("loc"))
   if (fromLoc.length > 0) return fromLoc
   const legacyCountry = searchParams.get("country")
@@ -119,10 +126,24 @@ function initialLocations(searchParams: URLSearchParams): Location[] {
       },
     ]
   }
+  if (detectedGeo?.country) {
+    return [
+      {
+        id: makeLocationId(),
+        country: detectedGeo.country,
+        state: detectedGeo.region,
+        region: null,
+      },
+    ]
+  }
   return [{ id: makeLocationId(), country: null, state: null, region: null }]
 }
 
-export function TimeoffOptimizerTool() {
+interface TimeoffOptimizerToolProps {
+  detectedGeo?: DetectedGeo | null
+}
+
+export function TimeoffOptimizerTool({ detectedGeo }: TimeoffOptimizerToolProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -146,10 +167,13 @@ export function TimeoffOptimizerTool() {
   const [year, setYear] = React.useState<number>(initialYear)
   const [strategy, setStrategy] = React.useState<PlanStrategy>(initialStrategy)
   const [locations, setLocations] = React.useState<Location[]>(() =>
-    initialLocations(new URLSearchParams(searchParams.toString()))
+    initialLocations(new URLSearchParams(searchParams.toString()), detectedGeo)
   )
   const [customDays, setCustomDays] = React.useState<CustomDayOff[]>(() =>
     decodeCustomDays(searchParams.get("cd"))
+  )
+  const [takenDays, setTakenDays] = React.useState<TakenDayOff[]>(() =>
+    decodeTakenDays(searchParams.get("taken"))
   )
 
   const [countries, setCountries] = React.useState<
@@ -270,8 +294,11 @@ export function TimeoffOptimizerTool() {
     const customEncoded =
       customDays.length > 0 ? base64EncodeJSON(customDays) : null
     if (customEncoded) params.set("cd", customEncoded)
+    const takenEncoded =
+      takenDays.length > 0 ? base64EncodeJSON(takenDays) : null
+    if (takenEncoded) params.set("taken", takenEncoded)
     router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [dayOffBudget, year, strategy, locations, customDays, router, pathname])
+  }, [dayOffBudget, year, strategy, locations, customDays, takenDays, router, pathname])
 
   const handleSubmit = async () => {
     const validLocations = locations.filter((l) => l.country)
@@ -301,12 +328,16 @@ export function TimeoffOptimizerTool() {
       const filteredCustomDays = customDays.filter((d) =>
         d.isRecurring ? d.startDate && d.endDate : d.date
       )
+      const filteredTakenDays = takenDays.filter((d) =>
+        d.startDate && d.endDate ? true : !!d.date
+      )
       const optimized = await optimizeDaysAsync({
         dayOffBudget,
         strategy,
         year,
         holidays,
         customDaysOff: filteredCustomDays,
+        takenDaysOff: filteredTakenDays,
       })
       setResult(optimized)
       setResultYear(year)
@@ -346,6 +377,13 @@ export function TimeoffOptimizerTool() {
         loadingRegionKeys={loadingRegionKeys}
         customDays={customDays}
         onCustomDaysChange={setCustomDays}
+        takenDays={takenDays}
+        onTakenDaysChange={setTakenDays}
+        detectedLocation={
+          detectedGeo?.country
+            ? [detectedGeo.country, detectedGeo.region].filter(Boolean).join(" / ")
+            : null
+        }
         isOptimizing={isOptimizing}
         onSubmit={handleSubmit}
       />
