@@ -16,8 +16,10 @@ import {
 } from "@/lib/timeoff-optimizer/holidays"
 import { optimizeDaysAsync } from "@/lib/timeoff-optimizer/optimizer"
 import type { DetectedGeo } from "@/lib/geo"
+import { DEFAULT_CUSTOM_STRATEGY } from "@/lib/timeoff-optimizer/strategies"
 import type {
   CustomDayOff,
+  CustomStrategy,
   Location,
   PlanResult,
   PlanStrategy,
@@ -30,6 +32,7 @@ const STRATEGIES = [
   "miniBreaks",
   "weekLongBreaks",
   "extendedVacations",
+  "custom",
 ] as const
 
 function isStrategy(value: string | null): value is PlanStrategy {
@@ -100,6 +103,19 @@ function decodeCustomDays(encoded: string | null): CustomDayOff[] {
 function decodeTakenDays(encoded: string | null): TakenDayOff[] {
   const parsed = base64DecodeJSON<unknown>(encoded)
   return Array.isArray(parsed) ? (parsed as TakenDayOff[]) : []
+}
+
+function decodeCustomStrategy(encoded: string | null): CustomStrategy {
+  const parsed = base64DecodeJSON<CustomStrategy>(encoded)
+  if (
+    parsed &&
+    typeof parsed.minLen === "number" &&
+    typeof parsed.maxLen === "number" &&
+    typeof parsed.spacing === "number"
+  ) {
+    return parsed
+  }
+  return DEFAULT_CUSTOM_STRATEGY
 }
 
 function locationsEqual(a: Location[], b: Location[]): boolean {
@@ -174,6 +190,9 @@ export function TimeoffOptimizerTool({ detectedGeo }: TimeoffOptimizerToolProps)
   )
   const [takenDays, setTakenDays] = React.useState<TakenDayOff[]>(() =>
     decodeTakenDays(searchParams.get("taken"))
+  )
+  const [customStrategy, setCustomStrategy] = React.useState<CustomStrategy>(() =>
+    decodeCustomStrategy(searchParams.get("cs"))
   )
 
   const [countries, setCountries] = React.useState<
@@ -297,8 +316,12 @@ export function TimeoffOptimizerTool({ detectedGeo }: TimeoffOptimizerToolProps)
     const takenEncoded =
       takenDays.length > 0 ? base64EncodeJSON(takenDays) : null
     if (takenEncoded) params.set("taken", takenEncoded)
+    if (strategy === "custom") {
+      const csEncoded = base64EncodeJSON(customStrategy)
+      if (csEncoded) params.set("cs", csEncoded)
+    }
     router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [dayOffBudget, year, strategy, locations, customDays, takenDays, router, pathname])
+  }, [dayOffBudget, year, strategy, locations, customDays, takenDays, customStrategy, router, pathname])
 
   const handleSubmit = async () => {
     const validLocations = locations.filter((l) => l.country)
@@ -334,6 +357,7 @@ export function TimeoffOptimizerTool({ detectedGeo }: TimeoffOptimizerToolProps)
       const optimized = await optimizeDaysAsync({
         dayOffBudget,
         strategy,
+        customStrategy: strategy === "custom" ? customStrategy : undefined,
         year,
         holidays,
         customDaysOff: filteredCustomDays,
@@ -367,6 +391,8 @@ export function TimeoffOptimizerTool({ detectedGeo }: TimeoffOptimizerToolProps)
         onYearChange={setYear}
         strategy={strategy}
         onStrategyChange={setStrategy}
+        customStrategy={customStrategy}
+        onCustomStrategyChange={setCustomStrategy}
         locations={locations}
         onLocationsChange={setLocations}
         countries={countries}

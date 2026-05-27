@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { CalendarPlus, Info, MapPin, Navigation, Trash2, Wand2 } from "lucide-react"
+import { CalendarPlus, Check, Clipboard, Copy, Info, MapPin, Navigation, Trash2, Wand2 } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -32,8 +32,10 @@ import {
 } from "@/components/ui/tooltip"
 import { LocationRow } from "./location-row"
 import { STRATEGIES } from "@/lib/timeoff-optimizer/strategies"
+import { DEFAULT_CUSTOM_STRATEGY } from "@/lib/timeoff-optimizer/strategies"
 import type {
   CustomDayOff,
+  CustomStrategy,
   Location,
   PlanStrategy,
   TakenDayOff,
@@ -56,6 +58,8 @@ export interface OptimizerFormProps {
   onYearChange: (year: number) => void
   strategy: PlanStrategy
   onStrategyChange: (strategy: PlanStrategy) => void
+  customStrategy: CustomStrategy
+  onCustomStrategyChange: (s: CustomStrategy) => void
 
   locations: Location[]
   onLocationsChange: (locations: Location[]) => void
@@ -92,6 +96,8 @@ export function OptimizerForm(props: OptimizerFormProps) {
     onYearChange,
     strategy,
     onStrategyChange,
+    customStrategy,
+    onCustomStrategyChange,
     locations,
     onLocationsChange,
     countries,
@@ -341,11 +347,17 @@ export function OptimizerForm(props: OptimizerFormProps) {
               ))}
             </SelectContent>
           </Select>
-          {strategyDetail && (
+          {strategyDetail && strategy !== "custom" && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               {strategyDetail.description}{" "}
               <span className="text-foreground/80">{strategyDetail.recommendedFor}</span>
             </p>
+          )}
+          {strategy === "custom" && (
+            <CustomStrategyEditor
+              value={customStrategy}
+              onChange={onCustomStrategyChange}
+            />
           )}
         </div>
 
@@ -669,5 +681,103 @@ export function OptimizerForm(props: OptimizerFormProps) {
         )}
       </CardContent>
     </Card>
+  )
+}
+
+interface CustomStrategyEditorProps {
+  value: CustomStrategy
+  onChange: (s: CustomStrategy) => void
+}
+
+function CustomStrategyEditor({ value, onChange }: CustomStrategyEditorProps) {
+  const [copied, setCopied] = React.useState(false)
+  const [pasteError, setPasteError] = React.useState<string | null>(null)
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(value, null, 2))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard unavailable */ }
+  }
+
+  const handlePaste = async () => {
+    setPasteError(null)
+    try {
+      const text = await navigator.clipboard.readText()
+      const parsed = JSON.parse(text)
+      if (
+        typeof parsed.minLen === "number" &&
+        typeof parsed.maxLen === "number" &&
+        typeof parsed.spacing === "number"
+      ) {
+        onChange({
+          minLen: Math.max(1, Math.min(30, Math.round(parsed.minLen))),
+          maxLen: Math.max(1, Math.min(30, Math.round(parsed.maxLen))),
+          spacing: Math.max(0, Math.min(60, Math.round(parsed.spacing))),
+        })
+      } else {
+        setPasteError("Invalid schema - expected { minLen, maxLen, spacing }")
+      }
+    } catch {
+      setPasteError("Could not read clipboard or invalid JSON")
+    }
+  }
+
+  return (
+    <div className="mt-2 space-y-3 rounded-md border border-dashed border-border bg-muted/30 p-3">
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px] text-muted-foreground">Shortest break</Label>
+          <span className="text-[11px] font-medium text-foreground">{value.minLen}d</span>
+        </div>
+        <Slider
+          min={1} max={30} step={1}
+          value={[value.minLen]}
+          onValueChange={([v]) => onChange({ ...value, minLen: v })}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px] text-muted-foreground">Longest break</Label>
+          <span className="text-[11px] font-medium text-foreground">{Math.max(value.minLen, value.maxLen)}d</span>
+        </div>
+        <Slider
+          min={value.minLen} max={30} step={1}
+          value={[Math.max(value.minLen, value.maxLen)]}
+          onValueChange={([v]) => onChange({ ...value, maxLen: v })}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label className="text-[11px] text-muted-foreground">Min gap between breaks</Label>
+          <span className="text-[11px] font-medium text-foreground">{value.spacing}d</span>
+        </div>
+        <Slider
+          min={0} max={60} step={1}
+          value={[value.spacing]}
+          onValueChange={([v]) => onChange({ ...value, spacing: v })}
+        />
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <HapticButton type="button" variant="outline" size="sm" className="flex-1" onClick={handleCopy}>
+          {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+          {copied ? "Copied!" : "Copy JSON"}
+        </HapticButton>
+        <HapticButton type="button" variant="outline" size="sm" className="flex-1" onClick={handlePaste}>
+          <Clipboard className="size-3" />
+          Paste JSON
+        </HapticButton>
+      </div>
+      {pasteError && (
+        <p className="text-[11px] text-destructive">{pasteError}</p>
+      )}
+      <p className="text-[11px] text-muted-foreground">
+        Blocks of {value.minLen}-{value.maxLen} days, at least {value.spacing} days apart.
+      </p>
+    </div>
   )
 }

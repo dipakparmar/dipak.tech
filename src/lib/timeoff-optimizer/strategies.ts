@@ -1,4 +1,10 @@
-import type { PlanStrategy } from "./types"
+import type { CustomStrategy, PlanStrategy } from "./types"
+
+export const DEFAULT_CUSTOM_STRATEGY: CustomStrategy = {
+  minLen: 3,
+  maxLen: 9,
+  spacing: 14,
+}
 
 export interface StrategyOption {
   id: PlanStrategy
@@ -37,5 +43,11 @@ export const STRATEGIES: StrategyOption[] = [
     label: "Extended Vacations",
     description: "Long 10 to 15 day trips, spaced a month apart.",
     recommendedFor: "Best for major trips and deep rest.",
+  },
+  {
+    id: "custom",
+    label: "Custom",
+    description: "Define your own block length and spacing.",
+    recommendedFor: "Best when none of the presets fit your style.",
   },
 ]

@@ -23,7 +23,7 @@ interface StrategyConfig {
   spacing: number
 }
 
-const STRATEGIES: Record<PlanStrategy, StrategyConfig> = {
+const STRATEGIES: Record<Exclude<PlanStrategy, "custom">, StrategyConfig> = {
   longWeekends: { minLen: 3, maxLen: 4, spacing: 7 },
   miniBreaks: { minLen: 5, maxLen: 6, spacing: 14 },
   weekLongBreaks: { minLen: 7, maxLen: 9, spacing: 21 },
@@ -560,7 +560,14 @@ function computeStats(breaks: OffBlock[], allDays: DayPlan[]): PlanSummary {
  */
 export function optimizeDays(params: PlanInputs): PlanResult {
   const strategy: PlanStrategy = params.strategy ?? "balanced"
-  const cfg = STRATEGIES[strategy] ?? STRATEGIES.balanced
+  const cfg: StrategyConfig =
+    strategy === "custom" && params.customStrategy
+      ? {
+          minLen: Math.max(1, params.customStrategy.minLen),
+          maxLen: Math.max(params.customStrategy.minLen, params.customStrategy.maxLen),
+          spacing: Math.max(0, params.customStrategy.spacing),
+        }
+      : (STRATEGIES as Record<string, StrategyConfig>)[strategy] ?? STRATEGIES.balanced
   const year = params.year ?? new Date().getFullYear()
   const budget = Math.max(0, Math.floor(params.dayOffBudget || 0))
 

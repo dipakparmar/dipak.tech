@@ -4,6 +4,13 @@ export type PlanStrategy =
   | "longWeekends"
   | "weekLongBreaks"
   | "extendedVacations"
+  | "custom"
+
+export interface CustomStrategy {
+  minLen: number
+  maxLen: number
+  spacing: number
+}
 
 export interface DayPlan {
   date: string
@@ -66,6 +73,7 @@ export interface TakenDayOff {
 export interface PlanInputs {
   dayOffBudget: number
   strategy?: PlanStrategy
+  customStrategy?: CustomStrategy
   year?: number
   holidays?: Array<{ date: string; name: string }>
   customDaysOff?: Array<CustomDayOff>
