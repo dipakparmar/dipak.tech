@@ -33,6 +33,7 @@ export interface OffBlock {
 export interface PlanSummary {
   totalDayOffs: number
   totalTakenDays: number
+  totalTakenCalendarDays: number
   totalHolidays: number
   totalWeekendDays: number
   totalCustomDays: number

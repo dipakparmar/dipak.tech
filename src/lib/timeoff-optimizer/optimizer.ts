@@ -531,17 +531,26 @@ function computeStats(breaks: OffBlock[], allDays: DayPlan[]): PlanSummary {
     totalCustomDays += b.customDayCount
     totalDaysOff += b.totalDays
   }
-  // Sum fractional PTO cost for already-taken working days
+  // Sum fractional PTO cost and standalone calendar days for already-taken days.
+  // Standalone = not inside an optimizer-planned break (inOffBlock=false).
+  // Days inside optimizer breaks are already counted in totalDaysOff.
   let totalTakenDays = 0
+  let totalTakenCalendarDays = 0
   for (const day of allDays) {
-    if (day.isAlreadyTaken && !day.isWeekend && !day.isPublicHoliday && !day.isCustomDayOff) {
-      totalTakenDays += day.takenPtoCost ?? 1
+    if (day.isAlreadyTaken) {
+      if (!day.isWeekend && !day.isPublicHoliday && !day.isCustomDayOff) {
+        totalTakenDays += day.takenPtoCost ?? 1
+      }
+      if (!day.inOffBlock) {
+        totalTakenCalendarDays++
+      }
     }
   }
   totalTakenDays = Math.round(totalTakenDays * 100) / 100
   return {
     totalDayOffs,
     totalTakenDays,
+    totalTakenCalendarDays,
     totalHolidays,
     totalWeekendDays,
     totalCustomDays,

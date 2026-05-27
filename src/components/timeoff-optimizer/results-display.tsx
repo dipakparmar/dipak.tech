@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { AlertTriangle, CalendarDays, Check, Copy, Download, ListChecks, Sparkles } from "lucide-react"
+import { AlertTriangle, CalendarDays, Check, Copy, Download, Info, ListChecks, Sparkles } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -9,6 +9,11 @@ import {
   TabsContent,
   TabsList,
 } from "@/components/ui/tabs"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { HapticButton, HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { CalendarView } from "./calendar-view"
 import { BreakCard } from "./break-card"
@@ -32,8 +37,10 @@ export function ResultsDisplay({
 }: ResultsDisplayProps) {
   const [copied, setCopied] = React.useState(false)
   const { breaks, stats, days } = result
+  const totalPtoUsed = stats.totalDayOffs + stats.totalTakenDays
+  const totalCalendarDaysOff = stats.totalDaysOff + stats.totalTakenCalendarDays
   const efficiency =
-    stats.totalDayOffs > 0 ? (stats.totalDaysOff / stats.totalDayOffs).toFixed(2) : "0"
+    totalPtoUsed > 0 ? (totalCalendarDaysOff / totalPtoUsed).toFixed(2) : "0"
 
   const handleExport = () => {
     const ics = breaksToICS(breaks, `Time off ${year}`)
@@ -124,12 +131,27 @@ export function ResultsDisplay({
           <TabsContent value="stats" className="pt-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <StatTile label="Total days off" value={stats.totalDaysOff} accent="text-primary" />
-              <StatTile label="PTO planned" value={`${stats.totalDayOffs} / ${ptoBudget}`} />
+              <StatTile label="PTO used" value={`${totalPtoUsed} / ${ptoBudget}`} hint={stats.totalTakenDays > 0 ? `${stats.totalDayOffs} planned + ${stats.totalTakenDays} taken` : undefined} />
               <StatTile
                 label="Efficiency"
                 value={`${efficiency}x`}
-                hint="Days off per PTO day"
+                hint="Calendar days per PTO day"
                 accent="text-primary"
+                tooltip={
+                  <span>
+                    {totalCalendarDaysOff} calendar days off &divide; {totalPtoUsed} PTO days used
+                    {stats.totalTakenDays > 0 && (
+                      <>
+                        <br />
+                        <span className="opacity-75">
+                          Days off: {stats.totalDaysOff} planned + {stats.totalTakenCalendarDays} taken
+                          <br />
+                          PTO: {stats.totalDayOffs} planned + {stats.totalTakenDays} taken
+                        </span>
+                      </>
+                    )}
+                  </span>
+                }
               />
               {stats.totalTakenDays > 0 && (
                 <StatTile
@@ -162,13 +184,24 @@ interface StatTileProps {
   label: string
   value: number | string
   hint?: string
+  tooltip?: React.ReactNode
   accent?: string
 }
 
-function StatTile({ label, value, hint, accent }: StatTileProps) {
+function StatTile({ label, value, hint, tooltip, accent }: StatTileProps) {
   return (
     <div className="rounded-lg border border-border/70 bg-muted/30 p-3">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex items-center gap-1">
+        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="size-2.5 cursor-help text-muted-foreground/60" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-56 text-[11px]">{tooltip}</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       <p className={`mt-1 text-xl font-semibold tabular-nums ${accent ?? ""}`}>{value}</p>
       {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
     </div>
