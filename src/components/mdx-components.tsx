@@ -8,6 +8,7 @@ import {
   type ReactNode
 } from 'react';
 import { CopyButton } from '@/components/blog/copy-button';
+import { Highlighter } from '@/components/mdx/highlighter';
 import { Annotate } from '@/components/mdx/annotate';
 import { Callout } from '@/components/mdx/callout';
 import { MarginNote } from '@/components/mdx/margin-note';
@@ -109,18 +110,6 @@ function FigureImage({
   );
 }
 
-interface AccentProps {
-  children: ReactNode;
-  color?: 'info' | 'tip' | 'warning' | 'danger' | 'purple';
-}
-
-function Accent({ children, color }: AccentProps) {
-  return (
-    <span className="mdx-accent" data-color={color}>
-      {children}
-    </span>
-  );
-}
 
 interface CiteProps {
   n: number | string;
@@ -164,7 +153,7 @@ export const mdxComponents: MDXComponents = {
   a: MdxLink,
   img: MdxImage,
   pre: MdxPre,
-  Accent,
+  Highlighter,
   Acknowledgements,
   Annotate,
   Callout,
