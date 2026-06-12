@@ -9,7 +9,9 @@ import {
 } from 'react';
 import { CopyButton } from '@/components/blog/copy-button';
 import { Annotate } from '@/components/mdx/annotate';
+import { Callout } from '@/components/mdx/callout';
 import { MarginNote } from '@/components/mdx/margin-note';
+import { References } from '@/components/mdx/references';
 
 type ImageProps = ComponentPropsWithoutRef<typeof Image>;
 type PreProps = ComponentPropsWithoutRef<'pre'>;
@@ -107,6 +109,19 @@ function FigureImage({
   );
 }
 
+interface AccentProps {
+  children: ReactNode;
+  color?: 'info' | 'tip' | 'warning' | 'danger' | 'purple';
+}
+
+function Accent({ children, color }: AccentProps) {
+  return (
+    <span className="mdx-accent" data-color={color}>
+      {children}
+    </span>
+  );
+}
+
 interface CiteProps {
   n: number | string;
 }
@@ -124,48 +139,6 @@ function Cite({ n }: CiteProps) {
   );
 }
 
-interface ReferenceItem {
-  href: string;
-  label: ReactNode;
-}
-
-interface ReferencesProps {
-  items: ReferenceItem[];
-}
-
-function References({ items }: ReferencesProps) {
-  return (
-    <section className="mdx-references-section" data-footnotes>
-      <h2 id="footnote-label" className="mdx-references-label">
-        References
-      </h2>
-      <ol className="mdx-references">
-        {items.map((item, index) => {
-          const n = index + 1;
-          return (
-            <li key={`${n}-${item.href}`} id={`ref-${n}`}>
-              <a
-                className="mdx-references-link"
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {item.label}
-              </a>{' '}
-              <a
-                className="mdx-references-backref"
-                href={`#cite-${n}`}
-                aria-label={`Back to reference ${n}`}
-              >
-                {'↩'}
-              </a>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}
 
 function Acknowledgements({ children }: { children: ReactNode }) {
   return (
@@ -191,8 +164,10 @@ export const mdxComponents: MDXComponents = {
   a: MdxLink,
   img: MdxImage,
   pre: MdxPre,
+  Accent,
   Acknowledgements,
   Annotate,
+  Callout,
   Cite,
   FigureImage,
   MarginNote,

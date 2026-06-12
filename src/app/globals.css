@@ -601,10 +601,16 @@
 .blog-prose .mdx-cite a {
   color: inherit;
   text-decoration: none;
+  transition: color 0.15s ease, text-shadow 0.15s ease;
 }
 
 .blog-prose .mdx-cite a:hover {
   color: var(--color-foreground);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--color-foreground) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blog-prose .mdx-cite a { transition: none; }
 }
 
 .blog-prose .mdx-cite:target {
@@ -789,11 +795,54 @@
  * surrounding padding region) doesn't get clipped.
  */
 
+.mdx-margin-note,
+.mdx-margin-enclose {
+  --mn-color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
+}
+
+.mdx-margin-note[data-color="info"],
+.mdx-margin-enclose[data-color="info"],
+.mdx-accent[data-color="info"] {
+  --mn-color: oklch(50% 0.18 250);
+  :is(.dark *) & { --mn-color: oklch(68% 0.18 250); }
+}
+.mdx-margin-note[data-color="tip"],
+.mdx-margin-enclose[data-color="tip"],
+.mdx-accent[data-color="tip"] {
+  --mn-color: oklch(48% 0.17 155);
+  :is(.dark *) & { --mn-color: oklch(65% 0.17 155); }
+}
+.mdx-margin-note[data-color="warning"],
+.mdx-margin-enclose[data-color="warning"],
+.mdx-accent[data-color="warning"] {
+  --mn-color: oklch(58% 0.16 75);
+  :is(.dark *) & { --mn-color: oklch(74% 0.16 75); }
+}
+.mdx-margin-note[data-color="danger"],
+.mdx-margin-enclose[data-color="danger"],
+.mdx-accent[data-color="danger"] {
+  --mn-color: oklch(50% 0.22 25);
+  :is(.dark *) & { --mn-color: oklch(68% 0.22 25); }
+}
+.mdx-margin-note[data-color="purple"],
+.mdx-margin-enclose[data-color="purple"],
+.mdx-accent[data-color="purple"] {
+  --mn-color: oklch(50% 0.22 300);
+  :is(.dark *) & { --mn-color: oklch(68% 0.22 300); }
+}
+
+/* Inline accent — colour only, no font change. Falls back to inherited colour
+   when no data-color is set (var() on an undefined custom property resolves to
+   inherit for inherited properties like color). */
+.mdx-accent {
+  color: var(--mn-color);
+}
+
 .mdx-margin-note {
   position: relative;
   display: inline-block;
   margin: 0.75rem 0 1.25rem;
-  color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
+  color: var(--mn-color);
   font-family: var(--font-handwritten), cursive;
   font-size: 1.35rem;
   line-height: 1.3;
@@ -830,14 +879,18 @@
   }
 }
 
-/* Enclosure mode container. */
+/* Enclosure mode container. `color` is set to --mn-color so the rough-notation
+   SVG bracket (injected as a sibling of the content div) inherits the accent
+   colour via currentColor. The content div resets to foreground. */
 .mdx-margin-enclose {
   position: relative;
   margin: 1rem 0 1.5rem;
+  color: var(--mn-color);
 }
 
 .mdx-margin-enclose__content {
   position: relative;
+  color: var(--color-foreground);
 }
 
 .mdx-margin-enclose__content > :first-child {
@@ -854,7 +907,7 @@
   font-family: var(--font-handwritten), cursive;
   font-size: 1.35rem;
   line-height: 1.3;
-  color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
+  color: var(--mn-color);
   text-align: center;
 }
 
@@ -875,6 +928,84 @@
     text-align: right;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Callout / admonition blocks (GitHub-style note/tip/warning/caution/important)
+   --------------------------------------------------------------------------- */
+
+.mdx-callout {
+  --co-color: oklch(50% 0.18 250);
+  --co-bg:    oklch(50% 0.18 250 / 0.07);
+
+  position: relative;
+  color: var(--co-color);     /* currentColor for rough-notation SVG stroke */
+  background:  var(--co-bg);
+  border-radius: 0.25rem;
+  padding: 0.875rem 1.125rem;
+  margin: 1.5rem 0;
+}
+
+.mdx-callout__rough-anchor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mdx-callout > svg.rough-annotation {
+  pointer-events: none;
+}
+
+/* Variant colours */
+.mdx-callout[data-type="note"] {
+  --co-color: oklch(50% 0.18 250);
+  --co-bg:    oklch(50% 0.18 250 / 0.07);
+  :is(.dark *) & { --co-color: oklch(68% 0.18 250); --co-bg: oklch(68% 0.18 250 / 0.08); }
+}
+.mdx-callout[data-type="tip"] {
+  --co-color: oklch(48% 0.17 155);
+  --co-bg:    oklch(48% 0.17 155 / 0.07);
+  :is(.dark *) & { --co-color: oklch(65% 0.17 155); --co-bg: oklch(65% 0.17 155 / 0.08); }
+}
+.mdx-callout[data-type="important"] {
+  --co-color: oklch(50% 0.22 300);
+  --co-bg:    oklch(50% 0.22 300 / 0.07);
+  :is(.dark *) & { --co-color: oklch(68% 0.22 300); --co-bg: oklch(68% 0.22 300 / 0.08); }
+}
+.mdx-callout[data-type="warning"] {
+  --co-color: oklch(58% 0.16 75);
+  --co-bg:    oklch(58% 0.16 75 / 0.07);
+  :is(.dark *) & { --co-color: oklch(74% 0.16 75); --co-bg: oklch(74% 0.16 75 / 0.08); }
+}
+.mdx-callout[data-type="caution"] {
+  --co-color: oklch(50% 0.22 25);
+  --co-bg:    oklch(50% 0.22 25 / 0.07);
+  :is(.dark *) & { --co-color: oklch(68% 0.22 25); --co-bg: oklch(68% 0.22 25 / 0.08); }
+}
+
+.mdx-callout__header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  color: var(--co-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+}
+
+.mdx-callout__body {
+  position: relative;
+  z-index: 1;
+  font-size: 0.925rem;
+  line-height: 1.65;
+  color: var(--color-foreground);
+}
+
+/* Strip margin from first/last children so the block stays tight */
+.mdx-callout__body > :first-child { margin-top: 0; }
+.mdx-callout__body > :last-child  { margin-bottom: 0; }
 
 /* Shiki dual theme support */
 /* Light mode: use inline color/background as-is (set by Shiki) */
