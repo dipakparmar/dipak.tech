@@ -18,9 +18,13 @@ interface HighlighterProps {
   children: ReactNode;
   color?: 'info' | 'tip' | 'warning' | 'danger' | 'purple';
   intensity?: HighlightIntensity;
+  /** Padding between the text and the highlight stroke. Defaults to rough-notation's 5px. */
+  padding?: number;
+  /** Stroke width of the highlight. Defaults to rough-notation's built-in value for highlight type. */
+  strokeWidth?: number;
 }
 
-export function Highlighter({ children, color, intensity = 'medium' }: HighlighterProps) {
+export function Highlighter({ children, color, intensity = 'medium', padding, strokeWidth }: HighlighterProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const annotationRef = useRef<RoughAnnotation | null>(null);
   const inView = useInView(ref, { once: true, margin: '-5% 0px' });
@@ -36,10 +40,13 @@ export function Highlighter({ children, color, intensity = 'medium' }: Highlight
 
     const annotation = annotate(el, {
       type: 'highlight',
+      multiline: true,
       color: fillColor,
       iterations: ITERATIONS[intensity],
       animationDuration: reduced ? 0 : 500,
       animate: !reduced,
+      ...(padding !== undefined && { padding }),
+      ...(strokeWidth !== undefined && { strokeWidth }),
     });
     annotationRef.current = annotation;
 
@@ -47,7 +54,7 @@ export function Highlighter({ children, color, intensity = 'medium' }: Highlight
       annotation.remove();
       annotationRef.current = null;
     };
-  }, [reduced, color, intensity]);
+  }, [reduced, color, intensity, padding, strokeWidth]);
 
   useEffect(() => {
     if (!inView) return;
