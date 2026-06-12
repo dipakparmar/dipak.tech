@@ -25,6 +25,17 @@ interface MarginNoteProps {
   text?: ReactNode;
   /** Accent colour for the note text and rough-notation bracket. */
   color?: MarginNoteColor;
+  /**
+   * Which sides of the bracket to draw on desktop. Defaults to `['right']`
+   * for standalone and `['left']` for enclosure. Pass `['left', 'right']`
+   * for a full enclosing bracket.
+   */
+  bracketDesktop?: BracketType | BracketType[];
+  /**
+   * Which sides of the bracket to draw on mobile. Defaults to `['bottom']`.
+   * Pass `['top', 'bottom']` for a full enclosing bracket.
+   */
+  bracketMobile?: BracketType | BracketType[];
 }
 
 // rough-notation accepts a total duration and apportions it across paths
@@ -108,30 +119,54 @@ function RoughBracket({ brackets, targetRef, className }: RoughBracketProps) {
   return <span ref={hostRef} aria-hidden className={className} />;
 }
 
-export function MarginNote({ children, text, color }: MarginNoteProps) {
+export function MarginNote({ children, text, color, bracketDesktop, bracketMobile }: MarginNoteProps) {
   const isDesktop = useIsDesktop();
 
   if (text) {
-    return <EnclosureMarginNote text={text} color={color} isDesktop={isDesktop}>{children}</EnclosureMarginNote>;
+    return (
+      <EnclosureMarginNote
+        text={text}
+        color={color}
+        isDesktop={isDesktop}
+        bracketDesktop={bracketDesktop}
+        bracketMobile={bracketMobile}
+      >
+        {children}
+      </EnclosureMarginNote>
+    );
   }
 
-  return <StandaloneMarginNote color={color} isDesktop={isDesktop}>{children}</StandaloneMarginNote>;
+  return (
+    <StandaloneMarginNote
+      color={color}
+      isDesktop={isDesktop}
+      bracketDesktop={bracketDesktop}
+      bracketMobile={bracketMobile}
+    >
+      {children}
+    </StandaloneMarginNote>
+  );
 }
 
 function StandaloneMarginNote({
   children,
   color,
   isDesktop,
+  bracketDesktop,
+  bracketMobile,
 }: {
   children: ReactNode;
   color?: MarginNoteColor;
   isDesktop: boolean;
+  bracketDesktop?: BracketType | BracketType[];
+  bracketMobile?: BracketType | BracketType[];
 }) {
-  // The bracket wraps the handwritten note itself. On desktop the bracket is
-  // a vertical `[` on the right edge of the note (between note and prose); on
-  // mobile it's a horizontal `U` below the note.
   const textRef = useRef<HTMLSpanElement>(null);
-  const brackets: BracketType[] = isDesktop ? ['right'] : ['bottom'];
+  const defaultDesktop: BracketType[] = ['right'];
+  const defaultMobile: BracketType[] = ['bottom'];
+  const brackets: BracketType[] = isDesktop
+    ? (bracketDesktop ? ([] as BracketType[]).concat(bracketDesktop) : defaultDesktop)
+    : (bracketMobile  ? ([] as BracketType[]).concat(bracketMobile)  : defaultMobile);
 
   return (
     <span className="mdx-margin-note" data-color={color} role="note">
@@ -152,16 +187,22 @@ function EnclosureMarginNote({
   text,
   color,
   isDesktop,
+  bracketDesktop,
+  bracketMobile,
 }: {
   children: ReactNode;
   text: ReactNode;
   color?: MarginNoteColor;
   isDesktop: boolean;
+  bracketDesktop?: BracketType | BracketType[];
+  bracketMobile?: BracketType | BracketType[];
 }) {
-  // The bracket wraps the *content block*. Desktop: vertical `[` in the left
-  // gutter. Mobile: horizontal `U` below content, with cursive note below.
   const contentRef = useRef<HTMLDivElement>(null);
-  const brackets: BracketType[] = isDesktop ? ['left'] : ['bottom'];
+  const defaultDesktop: BracketType[] = ['left'];
+  const defaultMobile: BracketType[] = ['bottom'];
+  const brackets: BracketType[] = isDesktop
+    ? (bracketDesktop ? ([] as BracketType[]).concat(bracketDesktop) : defaultDesktop)
+    : (bracketMobile  ? ([] as BracketType[]).concat(bracketMobile)  : defaultMobile);
 
   return (
     <div className="mdx-margin-enclose" data-color={color}>
