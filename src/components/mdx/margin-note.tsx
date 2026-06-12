@@ -9,6 +9,8 @@ import {
   type RoughAnnotation,
 } from '@/lib/vendor/rough-notation';
 
+type MarginNoteColor = 'info' | 'tip' | 'warning' | 'danger' | 'purple';
+
 interface MarginNoteProps {
   children: ReactNode;
   /**
@@ -20,7 +22,9 @@ interface MarginNoteProps {
    * Omit `text` and the component renders in *standalone* mode: `children`
    * is the handwritten note, anchored to the previous paragraph.
    */
-  text?: string;
+  text?: ReactNode;
+  /** Accent colour for the note text and rough-notation bracket. */
+  color?: MarginNoteColor;
 }
 
 // rough-notation accepts a total duration and apportions it across paths
@@ -104,21 +108,23 @@ function RoughBracket({ brackets, targetRef, className }: RoughBracketProps) {
   return <span ref={hostRef} aria-hidden className={className} />;
 }
 
-export function MarginNote({ children, text }: MarginNoteProps) {
+export function MarginNote({ children, text, color }: MarginNoteProps) {
   const isDesktop = useIsDesktop();
 
   if (text) {
-    return <EnclosureMarginNote text={text} isDesktop={isDesktop}>{children}</EnclosureMarginNote>;
+    return <EnclosureMarginNote text={text} color={color} isDesktop={isDesktop}>{children}</EnclosureMarginNote>;
   }
 
-  return <StandaloneMarginNote isDesktop={isDesktop}>{children}</StandaloneMarginNote>;
+  return <StandaloneMarginNote color={color} isDesktop={isDesktop}>{children}</StandaloneMarginNote>;
 }
 
 function StandaloneMarginNote({
   children,
+  color,
   isDesktop,
 }: {
   children: ReactNode;
+  color?: MarginNoteColor;
   isDesktop: boolean;
 }) {
   // The bracket wraps the handwritten note itself. On desktop the bracket is
@@ -128,7 +134,7 @@ function StandaloneMarginNote({
   const brackets: BracketType[] = isDesktop ? ['right'] : ['bottom'];
 
   return (
-    <span className="mdx-margin-note" role="note">
+    <span className="mdx-margin-note" data-color={color} role="note">
       <span ref={textRef} className="mdx-margin-note__text">
         {children}
       </span>
@@ -144,10 +150,12 @@ function StandaloneMarginNote({
 function EnclosureMarginNote({
   children,
   text,
+  color,
   isDesktop,
 }: {
   children: ReactNode;
-  text: string;
+  text: ReactNode;
+  color?: MarginNoteColor;
   isDesktop: boolean;
 }) {
   // The bracket wraps the *content block*. Desktop: vertical `[` in the left
@@ -156,7 +164,7 @@ function EnclosureMarginNote({
   const brackets: BracketType[] = isDesktop ? ['left'] : ['bottom'];
 
   return (
-    <div className="mdx-margin-enclose">
+    <div className="mdx-margin-enclose" data-color={color}>
       <div ref={contentRef} className="mdx-margin-enclose__content">
         {children}
       </div>
