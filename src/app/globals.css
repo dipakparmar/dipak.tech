@@ -867,6 +867,17 @@
   padding: 0.05rem 0.25rem;
 }
 
+/* Default inline-code sizing reads oversized against the cursive note —
+   scale it down and tint the box with the note's accent colour instead. */
+.blog-prose .mdx-margin-note__text code,
+.blog-prose .mdx-margin-enclose__note code {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: inherit;
+  padding: 0.05em 0.3em;
+  font-size: 0.6em;
+  vertical-align: 0.05em;
+}
+
 /* Anchor span for the rough-notation SVG. Has no visual presence itself
    (rough-notation injects its own absolutely-positioned SVG as a sibling
    of the target element). */
