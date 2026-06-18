@@ -2,6 +2,7 @@
 title: "The npm Package Publishing Mental Model"
 description: "Things you need to do for npm trusted publishing to work, and the secure mental model behind it: OIDC identity chain, provenance attestation, and a complete GitHub Actions workflow."
 date: "2026-06-15"
+updated: "2026-06-17"
 tags: ["npm", "security", "ci-cd", "github-actions", "oidc", "devops"]
 ---
 
@@ -163,11 +164,11 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Upgrade npm to latest
