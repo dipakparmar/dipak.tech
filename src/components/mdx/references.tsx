@@ -45,13 +45,27 @@ export function References({ items }: ReferencesProps) {
                 rel="noopener noreferrer"
               >
                 {item.label}
-              </a>{' '}
+              </a>
               <a
                 className="mdx-references-backref"
                 href={`#cite-${n}`}
-                aria-label={`Back to reference ${n}`}
+                aria-label={`Back to reference ${n} in text`}
+                title="Back to text"
               >
-                {'↩'}
+                <svg
+                  viewBox="0 0 24 24"
+                  width="12"
+                  height="12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path className="mdx-references-backref-hook" d="M11 20H14.5A5.5 5.5 0 0 0 14.5 9H4" pathLength="1" />
+                  <path className="mdx-references-backref-head" d="M9 14 4 9l5-5" pathLength="1" />
+                </svg>
               </a>
             </motion.li>
           );

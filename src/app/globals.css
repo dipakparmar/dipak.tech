@@ -720,26 +720,61 @@
   text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
 }
 
-/* Hover fires on the whole row because `.mdx-references-backref` overlays
-   the link (it expands the click target to the full row). Without this,
-   hovering the link itself never triggers — pointer events hit the backref. */
-.blog-prose ol.mdx-references > li:hover .mdx-references-link {
+.blog-prose ol.mdx-references .mdx-references-link:hover {
   color: var(--color-foreground);
   text-decoration-color: currentColor;
 }
 
-/* Backref `↩` link — visually hidden, but its hit area expands to the
-   entire row via `inset: 0` so clicking anywhere on the line returns the
-   reader to the corresponding citation. */
+/* Backref arrow — a distinct, always-visible icon (not underlined text)
+   so it can never be mistaken for the external source link next to it.
+   It only navigates back to the citation in the body text; the underlined
+   link is the only thing that goes to the external source. */
 .blog-prose ol.mdx-references .mdx-references-backref {
-  z-index: 1;
-  position: absolute;
-  inset: 0;
-  bottom: 0.5em;
-  overflow: hidden;
-  display: inline-block;
-  text-indent: -9999px;
-  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 0.5em;
+  color: color-mix(in srgb, var(--color-muted-foreground) 60%, transparent);
+  opacity: 0.6;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.blog-prose ol.mdx-references .mdx-references-backref:hover {
+  color: var(--color-foreground);
+  opacity: 1;
+}
+
+/* Hook-draw — at rest the icon is fully drawn; on hover it re-traces
+   itself, hook first then the arrowhead snapping in at the end, like the
+   icon is being sketched. `pathLength="1"` on each path makes the dash
+   math independent of the actual curve geometry. */
+.blog-prose ol.mdx-references .mdx-references-backref-hook,
+.blog-prose ol.mdx-references .mdx-references-backref-head {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-hook {
+  animation: mdx-backref-draw 0.26s ease;
+}
+
+.blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-head {
+  animation: mdx-backref-draw 0.16s ease 0.24s backwards;
+}
+
+@keyframes mdx-backref-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blog-prose ol.mdx-references .mdx-references-backref {
+    transition: none;
+  }
+  .blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-hook,
+  .blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-head {
+    animation: none;
+  }
 }
 
 .blog-prose ol.mdx-references > li:target {
