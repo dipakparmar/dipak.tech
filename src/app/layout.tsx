@@ -103,7 +103,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn(fontInter.variable, fontReenie.variable)}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      data-scroll-behavior="smooth"
+      className={cn(fontInter.variable, fontReenie.variable)}
+    >
       <head>
         {process.env.NEXT_PUBLIC_REACT_GRAB === "1" && (
           <script
