@@ -71,6 +71,8 @@ export interface PlanInputs {
   holidays?: Array<{ date: string; name: string }>
   customDaysOff?: Array<CustomDayOff>
   takenDaysOff?: Array<TakenDayOff>
+  /** Pins the "today" used for the current-year planning window (YYYY-MM-DD). Defaults to the real current date. */
+  referenceDate?: string
 }
 
 export interface CountryInfo {

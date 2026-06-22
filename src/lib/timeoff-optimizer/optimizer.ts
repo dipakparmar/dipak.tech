@@ -93,11 +93,14 @@ interface WindowInfo {
 /**
  * Builds the planning window and day list for the requested year.
  *
- * For the current year, the window starts at today rather than January 1 so
- * already-past dates are excluded from planning.
+ * For the current year, the window starts at `referenceDate` (defaults to
+ * today) rather than January 1 so already-past dates are excluded from
+ * planning. Pinning `referenceDate` lets callers reproduce the exact same
+ * window on a later date, e.g. a calendar subscription feed that must not
+ * silently drop/add events as days pass after the link was generated.
  */
-function buildWindow(year: number): WindowInfo {
-  const today = startOfToday()
+function buildWindow(year: number, referenceDate?: Date): WindowInfo {
+  const today = referenceDate ?? startOfToday()
   const currentYear = today.getFullYear()
   const jan1 = new Date(year, 0, 1, 0, 0, 0, 0)
   const dec31 = new Date(year, 11, 31, 0, 0, 0, 0)
@@ -573,7 +576,8 @@ export function optimizeDays(params: PlanInputs): PlanResult {
   const year = params.year ?? new Date().getFullYear()
   const budget = Math.max(0, Math.floor(params.dayOffBudget || 0))
 
-  const { days } = buildWindow(year)
+  const referenceDate = params.referenceDate ? fromIso(params.referenceDate) : undefined
+  const { days } = buildWindow(year, referenceDate)
   applyHolidays(days, params.holidays)
   applyCompanyDays(days, params.customDaysOff)
   applyTakenDays(days, params.takenDaysOff)

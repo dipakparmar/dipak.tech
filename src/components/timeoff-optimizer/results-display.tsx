@@ -17,6 +17,7 @@ import {
 import { HapticButton, HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { CalendarView } from "./calendar-view"
 import { BreakCard } from "./break-card"
+import { SubscribeCalendarButton } from "./subscribe-calendar-button"
 import { breaksToICS, downloadICS } from "@/lib/timeoff-optimizer/ics"
 import type { PlanResult } from "@/lib/timeoff-optimizer/types"
 
@@ -26,6 +27,8 @@ interface ResultsDisplayProps {
   ptoBudget: number
   shareUrl: string
   isStale?: boolean
+  /** Whether the owner has configured TIMEOFF_OPTIMIZER_ICS_TOKEN; gates whether the Subscribe button exists at all. */
+  icsSubscribeEnabled?: boolean
 }
 
 export function ResultsDisplay({
@@ -34,6 +37,7 @@ export function ResultsDisplay({
   ptoBudget,
   shareUrl,
   isStale,
+  icsSubscribeEnabled,
 }: ResultsDisplayProps) {
   const [copied, setCopied] = React.useState(false)
   const { breaks, stats, days } = result
@@ -94,18 +98,23 @@ export function ResultsDisplay({
               <Download className="size-3" />
               Export .ics
             </HapticButton>
+            <SubscribeCalendarButton
+              enabled={Boolean(icsSubscribeEnabled)}
+              shareUrl={shareUrl}
+              year={year}
+            />
           </div>
         </div>
 
         <Tabs defaultValue="calendar">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="calendar">
+            <TabsTrigger value="calendar" className="gap-1.5">
               <CalendarDays className="size-3" /> Calendar
             </TabsTrigger>
-            <TabsTrigger value="breaks">
+            <TabsTrigger value="breaks" className="gap-1.5">
               <ListChecks className="size-3" /> Breaks
             </TabsTrigger>
-            <TabsTrigger value="stats">
+            <TabsTrigger value="stats" className="gap-1.5">
               <Sparkles className="size-3" /> Stats
             </TabsTrigger>
           </TabsList>

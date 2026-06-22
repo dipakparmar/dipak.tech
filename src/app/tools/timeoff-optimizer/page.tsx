@@ -37,6 +37,9 @@ const BLUR_FADE_DELAY = 0.04
 
 export default async function TimeoffOptimizerPage() {
   const detectedGeo = await detectGeoFromHeaders()
+  // Only a boolean — never send the actual secret to the client. Visitors who
+  // know the access code enter it themselves in the Subscribe UI.
+  const icsSubscribeEnabled = Boolean(process.env.TIMEOFF_OPTIMIZER_ICS_TOKEN)
   return (
     <main className="min-h-screen bg-background">
       <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]">
@@ -80,9 +83,14 @@ export default async function TimeoffOptimizerPage() {
 
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
             <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
-              <TimeoffOptimizerTool detectedGeo={detectedGeo} />
+              <TimeoffOptimizerTool detectedGeo={detectedGeo} icsSubscribeEnabled={icsSubscribeEnabled} />
             </Suspense>
           </BlurFade>
+
+          <p className="text-center text-xs text-muted-foreground/70">
+            Everything runs in your browser &mdash; calendar subscriptions are the only feature
+            that talks to a server.
+          </p>
         </div>
       </div>
     </main>

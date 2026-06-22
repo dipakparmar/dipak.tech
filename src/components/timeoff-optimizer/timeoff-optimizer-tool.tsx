@@ -15,6 +15,15 @@ import {
   listStates,
 } from "@/lib/timeoff-optimizer/holidays"
 import { optimizeDaysAsync } from "@/lib/timeoff-optimizer/optimizer"
+import {
+  base64EncodeJSON,
+  decodeCustomDays,
+  decodeLocations,
+  decodeTakenDays,
+  encodeLocations,
+  isStrategy,
+  makeLocationId,
+} from "@/lib/timeoff-optimizer/share-params"
 import type { DetectedGeo } from "@/lib/geo"
 import type {
   CustomDayOff,
@@ -23,84 +32,6 @@ import type {
   PlanStrategy,
   TakenDayOff,
 } from "@/lib/timeoff-optimizer/types"
-
-const STRATEGIES = [
-  "balanced",
-  "longWeekends",
-  "miniBreaks",
-  "weekLongBreaks",
-  "extendedVacations",
-] as const
-
-function isStrategy(value: string | null): value is PlanStrategy {
-  return value !== null && (STRATEGIES as readonly string[]).includes(value)
-}
-
-function makeLocationId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID()
-  }
-  return Math.random().toString(36).slice(2)
-}
-
-function base64EncodeJSON(value: unknown): string | null {
-  try {
-    const bytes = new TextEncoder().encode(JSON.stringify(value))
-    let bin = ""
-    for (const b of bytes) bin += String.fromCharCode(b)
-    return btoa(bin)
-  } catch {
-    return null
-  }
-}
-
-function base64DecodeJSON<T>(encoded: string | null): T | null {
-  if (!encoded) return null
-  try {
-    const bin = atob(encoded)
-    const bytes = new Uint8Array(bin.length)
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-    return JSON.parse(new TextDecoder().decode(bytes)) as T
-  } catch {
-    return null
-  }
-}
-
-function encodeLocations(locations: Location[]): string | null {
-  const valid = locations.filter((l) => l.country)
-  if (valid.length === 0) return null
-  const compact = valid.map((l) => ({ c: l.country, s: l.state, r: l.region }))
-  return base64EncodeJSON(compact)
-}
-
-interface CompactLocation {
-  c?: unknown
-  s?: unknown
-  r?: unknown
-}
-
-function decodeLocations(encoded: string | null): Location[] {
-  const parsed = base64DecodeJSON<CompactLocation[]>(encoded)
-  if (!Array.isArray(parsed)) return []
-  return parsed
-    .filter((e): e is CompactLocation => typeof e === "object" && e !== null)
-    .map((e) => ({
-      id: makeLocationId(),
-      country: typeof e.c === "string" ? e.c : null,
-      state: typeof e.s === "string" ? e.s : null,
-      region: typeof e.r === "string" ? e.r : null,
-    }))
-}
-
-function decodeCustomDays(encoded: string | null): CustomDayOff[] {
-  const parsed = base64DecodeJSON<unknown>(encoded)
-  return Array.isArray(parsed) ? (parsed as CustomDayOff[]) : []
-}
-
-function decodeTakenDays(encoded: string | null): TakenDayOff[] {
-  const parsed = base64DecodeJSON<unknown>(encoded)
-  return Array.isArray(parsed) ? (parsed as TakenDayOff[]) : []
-}
 
 function locationsEqual(a: Location[], b: Location[]): boolean {
   if (a.length !== b.length) return false
@@ -141,9 +72,11 @@ function initialLocations(searchParams: URLSearchParams, detectedGeo?: DetectedG
 
 interface TimeoffOptimizerToolProps {
   detectedGeo?: DetectedGeo | null
+  /** Whether the owner has configured TIMEOFF_OPTIMIZER_ICS_TOKEN at all; gates the Subscribe UI's existence, not access to it. */
+  icsSubscribeEnabled?: boolean
 }
 
-export function TimeoffOptimizerTool({ detectedGeo }: TimeoffOptimizerToolProps) {
+export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: TimeoffOptimizerToolProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -402,6 +335,7 @@ export function TimeoffOptimizerTool({ detectedGeo }: TimeoffOptimizerToolProps)
             ptoBudget={resultBudget ?? dayOffBudget}
             shareUrl={shareUrl}
             isStale={isStale}
+            icsSubscribeEnabled={icsSubscribeEnabled}
           />
         ) : (
           <Card>

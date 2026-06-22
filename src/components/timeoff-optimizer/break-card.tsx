@@ -1,9 +1,19 @@
 "use client"
 
 import { differenceInCalendarDays, format, parseISO } from "date-fns"
-import { CalendarDays, CalendarHeart, Sparkles, Briefcase } from "lucide-react"
+import { CalendarDays, CalendarHeart, CalendarPlus, Sparkles, Briefcase } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { HapticButton } from "@/components/haptic-wrappers"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { breakToICS, downloadICS } from "@/lib/timeoff-optimizer/ics"
+import { googleCalendarUrl, office365Url, outlookComUrl } from "@/lib/timeoff-optimizer/calendar-links"
 import type { OffBlock } from "@/lib/timeoff-optimizer/types"
 
 interface BreakCardProps {
@@ -38,9 +48,47 @@ export function BreakCard({ break: br, index }: BreakCardProps) {
             </p>
             <p className="text-sm font-semibold">{fmtRange(br.startDate, br.endDate)}</p>
           </div>
-          <div className="rounded-md bg-primary/10 px-2 py-1 text-center">
-            <p className="text-base font-semibold leading-none text-primary">{totalDays}</p>
-            <p className="text-[9px] uppercase text-muted-foreground">days off</p>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <HapticButton variant="outline" size="icon" className="size-7" aria-label="Add to calendar">
+                      <CalendarPlus className="size-3.5" />
+                    </HapticButton>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Add to calendar</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <a href={googleCalendarUrl(br)} target="_blank" rel="noopener noreferrer">
+                    Google Calendar
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={outlookComUrl(br)} target="_blank" rel="noopener noreferrer">
+                    Outlook.com
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={office365Url(br)} target="_blank" rel="noopener noreferrer">
+                    Office 365
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    downloadICS(`timeoff-break-${index + 1}.ics`, breakToICS(br))
+                  }
+                >
+                  Download .ics
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="rounded-md bg-primary/10 px-2 py-1 text-center">
+              <p className="text-base font-semibold leading-none text-primary">{totalDays}</p>
+              <p className="text-[9px] uppercase text-muted-foreground">days off</p>
+            </div>
           </div>
         </div>
 
