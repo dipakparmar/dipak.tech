@@ -2,10 +2,9 @@
 
 import * as React from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Sparkles } from "lucide-react"
-
 import { Card, CardContent } from "@/components/ui/card"
 import { useHaptics } from "@/hooks/use-haptics"
+import { EmptyStateScene } from "./empty-state-scene"
 import { OptimizerForm } from "./optimizer-form"
 import { ResultsDisplay } from "./results-display"
 import {
@@ -368,9 +367,7 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
         ) : (
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-              <span className="inline-flex size-12 items-center justify-center rounded-full bg-primary/10">
-                <Sparkles className="size-6 text-primary" />
-              </span>
+              <EmptyStateScene />
               <h2 className="text-sm font-semibold">Plan your perfect year</h2>
               <p className="max-w-sm text-xs text-muted-foreground">
                 Pick how many days you have, where you live, and a strategy. We&rsquo;ll line up your
