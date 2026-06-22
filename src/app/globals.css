@@ -1084,6 +1084,13 @@
   overflow: hidden;
 }
 
+/* `overflow: hidden` above blocks margin collapsing, and the wrapper itself
+   has no margin (only the now-irrelevant nested `.shiki-wrapper pre` does),
+   so without this the next paragraph hugs the code block directly. */
+.blog-prose .shiki-wrapper {
+  margin: 1.0em 0;
+}
+
 .shiki-header {
   display: flex;
   align-items: center;
