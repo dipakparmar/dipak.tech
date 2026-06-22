@@ -7,6 +7,7 @@ import { personReference, personSchema } from "@/lib/schema"
 import { BlurFade } from "@/components/magicui/blur-fade"
 import { JsonLd } from "@/components/seo/json-ld"
 import Link from "next/link"
+import { ToolCard } from "@/components/tool-card"
 import { buildHref } from "@/lib/host-routing"
 import { headers } from "next/headers"
 import { ogUrls } from "@/lib/og-config"
@@ -52,7 +53,7 @@ type Tool = {
   title: string
   description: string
   path: string
-  icon: typeof Shield | React.FC<React.SVGProps<SVGSVGElement>>
+  icon: React.ElementType
   color: string
   borderColor: string
   iconBg: string
@@ -270,59 +271,19 @@ export default async function ToolsPage() {
           <div className="mx-auto grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {tools.map((tool, index) => (
               <BlurFade key={tool.path} delay={BLUR_FADE_DELAY * (index + 2)} className={tool.span === 2 ? "sm:col-span-2 lg:col-span-2" : ""}>
-                <Link
+                <ToolCard
                   href={getHref(tool.path)}
-                  className="group block h-full"
-                >
-                  <div
-                    className={`relative h-full overflow-hidden rounded-xl border bg-card p-5 transition-all duration-300 ${tool.borderColor} ${tool.hoverBg} hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10`}
-                  >
-                    {/* Top accent bar */}
-                    <div
-                      className={`absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100 ${tool.color} bg-current`}
-                      style={{ maskImage: "linear-gradient(90deg, black, transparent)" }}
-                    />
-
-                    {/* Icon */}
-                    <div
-                      className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${tool.iconBg}`}
-                    >
-                      <tool.icon className={`h-5 w-5 ${tool.color}`} />
-                    </div>
-
-                    {/* Title + Description */}
-                    <h3 className="text-sm font-semibold">{tool.title}</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {tool.description}
-                    </p>
-
-                    {/* Hover-expand details */}
-                    <div className="grid max-h-0 grid-rows-[0fr] transition-all duration-300 group-hover:mt-3 group-hover:max-h-28 group-hover:grid-rows-[1fr]">
-                      <div className="overflow-hidden">
-                        <div className="border-t border-border pt-3">
-                          <p className="text-[11px] text-muted-foreground">
-                            <span className="font-medium text-foreground/80">
-                              {tool.stat.split("·")[0].trim()}
-                            </span>
-                            {tool.stat.includes("·") && (
-                              <span> · {tool.stat.split("·").slice(1).join("·").trim()}</span>
-                            )}
-                          </p>
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {tool.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${tool.tagBg}`}
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
+                  color={tool.color}
+                  hoverBg={tool.hoverBg}
+                  borderColor={tool.borderColor}
+                  iconBg={tool.iconBg}
+                  tagBg={tool.tagBg}
+                  icon={<tool.icon className={`h-5 w-5 ${tool.color}`} />}
+                  title={tool.title}
+                  description={tool.description}
+                  stat={tool.stat}
+                  tags={tool.tags}
+                />
               </BlurFade>
             ))}
           </div>
