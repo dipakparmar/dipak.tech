@@ -223,7 +223,10 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
     })
   }, [locations, stateRegions, loadingRegionKeys])
 
-  React.useEffect(() => {
+  // Builds the shareable URL for the current inputs. Only called on submit,
+  // not on every keystroke/state change, since this page is server-rendered
+  // and router.replace is a real request.
+  const buildParams = () => {
     const params = new URLSearchParams()
     params.set("days", String(dayOffBudget))
     params.set("year", String(year))
@@ -238,19 +241,8 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
     if (takenEncoded) params.set("taken", takenEncoded)
     if (eventTitleTemplate.trim()) params.set("etitle", eventTitleTemplate)
     if (eventNotesTemplate.trim()) params.set("enotes", eventNotesTemplate)
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [
-    dayOffBudget,
-    year,
-    strategy,
-    locations,
-    customDays,
-    takenDays,
-    eventTitleTemplate,
-    eventNotesTemplate,
-    router,
-    pathname,
-  ])
+    return params
+  }
 
   const handleSubmit = async () => {
     const validLocations = locations.filter((l) => l.country)
@@ -295,6 +287,7 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
       setResultYear(year)
       setResultBudget(dayOffBudget)
       setResultLocations(locations.map((l) => ({ ...l })))
+      router.replace(`${pathname}?${buildParams().toString()}`, { scroll: false })
       hapticTrigger("success")
     } catch (err) {
       console.error(err)

@@ -682,7 +682,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                 />
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Leave blank for the default text. Variables: {"{days} {pto} {holidays} {weekends} {company} {start} {end} {year} {names}"}
+                Leave blank for the default text. <br/>Variables: {"{days} {pto} {holidays} {weekends} {company} {start} {end} {year} {names}"}
               </p>
             </AccordionContent>
           </AccordionItem>
