@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
   CustomDayOff,
   Location,
+  OffBlock,
   PlanStrategy,
   TakenDayOff,
 } from "@/lib/timeoff-optimizer/types"
@@ -39,8 +40,33 @@ import { Label } from "@/components/ui/label"
 import { LocationRow } from "./location-row"
 import { STRATEGIES } from "@/lib/timeoff-optimizer/strategies"
 import { STRATEGY_NOTICE_DEFAULTS } from "@/lib/timeoff-optimizer/optimizer"
+import { renderEventText } from "@/lib/timeoff-optimizer/ics"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
+
+// Representative break used to preview custom event title/notes templates,
+// independent of whether the user has computed a real plan yet.
+const SAMPLE_BREAK: OffBlock = {
+  startDate: "2026-07-13",
+  endDate: "2026-07-19",
+  totalDays: 7,
+  dayOffCount: 3,
+  holidayCount: 1,
+  weekendCount: 2,
+  customDayCount: 1,
+  days: [
+    {
+      date: "2026-07-17",
+      isWeekend: false,
+      isDayOff: false,
+      inOffBlock: true,
+      isPublicHoliday: true,
+      holidayName: "Independence Day",
+      isCustomDayOff: false,
+      isAlreadyTaken: false,
+    },
+  ],
+}
 
 const WEEKDAYS = [
   { value: 0, label: "Sunday" },
@@ -209,6 +235,11 @@ export function OptimizerForm(props: OptimizerFormProps) {
 
   const hasAnyCountry = locations.some((l) => !!l.country)
   const canOptimize = hasAnyCountry && !isOptimizing
+
+  const eventPreview = React.useMemo(
+    () => renderEventText(SAMPLE_BREAK, eventTitleTemplate, eventNotesTemplate),
+    [eventTitleTemplate, eventNotesTemplate]
+  )
 
   return (
     <Card>
@@ -725,6 +756,15 @@ export function OptimizerForm(props: OptimizerFormProps) {
               <p className="text-[11px] text-muted-foreground">
                 Leave blank for the default text. <br/>Variables: {"{days} {pto} {holidays} {weekends} {company} {start} {end} {year} {names}"}
               </p>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Preview</Label>
+                <div className="rounded-md border border-border/70 bg-muted/30 p-2.5">
+                  <p className="text-xs font-medium">{eventPreview.summary}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-[11px] text-muted-foreground">
+                    {eventPreview.description}
+                  </p>
+                </div>
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
