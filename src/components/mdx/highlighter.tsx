@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { ReactNode } from 'react';
 import { useInView, useReducedMotion } from 'motion/react';
-import { annotate } from '@/lib/vendor/rough-notation';
+
+import type { ReactNode } from 'react';
 import type { RoughAnnotation } from '@/lib/vendor/rough-notation';
+import { annotate } from '@/lib/vendor/rough-notation';
 
 type HighlightIntensity = 'light' | 'medium' | 'strong';
 
@@ -22,9 +23,11 @@ interface HighlighterProps {
   padding?: number;
   /** Stroke width of the highlight. Defaults to rough-notation's built-in value for highlight type. */
   strokeWidth?: number;
+  /** Draws the stroke in stop-and-go segments, like a hand lifting and repositioning a marker. Defaults to false (one smooth sweep). */
+  humanStroke?: boolean;
 }
 
-export function Highlighter({ children, color, intensity = 'medium', padding, strokeWidth }: HighlighterProps) {
+export function Highlighter({ children, color, intensity = 'medium', padding, strokeWidth, humanStroke }: HighlighterProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const annotationRef = useRef<RoughAnnotation | null>(null);
   const inView = useInView(ref, { once: true, margin: '-5% 0px' });
@@ -43,8 +46,9 @@ export function Highlighter({ children, color, intensity = 'medium', padding, st
       multiline: true,
       color: fillColor,
       iterations: ITERATIONS[intensity],
-      animationDuration: reduced ? 0 : 500,
+      animationDuration: reduced ? 0 : 4500,
       animate: !reduced,
+      humanStroke,
       ...(padding !== undefined && { padding }),
       ...(strokeWidth !== undefined && { strokeWidth }),
     });
@@ -54,7 +58,7 @@ export function Highlighter({ children, color, intensity = 'medium', padding, st
       annotation.remove();
       annotationRef.current = null;
     };
-  }, [reduced, color, intensity, padding, strokeWidth]);
+  }, [reduced, color, intensity, padding, strokeWidth, humanStroke]);
 
   useEffect(() => {
     if (!inView) return;

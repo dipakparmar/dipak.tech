@@ -2,9 +2,10 @@
 // Upstream: https://github.com/rough-stuff/rough-notation
 // See ./LICENSE.
 
-import { Rect, RoughAnnotationConfig, SVG_NS, FullPadding, BracketType } from './model';
-import { ResolvedOptions, OpSet } from 'roughjs/bin/core';
-import { line, rectangle, ellipse, linearPath } from 'roughjs/bin/renderer';
+import { BracketType, FullPadding, Rect, RoughAnnotationConfig, SVG_NS } from './model';
+import { OpSet, ResolvedOptions } from 'roughjs/bin/core';
+import { ellipse, line, linearPath, rectangle } from 'roughjs/bin/renderer';
+
 import { Point } from 'roughjs/bin/geometry';
 
 type RoughOptionsType = 'highlight' | 'single' | 'double';
@@ -12,7 +13,7 @@ type RoughOptionsType = 'highlight' | 'single' | 'double';
 function getOptions(type: RoughOptionsType, seed: number): ResolvedOptions {
   return {
     maxRandomnessOffset: 2,
-    roughness: type === 'highlight' ? 3 : 1.5,
+    roughness: type === 'highlight' ? 3.5 : 1.5,
     bowing: 1,
     stroke: '#000',
     strokeWidth: 1.5,
@@ -36,6 +37,34 @@ function getOptions(type: RoughOptionsType, seed: number): ResolvedOptions {
     disableMultiStrokeFill: false,
     seed
   };
+}
+
+// Local addition (not upstream rough-notation): a human dragging a marker
+// doesn't draw one continuous line - they stroke, lift, reposition, and
+// stroke again. Builds Web Animations keyframes for stroke-dashoffset with
+// two brief holds (flat plateaus) between three quick strokes, instead of a
+// single eased sweep from full length to 0. Timings jitter slightly per call
+// so repeated highlights on a page don't all stutter in lockstep.
+function strokeStutterKeyframes(length: number): Keyframe[] {
+  const jitterT = () => (Math.random() - 0.5) * 0.03;
+  const firstStrokeEnd = 0.5 + (Math.random() - 0.5) * 0.12; // ~44-56% drawn
+  const secondStrokeEnd = 0.06 + Math.random() * 0.06; // ~6-12% left to go
+  const t1 = 0.27 + jitterT();
+  const t2 = t1 + 0.07 + Math.random() * 0.03;
+  const t3 = 0.74 + jitterT();
+  const t4 = t3 + 0.05 + Math.random() * 0.03;
+  const toOffset = (frac: number) => `${Math.max(0, Math.min(length, frac * length))}`;
+
+  // Each stroke segment starts and ends at rest (coming out of/into a hold),
+  // so it eases both ways rather than snapping to full speed off a standstill.
+  return [
+    { offset: 0, strokeDashoffset: toOffset(1), easing: 'ease-in-out' },
+    { offset: t1, strokeDashoffset: toOffset(firstStrokeEnd), easing: 'linear' },
+    { offset: t2, strokeDashoffset: toOffset(firstStrokeEnd), easing: 'ease-in-out' },
+    { offset: t3, strokeDashoffset: toOffset(secondStrokeEnd), easing: 'linear' },
+    { offset: t4, strokeDashoffset: toOffset(secondStrokeEnd), easing: 'ease-in-out' },
+    { offset: 1, strokeDashoffset: toOffset(0) },
+  ];
 }
 
 function parsePadding(config: RoughAnnotationConfig): FullPadding {
@@ -238,7 +267,13 @@ export function renderAnnotation(svg: SVGSVGElement, rect: Rect, config: RoughAn
         const style = path.style;
         style.strokeDashoffset = `${length}`;
         style.strokeDasharray = `${length}`;
-        style.animation = `rough-notation-dash ${duration}ms ease-out ${delay}ms forwards`;
+        if (duration <= 0) {
+          style.strokeDashoffset = '0';
+        } else if (config.humanStroke) {
+          path.animate(strokeStutterKeyframes(length), { duration, delay, fill: 'forwards' });
+        } else {
+          style.animation = `rough-notation-dash ${duration}ms cubic-bezier(0.22, 0.61, 0.36, 1) ${delay}ms forwards`;
+        }
         durationOffset += duration;
       }
     }

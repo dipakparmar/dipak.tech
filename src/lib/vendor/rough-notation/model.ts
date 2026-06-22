@@ -32,6 +32,10 @@ export interface RoughAnnotationConfigBase {
   padding?: RoughPadding; // defaults to 5px
   iterations?: number; // defaults to 2
   brackets?: BracketType | BracketType[]; // defaults to 'right'
+  // Local addition (not upstream rough-notation): draws the stroke in a
+  // few stop-and-go segments (like a hand lifting and repositioning a
+  // marker) instead of one smooth eased sweep. Defaults to false.
+  humanStroke?: boolean;
 }
 
 export interface RoughAnnotation extends RoughAnnotationConfigBase {
