@@ -108,6 +108,12 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
   const [takenDays, setTakenDays] = React.useState<TakenDayOff[]>(() =>
     decodeTakenDays(searchParams.get("taken"))
   )
+  const [eventTitleTemplate, setEventTitleTemplate] = React.useState(
+    () => searchParams.get("etitle") ?? ""
+  )
+  const [eventNotesTemplate, setEventNotesTemplate] = React.useState(
+    () => searchParams.get("enotes") ?? ""
+  )
 
   const [countries, setCountries] = React.useState<
     Array<{ countryCode: string; name: string }>
@@ -230,8 +236,21 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
     const takenEncoded =
       takenDays.length > 0 ? base64EncodeJSON(takenDays) : null
     if (takenEncoded) params.set("taken", takenEncoded)
+    if (eventTitleTemplate.trim()) params.set("etitle", eventTitleTemplate)
+    if (eventNotesTemplate.trim()) params.set("enotes", eventNotesTemplate)
     router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }, [dayOffBudget, year, strategy, locations, customDays, takenDays, router, pathname])
+  }, [
+    dayOffBudget,
+    year,
+    strategy,
+    locations,
+    customDays,
+    takenDays,
+    eventTitleTemplate,
+    eventNotesTemplate,
+    router,
+    pathname,
+  ])
 
   const handleSubmit = async () => {
     const validLocations = locations.filter((l) => l.country)
@@ -312,6 +331,10 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
         onCustomDaysChange={setCustomDays}
         takenDays={takenDays}
         onTakenDaysChange={setTakenDays}
+        eventTitleTemplate={eventTitleTemplate}
+        onEventTitleTemplateChange={setEventTitleTemplate}
+        eventNotesTemplate={eventNotesTemplate}
+        onEventNotesTemplateChange={setEventNotesTemplate}
         detectedLocation={
           detectedGeo?.country
             ? [detectedGeo.country, detectedGeo.region].filter(Boolean).join(" / ")
@@ -336,6 +359,8 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
             shareUrl={shareUrl}
             isStale={isStale}
             icsSubscribeEnabled={icsSubscribeEnabled}
+            eventTitleTemplate={eventTitleTemplate}
+            eventNotesTemplate={eventNotesTemplate}
           />
         ) : (
           <Card>

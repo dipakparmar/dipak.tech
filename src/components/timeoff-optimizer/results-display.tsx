@@ -44,6 +44,9 @@ interface ResultsDisplayProps {
   isStale?: boolean
   /** Whether the owner has configured TIMEOFF_OPTIMIZER_ICS_TOKEN; gates whether the Subscribe button exists at all. */
   icsSubscribeEnabled?: boolean
+  /** Custom title/notes templates for calendar events; supports {days} {pto} {holidays} {weekends} {company} {start} {end} {year} {names}. */
+  eventTitleTemplate?: string
+  eventNotesTemplate?: string
 }
 
 export function ResultsDisplay({
@@ -53,6 +56,8 @@ export function ResultsDisplay({
   shareUrl,
   isStale,
   icsSubscribeEnabled,
+  eventTitleTemplate,
+  eventNotesTemplate,
 }: ResultsDisplayProps) {
   const [shareExportAction, setShareExportAction] = React.useState<ShareExportAction>("idle")
   const { breaks, stats, days } = result
@@ -67,7 +72,7 @@ export function ResultsDisplay({
   }
 
   const handleExport = () => {
-    const ics = breaksToICS(breaks, `Time off ${year}`)
+    const ics = breaksToICS(breaks, `Time off ${year}`, eventTitleTemplate, eventNotesTemplate)
     downloadICS(`timeoff-${year}.ics`, ics)
     flashAction("exported")
   }
@@ -176,7 +181,13 @@ export function ResultsDisplay({
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {breaks.map((br, idx) => (
-                  <BreakCard key={`${br.startDate}-${idx}`} break={br} index={idx} />
+                  <BreakCard
+                    key={`${br.startDate}-${idx}`}
+                    break={br}
+                    index={idx}
+                    titleTemplate={eventTitleTemplate}
+                    notesTemplate={eventNotesTemplate}
+                  />
                 ))}
               </div>
             )}

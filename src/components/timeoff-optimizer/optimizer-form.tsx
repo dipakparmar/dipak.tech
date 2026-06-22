@@ -1,11 +1,26 @@
 "use client"
 
 import * as React from "react"
-import { CalendarPlus, Info, MapPin, Navigation, Trash2, Wand2 } from "lucide-react"
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { CalendarPlus, Info, MapPin, Navigation, Trash2, Type, Wand2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import type {
+  CustomDayOff,
+  Location,
+  PlanStrategy,
+  TakenDayOff,
+} from "@/lib/timeoff-optimizer/types"
+import {
+  HapticButton,
+  HapticSelectItem as SelectItem,
+  HapticSlider as Slider,
+} from "@/components/haptic-wrappers"
 import {
   Select,
   SelectContent,
@@ -13,31 +28,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import {
-  HapticButton,
-  HapticSelectItem as SelectItem,
-  HapticSlider as Slider,
-} from "@/components/haptic-wrappers"
-import { DatePicker } from "@/components/ui/date-picker"
-import { Spinner } from "@/components/ui/spinner"
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+
+import { DatePicker } from "@/components/ui/date-picker"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { LocationRow } from "./location-row"
 import { STRATEGIES } from "@/lib/timeoff-optimizer/strategies"
-import type {
-  CustomDayOff,
-  Location,
-  PlanStrategy,
-  TakenDayOff,
-} from "@/lib/timeoff-optimizer/types"
+import { Spinner } from "@/components/ui/spinner"
+import { Textarea } from "@/components/ui/textarea"
 
 const WEEKDAYS = [
   { value: 0, label: "Sunday" },
@@ -73,6 +75,11 @@ export interface OptimizerFormProps {
   takenDays: TakenDayOff[]
   onTakenDaysChange: (days: TakenDayOff[]) => void
 
+  eventTitleTemplate: string
+  onEventTitleTemplateChange: (value: string) => void
+  eventNotesTemplate: string
+  onEventNotesTemplateChange: (value: string) => void
+
   isOptimizing: boolean
   onSubmit: () => void
 }
@@ -104,6 +111,10 @@ export function OptimizerForm(props: OptimizerFormProps) {
     onCustomDaysChange,
     takenDays,
     onTakenDaysChange,
+    eventTitleTemplate,
+    onEventTitleTemplateChange,
+    eventNotesTemplate,
+    onEventNotesTemplateChange,
     detectedLocation,
     isOptimizing,
     onSubmit,
@@ -642,6 +653,37 @@ export function OptimizerForm(props: OptimizerFormProps) {
                   </HapticButton>
                 </div>
               </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="event-text">
+            <AccordionTrigger>
+              <span className="flex items-center gap-2">
+                <Type className="size-3.5" />
+                Calendar event text
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3">
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Event title</Label>
+                <Input
+                  value={eventTitleTemplate}
+                  onChange={(e) => onEventTitleTemplateChange(e.target.value)}
+                  placeholder="Time off ({days} days)"
+                />
+              </div>
+              <div>
+                <Label className="text-[11px] text-muted-foreground">Event notes</Label>
+                <Textarea
+                  value={eventNotesTemplate}
+                  onChange={(e) => onEventNotesTemplateChange(e.target.value)}
+                  placeholder="{pto} PTO days, includes {names}"
+                  className="h-24 max-h-40 resize-y overflow-y-auto field-sizing-fixed"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Leave blank for the default text. Variables: {"{days} {pto} {holidays} {weekends} {company} {start} {end} {year} {names}"}
+              </p>
             </AccordionContent>
           </AccordionItem>
         </Accordion>

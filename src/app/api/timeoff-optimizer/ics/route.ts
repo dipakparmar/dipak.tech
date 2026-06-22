@@ -60,6 +60,8 @@ export async function GET(request: NextRequest) {
   }
   const customDays = decodeCustomDays(params.get("cd"))
   const takenDays = decodeTakenDays(params.get("taken"))
+  const titleTemplate = params.get("etitle") ?? undefined
+  const notesTemplate = params.get("enotes") ?? undefined
 
   const cacheKey = `timeoff-ics:${request.nextUrl.search}`
   const cached = getCached<string>(cacheKey)
@@ -105,7 +107,7 @@ export async function GET(request: NextRequest) {
       referenceDate,
     })
 
-    const ics = breaksToICS(result.breaks, `Time off ${year}`)
+    const ics = breaksToICS(result.breaks, `Time off ${year}`, titleTemplate, notesTemplate)
     setCached(cacheKey, ics, CACHE_TTL_MS)
 
     return new NextResponse(ics, { headers: icsHeaders(year) })

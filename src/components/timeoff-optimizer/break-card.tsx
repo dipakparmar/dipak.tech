@@ -19,6 +19,8 @@ import type { OffBlock } from "@/lib/timeoff-optimizer/types"
 interface BreakCardProps {
   break: OffBlock
   index: number
+  titleTemplate?: string
+  notesTemplate?: string
 }
 
 function fmtRange(start: string, end: string) {
@@ -33,7 +35,7 @@ function fmtRange(start: string, end: string) {
   return `${format(s, "MMM d, yyyy")} to ${format(e, "MMM d, yyyy")}`
 }
 
-export function BreakCard({ break: br, index }: BreakCardProps) {
+export function BreakCard({ break: br, index, titleTemplate, notesTemplate }: BreakCardProps) {
   const totalDays = differenceInCalendarDays(parseISO(br.endDate), parseISO(br.startDate)) + 1
   const dayOffDays = br.days.filter((d) => d.isDayOff)
   const namedDays = br.days.filter((d) => d.holidayName || d.customDayName)
@@ -62,23 +64,26 @@ export function BreakCard({ break: br, index }: BreakCardProps) {
               </Tooltip>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <a href={googleCalendarUrl(br)} target="_blank" rel="noopener noreferrer">
+                  <a href={googleCalendarUrl(br, titleTemplate, notesTemplate)} target="_blank" rel="noopener noreferrer">
                     Google Calendar
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={outlookComUrl(br)} target="_blank" rel="noopener noreferrer">
+                  <a href={outlookComUrl(br, titleTemplate, notesTemplate)} target="_blank" rel="noopener noreferrer">
                     Outlook.com
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={office365Url(br)} target="_blank" rel="noopener noreferrer">
+                  <a href={office365Url(br, titleTemplate, notesTemplate)} target="_blank" rel="noopener noreferrer">
                     Office 365
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
-                    downloadICS(`timeoff-break-${index + 1}.ics`, breakToICS(br))
+                    downloadICS(
+                      `timeoff-break-${index + 1}.ics`,
+                      breakToICS(br, titleTemplate, notesTemplate)
+                    )
                   }
                 >
                   Download .ics
