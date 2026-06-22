@@ -114,6 +114,8 @@ export function SubscribeCalendarButton({ enabled, shareUrl, year }: SubscribeCa
           </div>
           <div className="space-y-1.5">
             <Input
+              type="password"
+              autoComplete="current-password"
               value={codeInput}
               onChange={(e) => setCodeInput(e.target.value)}
               onKeyDown={(e) => {
