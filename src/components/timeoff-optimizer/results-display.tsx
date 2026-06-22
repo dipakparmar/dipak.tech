@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { AlertTriangle, CalendarDays, Check, Copy, Download, Info, ListChecks, Sparkles } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { AlertTriangle, CalendarDays, Check, Copy, Download, Info, ListChecks, Share2, Sparkles } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -14,12 +15,26 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { HapticButton, HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
 import { CalendarView } from "./calendar-view"
 import { BreakCard } from "./break-card"
 import { SubscribeCalendarButton } from "./subscribe-calendar-button"
 import { breaksToICS, downloadICS } from "@/lib/timeoff-optimizer/ics"
 import type { PlanResult } from "@/lib/timeoff-optimizer/types"
+
+type ShareExportAction = "idle" | "copied" | "exported"
+
+const SHARE_EXPORT_LABELS: Record<ShareExportAction, string> = {
+  idle: "Share & export",
+  copied: "Link copied!",
+  exported: "Exported!",
+}
 
 interface ResultsDisplayProps {
   result: PlanResult
@@ -39,23 +54,28 @@ export function ResultsDisplay({
   isStale,
   icsSubscribeEnabled,
 }: ResultsDisplayProps) {
-  const [copied, setCopied] = React.useState(false)
+  const [shareExportAction, setShareExportAction] = React.useState<ShareExportAction>("idle")
   const { breaks, stats, days } = result
   const totalPtoUsed = stats.totalDayOffs + stats.totalTakenDays
   const totalCalendarDaysOff = stats.totalDaysOff + stats.totalTakenCalendarDays
   const efficiency =
     totalPtoUsed > 0 ? (totalCalendarDaysOff / totalPtoUsed).toFixed(2) : "0"
 
+  const flashAction = (action: ShareExportAction) => {
+    setShareExportAction(action)
+    setTimeout(() => setShareExportAction("idle"), 2000)
+  }
+
   const handleExport = () => {
     const ics = breaksToICS(breaks, `Time off ${year}`)
     downloadICS(`timeoff-${year}.ics`, ics)
+    flashAction("exported")
   }
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      flashAction("copied")
     } catch {
       // clipboard unavailable
     }
@@ -90,14 +110,39 @@ export function ResultsDisplay({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <HapticButton variant="outline" size="sm" onClick={handleCopy}>
-              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-              {copied ? "Copied!" : "Share link"}
-            </HapticButton>
-            <HapticButton variant="outline" size="sm" onClick={handleExport}>
-              <Download className="size-3" />
-              Export .ics
-            </HapticButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <HapticButton variant="outline" size="sm">
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.span
+                      key={shareExportAction}
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4 }}
+                      transition={{ duration: 0.15 }}
+                      className="inline-flex items-center gap-1.5"
+                    >
+                      {shareExportAction === "idle" ? (
+                        <Share2 className="size-3" />
+                      ) : (
+                        <Check className="size-3" />
+                      )}
+                      {SHARE_EXPORT_LABELS[shareExportAction]}
+                    </motion.span>
+                  </AnimatePresence>
+                </HapticButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleCopy}>
+                  <Copy className="size-3" />
+                  Copy plan link
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExport}>
+                  <Download className="size-3" />
+                  Export .ics
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <SubscribeCalendarButton
               enabled={Boolean(icsSubscribeEnabled)}
               shareUrl={shareUrl}
