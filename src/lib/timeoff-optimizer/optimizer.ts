@@ -21,15 +21,22 @@ interface StrategyConfig {
   minLen: number
   maxLen: number
   spacing: number
+  /** Typical real-world approval lead time for this kind of break, in days. */
+  defaultNoticeDays: number
 }
 
 const STRATEGIES: Record<PlanStrategy, StrategyConfig> = {
-  longWeekends: { minLen: 3, maxLen: 4, spacing: 7 },
-  miniBreaks: { minLen: 5, maxLen: 6, spacing: 14 },
-  weekLongBreaks: { minLen: 7, maxLen: 9, spacing: 21 },
-  extendedVacations: { minLen: 10, maxLen: 15, spacing: 30 },
-  balanced: { minLen: 3, maxLen: 15, spacing: 21 },
+  longWeekends: { minLen: 3, maxLen: 4, spacing: 7, defaultNoticeDays: 3 },
+  miniBreaks: { minLen: 5, maxLen: 6, spacing: 14, defaultNoticeDays: 7 },
+  weekLongBreaks: { minLen: 7, maxLen: 9, spacing: 21, defaultNoticeDays: 14 },
+  extendedVacations: { minLen: 10, maxLen: 15, spacing: 30, defaultNoticeDays: 30 },
+  balanced: { minLen: 3, maxLen: 15, spacing: 21, defaultNoticeDays: 7 },
 }
+
+/** Exposed so the UI can seed per-strategy notice inputs with sensible defaults. */
+export const STRATEGY_NOTICE_DEFAULTS: Record<PlanStrategy, number> = Object.fromEntries(
+  Object.entries(STRATEGIES).map(([id, cfg]) => [id, cfg.defaultNoticeDays])
+) as Record<PlanStrategy, number>
 
 /**
  * Date helpers operate entirely in local time on normalized midnight values.
@@ -71,6 +78,13 @@ function addDays(d: Date, n: number): Date {
   const copy = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
   copy.setDate(copy.getDate() + n)
   return copy
+}
+
+/**
+ * Whole calendar days between two local-midnight dates (b - a).
+ */
+function diffDays(a: Date, b: Date): number {
+  return Math.round((b.getTime() - a.getTime()) / 86400000)
 }
 
 /**
@@ -317,11 +331,17 @@ function selectBlocks(
   spacing: number,
   budget: number,
   totalDays: number,
+  noticeCutoffIndex: number,
 ): Candidate[] {
   if (candidates.length === 0 || budget <= 0) return []
-  // Sort: best efficiency first; then longer blocks; then earlier start; then
-  // lower pto cost. All deterministic; no Math.random.
+  // Sort: candidates that respect the notice window first (soft preference -
+  // an early-starting block can still win if nothing later fits the budget);
+  // then best efficiency; then longer blocks; then earlier start; then lower
+  // pto cost. All deterministic; no Math.random.
   const sorted = candidates.slice().sort((a, b) => {
+    const aRespects = a.start >= noticeCutoffIndex
+    const bRespects = b.start >= noticeCutoffIndex
+    if (aRespects !== bRespects) return aRespects ? -1 : 1
     if (b.efficiency !== a.efficiency) return b.efficiency - a.efficiency
     if (b.length !== a.length) return b.length - a.length
     if (a.start !== b.start) return a.start - b.start
@@ -577,7 +597,8 @@ export function optimizeDays(params: PlanInputs): PlanResult {
   const budget = Math.max(0, Math.floor(params.dayOffBudget || 0))
 
   const referenceDate = params.referenceDate ? fromIso(params.referenceDate) : undefined
-  const { days } = buildWindow(year, referenceDate)
+  const window = buildWindow(year, referenceDate)
+  const { days } = window
   applyHolidays(days, params.holidays)
   applyCompanyDays(days, params.customDaysOff)
   applyTakenDays(days, params.takenDaysOff)
@@ -599,9 +620,14 @@ export function optimizeDays(params: PlanInputs): PlanResult {
   }
 
   // Main pass.
+  const minNoticeDays = params.minNoticeDays ?? cfg.defaultNoticeDays
+  const noticeCutoffIndex = Math.max(
+    0,
+    diffDays(window.start, addDays(referenceDate ?? startOfToday(), minNoticeDays))
+  )
   const rawCandidates = enumerateCandidates(days, cfg, effectiveBudget)
   const pruned = prune(rawCandidates)
-  const chosen = selectBlocks(pruned, cfg.spacing, effectiveBudget, days.length)
+  const chosen = selectBlocks(pruned, cfg.spacing, effectiveBudget, days.length, noticeCutoffIndex)
   const ptoSpent = markChosen(days, chosen)
 
   // Forced extension + forced segments to spend the rest of the budget.

@@ -8,7 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { CalendarPlus, Info, MapPin, Navigation, Trash2, Type, Wand2 } from "lucide-react"
+import { CalendarPlus, Clock3, Info, MapPin, Navigation, Trash2, Type, Wand2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type {
   CustomDayOff,
@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { LocationRow } from "./location-row"
 import { STRATEGIES } from "@/lib/timeoff-optimizer/strategies"
+import { STRATEGY_NOTICE_DEFAULTS } from "@/lib/timeoff-optimizer/optimizer"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -80,6 +81,9 @@ export interface OptimizerFormProps {
   eventNotesTemplate: string
   onEventNotesTemplateChange: (value: string) => void
 
+  noticeByStrategy: Partial<Record<PlanStrategy, number>>
+  onNoticeByStrategyChange: (value: Partial<Record<PlanStrategy, number>>) => void
+
   isOptimizing: boolean
   onSubmit: () => void
 }
@@ -115,6 +119,8 @@ export function OptimizerForm(props: OptimizerFormProps) {
     onEventTitleTemplateChange,
     eventNotesTemplate,
     onEventNotesTemplateChange,
+    noticeByStrategy,
+    onNoticeByStrategyChange,
     detectedLocation,
     isOptimizing,
     onSubmit,
@@ -653,6 +659,41 @@ export function OptimizerForm(props: OptimizerFormProps) {
                   </HapticButton>
                 </div>
               </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="notice">
+            <AccordionTrigger>
+              <span className="flex items-center gap-2">
+                <Clock3 className="size-3.5" />
+                Booking lead time
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="space-y-3">
+              <p className="text-[11px] text-muted-foreground">
+                A long trip booked for next week probably won&rsquo;t get approved. We bias each
+                strategy toward starting after its usual notice window &mdash; but will still use
+                an earlier date if that&rsquo;s the only way to fit your budget.
+              </p>
+              {STRATEGIES.map((s) => (
+                <div key={s.id} className="flex items-center justify-between gap-2">
+                  <Label className="text-[11px] text-muted-foreground">{s.label}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={120}
+                    className="w-20"
+                    value={noticeByStrategy[s.id] ?? STRATEGY_NOTICE_DEFAULTS[s.id]}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10)
+                      onNoticeByStrategyChange({
+                        ...noticeByStrategy,
+                        [s.id]: Number.isFinite(n) ? Math.max(0, Math.min(120, n)) : 0,
+                      })
+                    }}
+                  />
+                </div>
+              ))}
             </AccordionContent>
           </AccordionItem>
 

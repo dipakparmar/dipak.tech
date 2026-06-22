@@ -16,6 +16,7 @@ import {
 } from "@/lib/timeoff-optimizer/holidays"
 import { optimizeDaysAsync } from "@/lib/timeoff-optimizer/optimizer"
 import {
+  base64DecodeJSON,
   base64EncodeJSON,
   decodeCustomDays,
   decodeLocations,
@@ -114,6 +115,9 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
   const [eventNotesTemplate, setEventNotesTemplate] = React.useState(
     () => searchParams.get("enotes") ?? ""
   )
+  const [noticeByStrategy, setNoticeByStrategy] = React.useState<
+    Partial<Record<PlanStrategy, number>>
+  >(() => base64DecodeJSON(searchParams.get("notice")) ?? {})
 
   const [countries, setCountries] = React.useState<
     Array<{ countryCode: string; name: string }>
@@ -241,6 +245,9 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
     if (takenEncoded) params.set("taken", takenEncoded)
     if (eventTitleTemplate.trim()) params.set("etitle", eventTitleTemplate)
     if (eventNotesTemplate.trim()) params.set("enotes", eventNotesTemplate)
+    const noticeEncoded =
+      Object.keys(noticeByStrategy).length > 0 ? base64EncodeJSON(noticeByStrategy) : null
+    if (noticeEncoded) params.set("notice", noticeEncoded)
     return params
   }
 
@@ -282,6 +289,7 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
         holidays,
         customDaysOff: filteredCustomDays,
         takenDaysOff: filteredTakenDays,
+        minNoticeDays: noticeByStrategy[strategy],
       })
       setResult(optimized)
       setResultYear(year)
@@ -328,6 +336,8 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
         onEventTitleTemplateChange={setEventTitleTemplate}
         eventNotesTemplate={eventNotesTemplate}
         onEventNotesTemplateChange={setEventNotesTemplate}
+        noticeByStrategy={noticeByStrategy}
+        onNoticeByStrategyChange={setNoticeByStrategy}
         detectedLocation={
           detectedGeo?.country
             ? [detectedGeo.country, detectedGeo.region].filter(Boolean).join(" / ")

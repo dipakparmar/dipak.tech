@@ -73,6 +73,8 @@ export interface PlanInputs {
   takenDaysOff?: Array<TakenDayOff>
   /** Pins the "today" used for the current-year planning window (YYYY-MM-DD). Defaults to the real current date. */
   referenceDate?: string
+  /** Minimum days' notice before a break can start. Soft preference: later starts are favored but not required. Defaults to the strategy's typical lead time. */
+  minNoticeDays?: number
 }
 
 export interface CountryInfo {

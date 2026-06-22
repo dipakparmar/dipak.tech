@@ -7,12 +7,13 @@ import { breaksToICS } from "@/lib/timeoff-optimizer/ics"
 import { fetchPublicHolidays } from "@/lib/timeoff-optimizer/holidays"
 import { optimizeDaysAsync } from "@/lib/timeoff-optimizer/optimizer"
 import {
+  base64DecodeJSON,
   decodeCustomDays,
   decodeLocations,
   decodeTakenDays,
   isStrategy,
 } from "@/lib/timeoff-optimizer/share-params"
-import type { PlanResult } from "@/lib/timeoff-optimizer/types"
+import type { PlanResult, PlanStrategy } from "@/lib/timeoff-optimizer/types"
 
 export const runtime = "nodejs"
 
@@ -62,6 +63,8 @@ export async function GET(request: NextRequest) {
   const takenDays = decodeTakenDays(params.get("taken"))
   const titleTemplate = params.get("etitle") ?? undefined
   const notesTemplate = params.get("enotes") ?? undefined
+  const noticeByStrategy =
+    base64DecodeJSON<Partial<Record<PlanStrategy, number>>>(params.get("notice")) ?? {}
 
   const cacheKey = `timeoff-ics:${request.nextUrl.search}`
   const cached = getCached<string>(cacheKey)
@@ -105,6 +108,7 @@ export async function GET(request: NextRequest) {
       customDaysOff: filteredCustomDays,
       takenDaysOff: filteredTakenDays,
       referenceDate,
+      minNoticeDays: noticeByStrategy[strategy],
     })
 
     const ics = breaksToICS(result.breaks, `Time off ${year}`, titleTemplate, notesTemplate)
