@@ -1,0 +1,270 @@
+---
+title: "Diagram component showcase"
+description: "Smoke test covering every FlowDiagram and LaneDiagram option."
+date: "2026-06-23"
+tags: ["test"]
+---
+
+Reference doc + smoke test for `FlowDiagram` and `LaneDiagram`. Every section below exercises a different prop combination.
+
+## FlowDiagram — minimal
+
+Just `nodes` + `ariaLabel`. Colors default to cycling through `chart-1..5`. No `arrows`, so no connecting lines at all.
+
+<FlowDiagram
+  ariaLabel="Minimal flow diagram with no arrows"
+  nodes={["First", "Second", "Third"]}
+/>
+
+## FlowDiagram — single-line arrow labels
+
+`arrows` as plain strings, one per gap (`nodes.length - 1`).
+
+<FlowDiagram
+  ariaLabel="Flow diagram with single-line arrow labels"
+  nodes={["Request received", "Validated", "Persisted"]}
+  arrows={["passes schema check", "written to DB"]}
+/>
+
+## FlowDiagram — two-line arrow labels
+
+Pass `[line1, line2]` to wrap an arrow label onto two lines.
+
+<FlowDiagram
+  ariaLabel="Flow diagram with two-line arrow labels"
+  nodes={["GitHub workflow run", "GitHub OIDC provider", "npm registry"]}
+  arrows={[
+    ["scoped to repo +", "workflow + ref"],
+    ["verifies claims against", "the trusted publisher binding"],
+  ]}
+/>
+
+## FlowDiagram — every color key
+
+Per-node `color` override. All ten `FlowColor` keys: the five chart colors plus the four semantic keys shared with `Highlighter`/`MarginNote`.
+
+<FlowDiagram
+  ariaLabel="Flow diagram demonstrating every available color key"
+  nodes={[
+    { label: "chart-1 (default cycle)", color: "chart-1" },
+    { label: "chart-2", color: "chart-2" },
+    { label: "chart-3", color: "chart-3" },
+    { label: "chart-4", color: "chart-4" },
+    { label: "chart-5", color: "chart-5" },
+    { label: "info", color: "info" },
+    { label: "tip", color: "tip" },
+    { label: "warning", color: "warning" },
+    { label: "danger", color: "danger" },
+    { label: "purple", color: "purple" },
+  ]}
+  arrows={["", "", "", "", "", "", "", "", ""]}
+  flow={false}
+/>
+
+## FlowDiagram — per-arrow color override
+
+Arrows can carry their own `color`, independent of the nodes they connect (defaults to the next color in the cycle if omitted).
+
+<FlowDiagram
+  ariaLabel="Flow diagram with custom arrow colors"
+  nodes={["Client", "Edge", "Origin"]}
+  arrows={[
+    { label: "cache miss", color: "danger" },
+    { label: "cache hit", color: "tip" },
+  ]}
+/>
+
+## FlowDiagram — pulseLast on, flow (traveling dot) off
+
+`pulseLast` adds a recurring glow on the final node. `flow={false}` disables the looping dot that otherwise travels down each arrow.
+
+<FlowDiagram
+  ariaLabel="Flow diagram with pulsing last node and no traveling dot"
+  nodes={["Step one", "Step two", "Done"]}
+  arrows={["", ""]}
+  pulseLast
+  flow={false}
+/>
+
+## FlowDiagram — flow on, pulseLast off (default)
+
+The default: a small dot loops down each arrow continuously, no pulse on the last node.
+
+<FlowDiagram
+  ariaLabel="Flow diagram with traveling dot and no pulse"
+  nodes={["Step one", "Step two", "Step three"]}
+  arrows={["", ""]}
+/>
+
+## FlowDiagram — title + caption
+
+`title` renders inside the SVG above the chain. `caption` renders below via the same `mdx-figure`/`mdx-figcaption` styling used by `FigureImage`.
+
+<FlowDiagram
+  ariaLabel="Flow diagram with title and caption"
+  title="Request lifecycle"
+  caption="Simplified — retries and backoff are omitted for clarity."
+  nodes={["Received", "Processed", "Acknowledged"]}
+  arrows={["", ""]}
+/>
+
+## FlowDiagram — cluster node (sub-boxes)
+
+A node can carry `children: string[]` to render as a labeled box containing a row of smaller neutral sub-boxes — for a step that's actually a small group of parallel sub-steps.
+
+<FlowDiagram
+  ariaLabel="Flow diagram with a clustered step containing three sub-steps"
+  nodes={[
+    "Admin assigns pass",
+    { label: "Apple server infrastructure", children: ["Download applet", "Create SE partition", "Hand off to TSM"] },
+    "Credential active",
+  ]}
+  arrows={["", ""]}
+  pulseLast
+/>
+
+## FlowDiagram — everything combined
+
+Title, caption, mixed plain/colored/cluster nodes, two-line arrow labels, custom arrow colors, pulseLast.
+
+<FlowDiagram
+  ariaLabel="Flow diagram combining every feature"
+  title="UniFi Touch Pass — provisioning"
+  caption="Steps 3–4 are per-user, per-credential infrastructure."
+  nodes={[
+    { label: "Admin assigns pass", color: "chart-1" },
+    { label: "User enrolls", color: "tip" },
+    { label: "Apple server infrastructure", color: "danger", children: ["Download applet", "Create SE partition", "Hand off to TSM"] },
+    { label: "TSM personalization", color: "purple" },
+    { label: "Credential active", color: "chart-5" },
+  ]}
+  arrows={[
+    "taps Add to Apple Wallet",
+    ["Express Mode", "window appears"],
+    { label: "credential keys + permissions", color: "purple" },
+    "appears in Apple Wallet",
+  ]}
+  pulseLast
+/>
+
+---
+
+## LaneDiagram — minimal, two lanes
+
+Just `lanes` + `ariaLabel`. No `connectors`, no `sublabel`, no `caption` — default centered connecting lines, default color cycle.
+
+<LaneDiagram
+  ariaLabel="Minimal two-lane diagram"
+  lanes={[
+    { title: "Lane A", nodes: [{ label: "Step 1" }, { label: "Step 2" }, { label: "Step 3" }] },
+    { title: "Lane B", nodes: [{ label: "Step 1" }, { label: "Step 2" }] },
+  ]}
+/>
+
+## LaneDiagram — subtitles, sublabels, captions
+
+<LaneDiagram
+  ariaLabel="Two-lane diagram with subtitles, sublabels, and a caption"
+  lanes={[
+    {
+      title: "Apple Home Key",
+      subtitle: "Peer-to-peer · Free",
+      nodes: [
+        { label: "iPhone secure element", sublabel: "HomeKey applet (pre-installed)", color: "purple" },
+        { label: "HomeKit lock", sublabel: "Reader key + device credentials", color: "tip" },
+        { label: "$0 recurring cost", color: "tip", caption: "MFi cert cost baked into lock retail price" },
+      ],
+    },
+    {
+      title: "UniFi Touch Pass",
+      subtitle: "Server-mediated · $5/user/yr",
+      nodes: [
+        { label: "iPhone secure element", sublabel: "Ubiquiti applet (provisioned)", color: "purple" },
+        { label: "UniFi G3 reader", sublabel: "Access point hardware", color: "tip" },
+        { label: "$5/user/year", color: "warning", caption: "Apple platform fees + Ubiquiti backend costs" },
+      ],
+    },
+  ]}
+/>
+
+## LaneDiagram — connector alignment (left / center / right)
+
+Three gaps, one per alignment, all single plain lines (no labels) so the offset is easy to see against the dashed lane border.
+
+<LaneDiagram
+  ariaLabel="Lane diagram demonstrating left, center, and right connector alignment"
+  lanes={[
+    {
+      title: "Alignment demo",
+      connectors: [{ align: "left" }, { align: "center" }, { align: "right" }],
+      nodes: [{ label: "Top" }, { label: "left-aligned line above" }, { label: "center-aligned line above" }, { label: "right-aligned line above" }],
+    },
+  ]}
+/>
+
+## LaneDiagram — connector with a label (line splits around the text)
+
+<LaneDiagram
+  ariaLabel="Lane diagram with a single labeled connector"
+  lanes={[
+    {
+      title: "Labeled connector",
+      connectors: [{ label: "NFC", align: "left", color: "warning" }],
+      nodes: [{ label: "Phone" }, { label: "Reader" }],
+    },
+  ]}
+/>
+
+## LaneDiagram — two parallel connector lines (NFC + HAP)
+
+Exactly two lines with no explicit `align` auto-default to left/right. Each can carry its own `color` and `label` independently.
+
+<LaneDiagram
+  ariaLabel="Lane diagram with two parallel labeled connectors"
+  lanes={[
+    {
+      title: "Apple Home Key",
+      connectors: [[{ label: "NFC", color: "warning" }, { label: "HAP" }]],
+      nodes: [{ label: "iPhone secure element" }, { label: "HomeKit lock" }],
+    },
+    {
+      title: "UniFi Touch Pass",
+      connectors: [{ label: "NFC", color: "warning" }],
+      nodes: [{ label: "iPhone secure element" }, { label: "UniFi G3 reader" }],
+    },
+  ]}
+/>
+
+## LaneDiagram — full real-world replica
+
+The actual architecture-comparison shape this component was built for.
+
+<LaneDiagram
+  ariaLabel="Architecture comparison between Apple Home Key and UniFi Touch Pass"
+  lanes={[
+    {
+      title: "Apple Home Key",
+      subtitle: "Peer-to-peer · Free",
+      connectors: [[{ label: "NFC", color: "warning" }, { label: "HAP" }], { align: "center" }, { align: "center" }],
+      nodes: [
+        { label: "iPhone secure element", sublabel: "HomeKey applet (pre-installed)", color: "purple" },
+        { label: "HomeKit lock", sublabel: "Reader key + device credentials", color: "tip" },
+        { label: "iCloud", sublabel: "HomeKit sync only" },
+        { label: "Home app", sublabel: "Consumer management" },
+        { label: "$0 recurring cost", color: "tip", caption: "MFi cert cost baked into lock retail price" },
+      ],
+    },
+    {
+      title: "UniFi Touch Pass",
+      subtitle: "Server-mediated · $5/user/yr",
+      connectors: [{ label: "NFC", color: "warning" }, { align: "center" }, { align: "center" }, { align: "center" }],
+      nodes: [
+        { label: "iPhone secure element", sublabel: "Ubiquiti applet (provisioned)", color: "purple" },
+        { label: "UniFi G3 reader", sublabel: "Access point hardware", color: "tip" },
+        { label: "Apple NFC & SE servers", sublabel: "Applet signing + SE partition", color: "danger" },
+        { label: "TSM servers", sublabel: "Credential personalization", color: "danger" },
+        { label: "$5/user/year", color: "warning", caption: "Apple platform fees + Ubiquiti backend costs" },
+      ],
+    },
+  ]}
+/>

@@ -12,6 +12,7 @@ import { Highlighter } from '@/components/mdx/highlighter';
 import { Annotate } from '@/components/mdx/annotate';
 import { Callout } from '@/components/mdx/callout';
 import { FlowDiagram } from '@/components/mdx/flow-diagram';
+import { LaneDiagram } from '@/components/mdx/lane-diagram';
 import { MarginNote } from '@/components/mdx/margin-note';
 import { References } from '@/components/mdx/references';
 
@@ -161,6 +162,7 @@ export const mdxComponents: MDXComponents = {
   Cite,
   FigureImage,
   FlowDiagram,
+  LaneDiagram,
   MarginNote,
   References,
 };
