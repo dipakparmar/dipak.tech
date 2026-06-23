@@ -11,6 +11,7 @@ import { CopyButton } from '@/components/blog/copy-button';
 import { Highlighter } from '@/components/mdx/highlighter';
 import { Annotate } from '@/components/mdx/annotate';
 import { Callout } from '@/components/mdx/callout';
+import { FlowDiagram } from '@/components/mdx/flow-diagram';
 import { MarginNote } from '@/components/mdx/margin-note';
 import { References } from '@/components/mdx/references';
 
@@ -159,6 +160,7 @@ export const mdxComponents: MDXComponents = {
   Callout,
   Cite,
   FigureImage,
+  FlowDiagram,
   MarginNote,
   References,
 };
