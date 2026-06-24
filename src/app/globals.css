@@ -837,39 +837,51 @@
 
 .mdx-margin-note[data-color="info"],
 .mdx-margin-enclose[data-color="info"],
-.mdx-highlighter[data-color="info"] {
+.mdx-highlighter[data-color="info"],
+.flow-diagram [data-color="info"] {
   --mn-color: oklch(50% 0.18 250);
   --ac-fill:  oklch(78% 0.18 250 / 0.18);
   :is(.dark *) & { --mn-color: oklch(68% 0.18 250); --ac-fill: oklch(68% 0.18 250 / 0.22); }
 }
 .mdx-margin-note[data-color="tip"],
 .mdx-margin-enclose[data-color="tip"],
-.mdx-highlighter[data-color="tip"] {
+.mdx-highlighter[data-color="tip"],
+.flow-diagram [data-color="tip"] {
   --mn-color: oklch(48% 0.17 155);
   --ac-fill:  oklch(76% 0.17 155 / 0.18);
   :is(.dark *) & { --mn-color: oklch(65% 0.17 155); --ac-fill: oklch(65% 0.17 155 / 0.22); }
 }
 .mdx-margin-note[data-color="warning"],
 .mdx-margin-enclose[data-color="warning"],
-.mdx-highlighter[data-color="warning"] {
+.mdx-highlighter[data-color="warning"],
+.flow-diagram [data-color="warning"] {
   --mn-color: oklch(58% 0.16 75);
   --ac-fill:  oklch(82% 0.16 75 / 0.22);
   :is(.dark *) & { --mn-color: oklch(74% 0.16 75); --ac-fill: oklch(74% 0.16 75 / 0.28); }
 }
 .mdx-margin-note[data-color="danger"],
 .mdx-margin-enclose[data-color="danger"],
-.mdx-highlighter[data-color="danger"] {
+.mdx-highlighter[data-color="danger"],
+.flow-diagram [data-color="danger"] {
   --mn-color: oklch(50% 0.22 25);
   --ac-fill:  oklch(76% 0.22 25 / 0.18);
   :is(.dark *) & { --mn-color: oklch(68% 0.22 25); --ac-fill: oklch(68% 0.22 25 / 0.22); }
 }
 .mdx-margin-note[data-color="purple"],
 .mdx-margin-enclose[data-color="purple"],
-.mdx-highlighter[data-color="purple"] {
+.mdx-highlighter[data-color="purple"],
+.flow-diagram [data-color="purple"] {
   --mn-color: oklch(50% 0.22 300);
   --ac-fill:  oklch(78% 0.22 300 / 0.18);
   :is(.dark *) & { --mn-color: oklch(68% 0.22 300); --ac-fill: oklch(68% 0.22 300 / 0.22); }
 }
+
+/* Flow-diagram-only color keys: cycle through the chart palette by default. */
+.flow-diagram [data-color="chart-1"] { --mn-color: var(--chart-1); --ac-fill: color-mix(in oklab, var(--chart-1) 18%, transparent); }
+.flow-diagram [data-color="chart-2"] { --mn-color: var(--chart-2); --ac-fill: color-mix(in oklab, var(--chart-2) 18%, transparent); }
+.flow-diagram [data-color="chart-3"] { --mn-color: var(--chart-3); --ac-fill: color-mix(in oklab, var(--chart-3) 18%, transparent); }
+.flow-diagram [data-color="chart-4"] { --mn-color: var(--chart-4); --ac-fill: color-mix(in oklab, var(--chart-4) 18%, transparent); }
+.flow-diagram [data-color="chart-5"] { --mn-color: var(--chart-5); --ac-fill: color-mix(in oklab, var(--chart-5) 18%, transparent); }
 
 /* Inline accent — colour only, no font change. Falls back to inherited colour
    when no data-color is set (var() on an undefined custom property resolves to
