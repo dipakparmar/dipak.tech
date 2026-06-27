@@ -2,7 +2,7 @@
 title: "The npm Package Publishing Mental Model"
 description: "Things you need to do for npm trusted publishing to work, and the secure mental model behind it: OIDC identity chain, provenance attestation, and a complete GitHub Actions workflow."
 date: "2026-06-15"
-updated: "2026-06-17"
+updated: "2026-06-26"
 tags: ["npm", "security", "ci-cd", "github-actions", "oidc", "devops"]
 ---
 
@@ -41,7 +41,7 @@ export const references = [
 
 I wanted to publish a package to the world, securely, from CI, without a long-lived npm token sitting in GitHub Secrets waiting to leak or be reused. That sounds like a solved problem in 2026. npm's OIDC-based trusted publishing has been generally available since mid-2025 <Cite n={1} />, the underlying security model is solid, and the documentation exists. The actual experience is still a maze of half-explained prerequisites and error messages that don't point at the real failure.
 
-The frustrating part is not that the security model is unreasonable. The frustrating part is that the docs are written for someone who already thinks in the registry's mental model: someone who understands the distinction between provenance and authorization, knows what a trusted publisher binding is, and has already internalized the role of OIDC tokens in CI identity. Most developers trying to publish a package are not that person. They are answering two simpler questions: what exact steps do I take to ship this package safely, and how do I think about security in a way that actually applies to publishing? <Cite n={3} />
+The security model itself isn't the problem. The docs are written for someone who already thinks in the registry's mental model: someone who understands the distinction between provenance and authorization, knows what a trusted publisher binding is, and has already internalized the role of OIDC tokens in CI identity. Most developers trying to publish a package are not that person. They are answering two simpler questions: what exact steps do I take to ship this package safely, and how do I think about security in a way that actually applies to publishing? <Cite n={3} />
 
 This post answers both. The first half is a concrete list of things you need to do. The second half is the mental model behind why each step exists.
 
@@ -81,6 +81,21 @@ If you just need it working, here is the complete path.
 
 That is the complete setup. The rest of this post explains why each piece exists and what to check when it breaks.
 
+## Why this exists: tokens were the threat model
+
+Before asking how trusted publishing works, it's worth asking what it replaces. The old model put a long-lived npm automation token in GitHub Secrets. That token could publish any version of your package, indefinitely, from anywhere, until someone manually rotated or revoked it. If it leaked through a misconfigured log, a compromised dependency, or an ex-employee's laptop, the attacker had the same publishing rights you did, with no way for npm to tell the difference.
+
+Trusted publishing removes the secret entirely. Instead of a credential that sits in CI waiting to be exfiltrated, GitHub issues a short-lived OIDC token at the moment of the workflow run, scoped to that specific run. npm verifies the token's claims, issues a publish credential that expires in minutes, and never stores a long-lived secret on either side <Cite n={1} />.
+
+| Old model (npm token) | Trusted publishing (OIDC) |
+|---|---|
+| Secret stored in GitHub Secrets | No publish secret stored anywhere |
+| Valid until manually revoked | Expires in minutes, minted per run |
+| Leaks anywhere it's copied | Scoped to the issuing workflow run |
+| No record of which run published | Provenance ties the publish to a commit and workflow |
+
+This is the part most docs skip: trusted publishing isn't a more complicated way to authenticate. It's a different question entirely. The old question was "does the bearer have a secret?" The new one is "does this workflow run's identity match what npm was told to trust?" Everything below is about answering that second question.
+
 ## The mental model mismatch
 
 Most developers approaching npm publishing for the first time have a mental model that looks something like this:
@@ -107,7 +122,7 @@ If your goal is secure, verifiable CI publishing with OIDC, the minimal path is:
 5. Publish from CI using `npm publish --provenance --access public`.
 6. Keep the workflow identity stable so npm can recognize it on every release.
 
-That sequence matters because each step is a prerequisite for the next. The registry cannot trust a publisher for a package that does not exist yet. The workflow cannot mint an OIDC token unless GitHub grants that permission explicitly. Provenance only appears in the registry if `--provenance` is passed and the OIDC token is available <Cite n={2} />. These dependencies are real, but they are rarely made explicit up front.
+That sequence matters because each step is a prerequisite for the next. The registry cannot trust a publisher for a package that does not exist yet. The workflow cannot mint an OIDC token unless GitHub grants that permission explicitly. When you publish from a trusted-publishing workflow on GitHub Actions or GitLab CI/CD, npm generates the provenance attestation by default — `--provenance` is no longer required to get one <Cite n={2} />. These dependencies are real, but they are rarely made explicit up front.
 
 <Callout type="tip" title="Secure publishing mental model">
   Stop asking "which secret does CI need?" and start asking "what context proves this publish is legitimate?" Trusted publishing answers the second question by having the registry verify the origin directly: which repository, which workflow, which commit. The six steps above are how you establish that verifiable context. Once you see the sequence as building an evidence chain rather than configuring a tool, each prerequisite makes sense on its own terms.
@@ -115,7 +130,7 @@ That sequence matters because each step is a prerequisite for the next. The regi
 
 ## The bootstrap problem
 
-Before any trusted publishing setup makes sense, the package has to exist in the registry. npm's trusted publisher configuration is scoped to a specific package name, and that package must already exist for the binding to be created <Cite n={1} /> <Cite n={6} />. <Highlighter color="danger">You cannot use OIDC for the initial publish.</Highlighter> Trusted publishing is not available until the package exists in the registry, which means the very first release must go through a classic automation token.
+Before any trusted publishing setup makes sense, the package has to exist in the registry. npm's trusted publisher configuration is scoped to a specific package name, and that package must already exist for the binding to be created <Cite n={1} /> <Cite n={6} />. <Highlighter color="danger">npm requires a package record to exist before a trusted publisher can be attached to it.</Highlighter> That's a platform constraint, not a security one — trusted publishing isn't withheld from first releases for safety reasons; the binding simply has nothing to attach to yet. In practice, the first release still has to go through a classic automation token.
 
 In practice, that means doing one initial publish using a classic automation token, then deleting the token once trusted publishing is configured. This is a one-time bootstrap cost, not an ongoing vulnerability. But it is one of the most under-explained prerequisites in the docs. Developers often assume they can configure secure publishing before the first release. The platform does not accommodate that assumption, and the resulting error (something like "package not found") does not identify the real problem <Cite n={2} />.
 
@@ -135,6 +150,49 @@ Once the package exists, you configure trusted publishing from the package setti
 <MarginNote>You can optionally use an environment to add a manual approval gate before production releases.</MarginNote>
 
 This is not a setting in the traditional sense. It is a trust assertion: publishes to this package are allowed if and only if they come from a workflow that matches all six of these values. <Highlighter color="danger">Treat identity fields as exact-match values, especially workflow filenames and repository names.</Highlighter> A typo in the workflow filename, a repository renamed after the binding was created, a `repository.url` in `package.json` that points to a fork. Any of these will cause a silent failure at publish time <Cite n={2} />.
+
+The matching happens in a specific sequence, not all at once:
+
+<FlowDiagram
+  ariaLabel="Trust chain: GitHub workflow run to OIDC provider to JWT to npm verification to trusted publisher policy to publish authorized"
+  title="🔒 OIDC trust chain"
+  nodes={[
+    "GitHub workflow run",
+    "GitHub OIDC provider",
+    "OIDC JWT",
+    "npm OIDC verification",
+    "Trusted publisher policy",
+    "Publish authorized",
+  ]}
+  arrows={[
+    ["scoped to repo +", "workflow + ref"],
+    ["issues a", "short-lived JWT"],
+    ["claims: repo, owner,", "workflow_ref, actor"],
+    ["checks claims against", "the trusted publisher binding"],
+    ["binding found,", "claims match"],
+  ]}
+  pulseLast
+  caption="Each step has to complete in order — most failures happen at the npm verification step, when the binding doesn't match the JWT's claims."
+/>
+
+What npm actually checks is the claims inside that JWT, not some vague notion of "the workflow." A trimmed claim set looks roughly like this:
+
+```json
+{
+  "repository": "your-org/repo-name",
+  "repository_owner": "your-org",
+  "workflow_ref": "your-org/repo-name/.github/workflows/release.yml@refs/tags/v1.2.3",
+  "environment": "production",
+  "ref": "refs/tags/v1.2.3",
+  "actor": "github-actions[bot]"
+}
+```
+
+npm compares these claims against the binding field by field. A "permission denied" or mismatch error almost always means one specific claim — usually `workflow_ref` or `repository` — didn't match what's configured, not that the whole identity chain is broken.
+
+<Callout type="tip" title="Synchronized, not brittle">
+  None of these values are permanent. Rename the repository, move the workflow file, change CI providers — trusted publishing doesn't break because something changed, it breaks because the npm-side binding wasn't updated to match. The fix is always the same: update the trusted publisher configuration to reflect the new identity. The chain isn't fragile; it's synchronized, and synchronization is a step you have to remember to do.
+</Callout>
 
 One more thing the docs bury: <Highlighter color="warning">npm does not verify your trusted publisher configuration when you save it.</Highlighter> Errors only appear when you attempt to publish. That means you can configure everything incorrectly, see no feedback, and only discover the problem during a real release.
 
@@ -181,7 +239,7 @@ jobs:
 
 Three things are load-bearing here. First, `id-token: write` in the permissions block. Without it, GitHub will not issue an OIDC token, and trusted publishing cannot work regardless of what is configured on npm <Cite n={2} />. Second, `registry-url: https://registry.npmjs.org` in the setup-node step: this tells the npm CLI where to publish and where to perform the OIDC token exchange. Third, the explicit `npm install -g npm@latest` step: `actions/setup-node` bundles the npm version that shipped with the Node release, which is often behind. Trusted publishing requires npm 11.5.1+ and the bundled version on Node 22 runners is frequently older, so upgrading explicitly before `npm ci` ensures you are running a version that understands the OIDC flow.
 
-The `--provenance` flag generates the provenance attestation: a signed record linking the published package to this specific workflow run, repository, and commit. The `--access public` flag is required for scoped packages and has no effect on unscoped ones.
+The provenance attestation — a signed record linking the published package to this specific workflow run, repository, and commit — is generated automatically here because the publish is happening from a trusted-publishing workflow; `--provenance` is included above for explicitness but isn't doing the work by itself <Cite n={2} />. The `--access public` flag is required for scoped packages and has no effect on unscoped ones.
 
 Keep this job separate from your build and test jobs. Separate jobs mean separate permission scopes, and `id-token: write` is a sensitive permission that should be confined to the publish step alone <Cite n={4} />.
 
@@ -197,9 +255,47 @@ A lot of confusion comes from treating provenance and OIDC-based trusted publish
 
 Both come from the same workflow. But provenance can be present while trusted publishing is misconfigured <Cite n={2} />. If you assume that seeing provenance on the package page means authorization is working, you will debug the wrong layer when something breaks. Treat them as independent guarantees, because they are.
 
+Concretely, a provenance attestation is a signed statement npm stores alongside the package version, not inside the tarball itself. It records something like:
+
+```bash
+Package:   my-lib@1.2.3
+Source:    github.com/your-org/repo-name
+Workflow:  release.yml
+Commit:    abc1234
+Builder:   GitHub Actions
+```
+
+Anyone can check it with `npm audit signatures`, or from the "Provenance" badge on the package's npmjs.com page, which links to the exact workflow run that produced the published tarball. A version with no provenance isn't automatically suspicious — provenance only became a serious adoption push once OIDC trusted publishing went GA, so older packages frequently lack it. It does mean you're trusting the publisher's account security instead of having an independent, verifiable build record.
+
+## What this protects against (and what it doesn't)
+
+Trusted publishing defends against a specific failure mode: long-lived secrets escaping their intended scope. It's worth being precise about what that covers and what it doesn't.
+
+**It stops:**
+- A leaked npm token being reused to publish malicious versions — there's no token to leak.
+- An ex-employee or removed collaborator publishing with old credentials — publish rights are tied to the live state of the GitHub identity, not a credential issued in the past.
+- Secret exposure through CI logs or a compromised dependency — same reason, nothing long-lived exists to expose.
+
+**It does not stop:**
+- A malicious maintainer with legitimate write access to the repository and workflow. Trusted publishing verifies *where* a publish comes from, not whether the person triggering it should be trusted.
+- A compromised GitHub repository. If an attacker can edit the workflow file or push to the release branch, they inherit the same trust the legitimate maintainer has.
+- A compromised GitHub organization admin account, which can usually rewrite the trusted publisher binding itself.
+
+Trusted publishing moves the trust boundary from "whoever holds this token" to "whoever controls this repository and workflow." That's a meaningfully smaller attack surface, but it isn't zero — repository and organization access control is still your security perimeter. Trusted publishing just stops that perimeter from leaking through CI secrets.
+
 ## Error messages won't help you
 
-When something is misconfigured, the registry typically returns an <Highlighter color="danger">`ENEEDAUTH`</Highlighter> ("Unable to authenticate") error, or vague variants like "package not found" or "you do not have permission to publish" <Cite n={2} />. These errors do not tell you whether the problem is:
+When something is misconfigured, the registry typically returns an <Highlighter color="danger">`ENEEDAUTH`</Highlighter> ("Unable to authenticate") error, or vague variants like "package not found" or "you do not have permission to publish" <Cite n={2} />. As a quick reference:
+
+| Error | Likely cause |
+|---|---|
+| `ENEEDAUTH` | Missing `id-token: write` permission, so no OIDC token was issued |
+| `404 Not Found` / "package not found" | Package was never bootstrapped with an initial publish |
+| "you do not have permission to publish" | Trusted publisher binding doesn't match (repo, workflow filename, or environment) |
+| Publish succeeds but no provenance | Not actually publishing via trusted publishing (e.g. an `NODE_AUTH_TOKEN` fell back to classic auth), a private repository, or an unsupported runner |
+| Publish authenticates with the wrong identity | `NODE_AUTH_TOKEN` inherited from an earlier step, overriding OIDC |
+
+These errors do not tell you whether the problem is:
 
 - a wrong workflow filename in the npm trusted publisher settings,
 - a wrong repository binding,
@@ -219,7 +315,7 @@ Work through the binding from the bottom up: does the package exist? Does the np
 
 Some parts of a secure publishing setup should be standardized and some are genuinely optional. Here is what I would recommend as a baseline:
 
-- **Use `npm` as the publish CLI**, even if you use Bun, pnpm, or Yarn for local development. The trusted publishing OIDC integration is most reliable with the npm CLI <Cite n={5} />.
+- **Use `npm` as the publish CLI**, even if you use Bun, pnpm, or Yarn for local development. This isn't because npm's registry trusts its own CLI more — other CLIs can request the same OIDC token. It's that the npm CLI currently has the most mature, tested support for the trusted-publishing flow and its provenance attestation; the others are catching up <Cite n={5} />.
 - **One workflow file for publishing**, separate from build and test. Simpler permissions, easier debugging.
 - **Trigger on tag push or GitHub release**, and document which you chose. Mixing both creates ambiguity about what counts as a release.
 - **Use `npm ci`** in CI rather than `npm install`. It installs from the lockfile exactly, which is what you want in a publishing context <Cite n={4} />.
@@ -229,6 +325,20 @@ Some parts of a secure publishing setup should be standardized and some are genu
 - **Private repositories will not generate provenance**, even with trusted publishing correctly configured. This is a current platform limitation: provenance attestation is only available for public repositories.
 
 That is a complete, secure setup. The point is to make the secure path the default path, not an extra layer of configuration you bolt on later.
+
+## Monorepos and multiple packages
+
+Everything above assumes one package, one repository, one workflow file. That holds for plenty of projects, but not for monorepos publishing several packages from a single repo.
+
+The constraint to know: a trusted publisher binding matches on workflow filename, not package name. If `packages/a` and `packages/b` both publish from `.github/workflows/release.yml`, you bind both packages to that same workflow — npm doesn't require a 1:1 mapping between packages and workflows.
+
+What does need attention:
+
+- **Scoped packages** (`@org/pkg-a`, `@org/pkg-b`) each still need `--access public` individually; the scope is a namespace, not a publishing permission.
+- **Per-package release triggers** (tag patterns like `pkg-a-v*`) make it easier to tell, from the workflow run alone, which package is being published — useful when debugging a binding mismatch across a dozen packages.
+- **A single publish job that loops over packages** shares one OIDC token across all of them. That's fine: the token is scoped to the workflow run, not to an individual `npm publish` call within it.
+
+If you're setting this up for the first time with more than a couple of packages, bootstrap and bind each one individually before scripting the loop. The classic-token bootstrap step still applies per package.
 
 ## Why this matters
 
