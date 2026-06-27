@@ -11,7 +11,8 @@ import { useRef } from 'react';
 export type FlowColor = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | 'info' | 'tip' | 'warning' | 'danger' | 'purple';
 
 type ArrowText = string | [string, string];
-type FlowNode = string | { label: string; color?: FlowColor; children?: string[] };
+type NoteText = string | [string, string];
+type FlowNode = string | { label: string; sublabel?: string; color?: FlowColor; children?: string[]; note?: NoteText };
 type FlowArrow = ArrowText | { label: ArrowText; color?: FlowColor };
 
 interface FlowDiagramProps {
@@ -35,6 +36,7 @@ const DEFAULT_CYCLE: FlowColor[] = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 
 
 const STAGGER = 0.55;
 const NODE_HEIGHT = 40;
+const SUBLABEL_EXTRA = 16;
 const CLUSTER_PADDING = 10;
 const CLUSTER_HEADER = 20;
 const CLUSTER_HEADER_GAP = 8;
@@ -43,6 +45,8 @@ const CLUSTER_HEIGHT = CLUSTER_PADDING + CLUSTER_HEADER + CLUSTER_HEADER_GAP + C
 const GAP = 70;
 const WIDTH = 440;
 const NODE_WIDTH = 360;
+const CLUSTER_WIDTH = 420;
+const NOTE_WIDTH = 200;
 const TITLE_HEIGHT = 30;
 
 // A small dot travels down each arrow in sequence, on a loop, once the
@@ -51,8 +55,8 @@ const TRAVEL_DURATION = 0.6;
 const NODE_PAUSE = 0.45;
 
 function resolveNode(node: FlowNode, i: number) {
-  if (typeof node === 'string') return { label: node, color: DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: undefined as string[] | undefined };
-  return { label: node.label, color: node.color ?? DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: node.children };
+  if (typeof node === 'string') return { label: node, sublabel: undefined as string | undefined, color: DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: undefined as string[] | undefined, note: undefined as string[] | undefined };
+  return { label: node.label, sublabel: node.sublabel, color: node.color ?? DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: node.children, note: node.note ? (Array.isArray(node.note) ? node.note : [node.note]) : undefined };
 }
 
 function resolveArrow(arrow: FlowArrow, i: number) {
@@ -69,7 +73,7 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
   const played = Boolean(reduceMotion) || isInView;
 
   const resolved = nodes.map((node, i) => resolveNode(node, i));
-  const nodeHeights = resolved.map((n) => (n.children?.length ? CLUSTER_HEIGHT : NODE_HEIGHT));
+  const nodeHeights = resolved.map((n) => (n.children?.length ? CLUSTER_HEIGHT : n.sublabel ? NODE_HEIGHT + SUBLABEL_EXTRA : NODE_HEIGHT));
   const top = 20 + (title ? TITLE_HEIGHT : 0);
   const nodeY: number[] = [];
   let cursor = top;
@@ -80,12 +84,17 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
   const height = cursor - GAP + 20;
   const entranceDone = (nodes.length - 1) * STAGGER + 1;
   const loopPeriod = (arrows?.length ?? 0) * (TRAVEL_DURATION + NODE_PAUSE);
+  const hasNote = resolved.some((n) => n.note);
+  const svgWidth = WIDTH + (hasNote ? NOTE_WIDTH : 0);
+  // Keep the box column centered in the wider canvas; the note hangs into the
+  // right margin the extra width opened up.
+  const shiftX = hasNote ? NOTE_WIDTH / 2 : 0;
 
   const svg = (
     <svg
       ref={ref}
-      viewBox={`0 0 ${WIDTH} ${height}`}
-      className={`flow-diagram w-full max-w-md mx-auto my-6 ${className ?? ''}`}
+      viewBox={`0 0 ${svgWidth} ${height}`}
+      className={`flow-diagram w-full ${hasNote ? 'max-w-2xl' : 'max-w-md'} mx-auto my-6 ${className ?? ''}`}
       role="img"
       aria-label={ariaLabel}
     >
@@ -103,17 +112,21 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
         })}
       </defs>
 
+      <g transform={shiftX ? `translate(${shiftX} 0)` : undefined}>
       {title && (
         <text x={WIDTH / 2} y="20" textAnchor="middle" fontSize="14" fontWeight="500" className="fill-foreground">
           {title}
         </text>
       )}
 
-      {resolved.map(({ label, color, children }, i) => {
+      {resolved.map(({ label, sublabel, color, children, note }, i) => {
         const delay = i * STAGGER;
         const isLast = pulseLast && i === nodes.length - 1;
         const y = nodeY[i];
         const boxHeight = nodeHeights[i];
+        const boxWidth = children?.length ? CLUSTER_WIDTH : NODE_WIDTH;
+        const boxX = (WIDTH - boxWidth) / 2;
+        const boxRight = boxX + boxWidth;
 
         return (
           <motion.g
@@ -124,9 +137,9 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
             transition={{ duration: 0.45, ease: 'easeOut', delay }}
           >
             <rect
-              x={(WIDTH - NODE_WIDTH) / 2}
+              x={boxX}
               y={y}
-              width={NODE_WIDTH}
+              width={boxWidth}
               height={boxHeight}
               rx="6"
               strokeWidth="1.5"
@@ -134,7 +147,7 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
             />
             <text
               x={WIDTH / 2}
-              y={children?.length ? y + CLUSTER_PADDING + 14 : y + 25}
+              y={children?.length ? y + CLUSTER_PADDING + 14 : sublabel ? y + 22 : y + 25}
               textAnchor="middle"
               fontSize="13"
               fontWeight="500"
@@ -142,14 +155,39 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
             >
               {label}
             </text>
+            {sublabel && !children?.length && (
+              <text x={WIDTH / 2} y={y + 38} textAnchor="middle" fontSize="10.5" className="fill-muted-foreground">
+                {sublabel}
+              </text>
+            )}
             {children?.length && (
-              <ChildRow x={(WIDTH - NODE_WIDTH) / 2} y={y + CLUSTER_PADDING + CLUSTER_HEADER + CLUSTER_HEADER_GAP} width={NODE_WIDTH} labels={children} />
+              <ChildRow x={boxX} y={y + CLUSTER_PADDING + CLUSTER_HEADER + CLUSTER_HEADER_GAP} width={boxWidth} labels={children} />
+            )}
+            {note && (
+              <g>
+                <line
+                  x1={boxRight}
+                  y1={y + boxHeight / 2}
+                  x2={boxRight + 18}
+                  y2={y + boxHeight / 2}
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                  className="stroke-muted-foreground"
+                />
+                <text x={boxRight + 24} y={y + boxHeight / 2 - (note.length > 1 ? 4 : -3)} fontSize="10" className="fill-muted-foreground">
+                  {note.map((line, li) => (
+                    <tspan key={li} x={boxRight + 24} dy={li === 0 ? 0 : 12}>
+                      {line}
+                    </tspan>
+                  ))}
+                </text>
+              </g>
             )}
             {isLast && (
               <motion.rect
-                x={(WIDTH - NODE_WIDTH) / 2 - 5}
+                x={boxX - 5}
                 y={y - 5}
-                width={NODE_WIDTH + 10}
+                width={boxWidth + 10}
                 height={boxHeight + 10}
                 rx="10"
                 strokeWidth="0"
@@ -215,6 +253,7 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
           </motion.g>
         );
       })}
+      </g>
     </svg>
   );
 

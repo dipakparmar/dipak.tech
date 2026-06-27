@@ -45,7 +45,7 @@ const STAGGER = 0.4;
 const NODE_HEIGHT = 56;
 const GAP = 36;
 const STEP = NODE_HEIGHT + GAP;
-const LANE_WIDTH = 230;
+const LANE_WIDTH = 340;
 const LANE_GAP = 24;
 const LANE_PADDING = 16;
 const HEADER_HEIGHT = 56;
@@ -104,11 +104,11 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
               className="stroke-border"
               strokeWidth="1"
             />
-            <text x={centerX} y={LANE_PADDING + 24} textAnchor="middle" fontSize="14" fontWeight="500" className="fill-foreground">
+            <text x={centerX} y={LANE_PADDING + 24} textAnchor="middle" fontSize="16" fontWeight="500" className="fill-foreground">
               {lane.title}
             </text>
             {lane.subtitle && (
-              <text x={centerX} y={LANE_PADDING + 40} textAnchor="middle" fontSize="10.5" className="fill-muted-foreground">
+              <text x={centerX} y={LANE_PADDING + 40} textAnchor="middle" fontSize="12" className="fill-muted-foreground">
                 {lane.subtitle}
               </text>
             )}
@@ -130,11 +130,11 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                     transition={{ duration: 0.4, ease: 'easeOut', delay }}
                   >
                     <rect x={boxX} y={y} width={boxWidth} height={NODE_HEIGHT} rx="8" strokeWidth="1.5" style={{ fill: 'var(--ac-fill)', stroke: 'var(--mn-color)' }} />
-                    <text x={centerX} y={y + (node.sublabel ? 23 : 32)} textAnchor="middle" fontSize="12.5" fontWeight="500" className="fill-foreground">
+                    <text x={centerX} y={y + (node.sublabel ? 23 : 32)} textAnchor="middle" fontSize="14" fontWeight="500" className="fill-foreground">
                       {node.label}
                     </text>
                     {node.sublabel && (
-                      <text x={centerX} y={y + 40} textAnchor="middle" fontSize="10" className="fill-muted-foreground">
+                      <text x={centerX} y={y + 40} textAnchor="middle" fontSize="11.5" className="fill-muted-foreground">
                         {node.sublabel}
                       </text>
                     )}
@@ -192,7 +192,7 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                           />
                         )}
                         {line.label && (
-                          <text x={x} y={labelY} textAnchor="middle" fontSize="9.5" className="fill-muted-foreground">
+                          <text x={x} y={labelY} textAnchor="middle" fontSize="11" className="fill-muted-foreground">
                             {line.label}
                           </text>
                         )}
@@ -201,7 +201,7 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                   })}
 
                   {node.caption && (
-                    <text x={centerX} y={y + NODE_HEIGHT + 16} textAnchor="middle" fontSize="9.5" className="fill-muted-foreground">
+                    <text x={centerX} y={y + NODE_HEIGHT + 16} textAnchor="middle" fontSize="11" className="fill-muted-foreground">
                       {node.caption}
                     </text>
                   )}
