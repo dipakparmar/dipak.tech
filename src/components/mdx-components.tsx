@@ -14,6 +14,7 @@ import { Callout } from '@/components/mdx/callout';
 import { FlowDiagram } from '@/components/mdx/flow-diagram';
 import { LaneDiagram } from '@/components/mdx/lane-diagram';
 import { MarginNote } from '@/components/mdx/margin-note';
+import { Quote } from '@/components/mdx/quote';
 import { References } from '@/components/mdx/references';
 
 type ImageProps = ComponentPropsWithoutRef<typeof Image>;
@@ -164,5 +165,6 @@ export const mdxComponents: MDXComponents = {
   FlowDiagram,
   LaneDiagram,
   MarginNote,
+  Quote,
   References,
 };

@@ -504,6 +504,179 @@
   margin: 2.5em 0;
 }
 
+/* <Quote> — richer pull-quote with variants + attribution, distinct from `>`.
+   Accent is the brand color (--color-primary). The big quote glyph is drawn
+   with ::before and positioned per variant. */
+.blog-prose .mdx-quote {
+  position: relative;
+  margin: 2em 0;
+}
+.blog-prose .mdx-quote__body {
+  border: none;
+  margin: 0;
+  padding: 0;
+  color: var(--color-foreground);
+}
+.blog-prose .mdx-quote__body > :last-child {
+  margin-bottom: 0;
+}
+.blog-prose .mdx-quote__attribution {
+  margin-top: 0.85em;
+  font-size: 0.9em;
+  font-style: normal;
+  color: var(--color-muted-foreground);
+}
+.blog-prose .mdx-quote__author {
+  font-weight: 500;
+  color: var(--color-foreground);
+}
+.blog-prose .mdx-quote__author::before {
+  content: "— ";
+}
+.blog-prose .mdx-quote__source::before {
+  content: ", ";
+}
+.blog-prose .mdx-quote[data-align="right"] .mdx-quote__attribution {
+  text-align: right;
+}
+
+/* The decorative glyph, shared; variants override size/position/color. */
+.blog-prose .mdx-quote::before {
+  content: "\201C";
+  position: absolute;
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* 1 — editorial: large accent mark hanging in a left gutter */
+.blog-prose .mdx-quote[data-variant="editorial"] {
+  padding-left: 3.25rem;
+}
+.blog-prose .mdx-quote[data-variant="editorial"]::before {
+  left: 0;
+  top: -0.35em;
+  font-size: 4.5rem;
+  color: var(--color-primary);
+  opacity: 0.85;
+}
+.blog-prose .mdx-quote[data-variant="editorial"] .mdx-quote__body {
+  font-size: 1.3em;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* 2 — magazine: centered, hairline rules, always center-aligned */
+.blog-prose .mdx-quote[data-variant="magazine"] {
+  text-align: center;
+  padding: 1.6em 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+.blog-prose .mdx-quote[data-variant="magazine"]::before {
+  content: none;
+}
+.blog-prose .mdx-quote[data-variant="magazine"] .mdx-quote__body {
+  font-size: 1.45em;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+.blog-prose .mdx-quote[data-variant="magazine"] .mdx-quote__attribution {
+  text-align: center;
+  font-size: 0.78em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* 3 — gutter: smaller accent mark in a left gutter, italic body */
+.blog-prose .mdx-quote[data-variant="gutter"] {
+  padding-left: 3.25rem;
+}
+.blog-prose .mdx-quote[data-variant="gutter"]::before {
+  left: 0;
+  top: -0.1em;
+  font-size: 3.4rem;
+  color: var(--color-primary);
+}
+.blog-prose .mdx-quote[data-variant="gutter"] .mdx-quote__body {
+  font-size: 1.2em;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+/* 4 — watermark: faint foreground mark behind a bolder, upright body */
+.blog-prose .mdx-quote[data-variant="watermark"] {
+  padding-top: 1.5rem;
+}
+.blog-prose .mdx-quote[data-variant="watermark"]::before {
+  top: -0.6rem;
+  left: -0.6rem;
+  font-size: 7rem;
+  color: var(--color-foreground);
+  opacity: 0.07;
+}
+.blog-prose .mdx-quote[data-variant="watermark"] .mdx-quote__body,
+.blog-prose .mdx-quote[data-variant="watermark"] .mdx-quote__attribution {
+  position: relative;
+  z-index: 1;
+}
+.blog-prose .mdx-quote[data-variant="watermark"] .mdx-quote__body {
+  font-size: 1.3em;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* 3+4 — hybrid: accent gutter glyph + borderless italic body (default) */
+.blog-prose .mdx-quote[data-variant="hybrid"] {
+  padding-left: 3.5rem;
+}
+.blog-prose .mdx-quote[data-variant="hybrid"]::before {
+  left: -0.2rem;
+  top: -1.4rem;
+  font-size: 5.5rem;
+  color: var(--color-primary);
+  opacity: 0.9;
+}
+.blog-prose .mdx-quote[data-variant="hybrid"] .mdx-quote__body {
+  font-size: 1.25em;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+/* Closing glyph — mirrors the opening one, rendered inline right after the text
+   ends (so it tracks the text, not the box edge) with the same gap the opening
+   glyph has from the start of the text. Attached to the last paragraph's inline
+   end (MDX wraps the body in <p>), so it stays on the same line as the text.
+   Gutter-style variants only. */
+.blog-prose .mdx-quote[data-variant="editorial"] .mdx-quote__body > :last-child::after,
+.blog-prose .mdx-quote[data-variant="gutter"] .mdx-quote__body > :last-child::after,
+.blog-prose .mdx-quote[data-variant="hybrid"] .mdx-quote__body > :last-child::after {
+  content: "\201D";
+  display: inline-block;
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 0;
+  color: var(--color-primary);
+  pointer-events: none;
+}
+.blog-prose .mdx-quote[data-variant="editorial"] .mdx-quote__body > :last-child::after {
+  font-size: 4.5rem;
+  opacity: 0.85;
+  vertical-align: -0.62em;
+  margin-left: 0.72rem;
+}
+.blog-prose .mdx-quote[data-variant="gutter"] .mdx-quote__body > :last-child::after {
+  font-size: 3.4rem;
+  vertical-align: -0.55em;
+  margin-left: 0.65rem;
+}
+.blog-prose .mdx-quote[data-variant="hybrid"] .mdx-quote__body > :last-child::after {
+  font-size: 5.5rem;
+  opacity: 0.9;
+  vertical-align: -0.72em;
+  margin-left: 0.9rem;
+}
+
 .blog-prose code:not(pre code) {
   background: var(--color-muted);
   color: var(--color-foreground);
