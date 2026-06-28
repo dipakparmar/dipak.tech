@@ -9,11 +9,11 @@ import { richHtml, richInline, richText } from './rich-text';
 // content globs, so a class only ever written inside an .mdx file would
 // silently get tree-shaken out. Plain CSS attribute selectors don't have
 // that problem, which is also why Highlighter/MarginNote use the same trick.
-export type FlowColor = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | 'info' | 'tip' | 'warning' | 'danger' | 'purple';
+export type FlowColor = 'chart-1' | 'chart-2' | 'chart-3' | 'chart-4' | 'chart-5' | 'info' | 'tip' | 'warning' | 'danger' | 'purple' | 'neutral';
 
 type ArrowText = string | [string, string];
 type NoteText = string | [string, string];
-type FlowNode = string | { label: string; sublabel?: string; color?: FlowColor; children?: string[]; note?: NoteText };
+type FlowNode = string | { label: string; sublabel?: string; color?: FlowColor; children?: string[]; note?: NoteText; connectChildren?: boolean };
 type FlowArrow = ArrowText | { label: ArrowText; color?: FlowColor };
 
 interface FlowDiagramProps {
@@ -41,7 +41,7 @@ const SUBLABEL_EXTRA = 16;
 const CLUSTER_PADDING = 10;
 const CLUSTER_HEADER = 20;
 const CLUSTER_HEADER_GAP = 8;
-const CLUSTER_CHILD_HEIGHT = 32;
+const CLUSTER_CHILD_HEIGHT = 42;
 const CLUSTER_HEIGHT = CLUSTER_PADDING + CLUSTER_HEADER + CLUSTER_HEADER_GAP + CLUSTER_CHILD_HEIGHT + CLUSTER_PADDING;
 const GAP = 70;
 const WIDTH = 440;
@@ -56,8 +56,8 @@ const TRAVEL_DURATION = 0.6;
 const NODE_PAUSE = 0.45;
 
 function resolveNode(node: FlowNode, i: number) {
-  if (typeof node === 'string') return { label: node, sublabel: undefined as string | undefined, color: DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: undefined as string[] | undefined, note: undefined as string[] | undefined };
-  return { label: node.label, sublabel: node.sublabel, color: node.color ?? DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: node.children, note: node.note ? (Array.isArray(node.note) ? node.note : [node.note]) : undefined };
+  if (typeof node === 'string') return { label: node, sublabel: undefined as string | undefined, color: DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: undefined as string[] | undefined, note: undefined as string[] | undefined, connectChildren: true };
+  return { label: node.label, sublabel: node.sublabel, color: node.color ?? DEFAULT_CYCLE[i % DEFAULT_CYCLE.length], children: node.children, note: node.note ? (Array.isArray(node.note) ? node.note : [node.note]) : undefined, connectChildren: node.connectChildren ?? true };
 }
 
 function resolveArrow(arrow: FlowArrow, i: number) {
@@ -120,13 +120,13 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
           animate={played ? { opacity: 1 } : undefined}
           transition={{ duration: 0.45, ease: 'easeOut' }}
         >
-          <text x={WIDTH / 2} y="20" textAnchor="middle" fontSize="14" fontWeight="500" className="fill-foreground">
+          <text x={WIDTH / 2} y="20" textAnchor="middle" fontSize="16" fontWeight="500" className="fill-foreground">
             {richText(title, WIDTH / 2, 16)}
           </text>
         </motion.g>
       )}
 
-      {resolved.map(({ label, sublabel, color, children, note }, i) => {
+      {resolved.map(({ label, sublabel, color, children, note, connectChildren }, i) => {
         const delay = i * STAGGER;
         const isLast = pulseLast && i === nodes.length - 1;
         const y = nodeY[i];
@@ -154,21 +154,21 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
             />
             <text
               x={WIDTH / 2}
-              y={children?.length ? y + CLUSTER_PADDING + 14 : sublabel ? y + 22 : y + 25}
+              y={children?.length ? y + CLUSTER_PADDING + 15 : sublabel ? y + 23 : y + 26}
               textAnchor="middle"
-              fontSize="13"
+              fontSize="15"
               fontWeight="500"
               className="fill-foreground"
             >
               {richText(label, WIDTH / 2)}
             </text>
             {sublabel && !children?.length && (
-              <text x={WIDTH / 2} y={y + 38} textAnchor="middle" fontSize="10.5" className="fill-muted-foreground">
+              <text x={WIDTH / 2} y={y + 40} textAnchor="middle" fontSize="12" className="fill-muted-foreground">
                 {richText(sublabel, WIDTH / 2)}
               </text>
             )}
             {children?.length && (
-              <ChildRow x={boxX} y={y + CLUSTER_PADDING + CLUSTER_HEADER + CLUSTER_HEADER_GAP} width={boxWidth} labels={children} />
+              <ChildRow x={boxX} y={y + CLUSTER_PADDING + CLUSTER_HEADER + CLUSTER_HEADER_GAP} width={boxWidth} labels={children} connect={connectChildren} />
             )}
             {note && (
               <g>
@@ -181,9 +181,9 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
                   strokeDasharray="3 3"
                   className="stroke-muted-foreground"
                 />
-                <text x={boxRight + 24} y={y + boxHeight / 2 - (note.length > 1 ? 4 : -3)} fontSize="10" className="fill-muted-foreground">
+                <text x={boxRight + 24} y={y + boxHeight / 2 - (note.length > 1 ? 4 : -3)} fontSize="11.5" className="fill-muted-foreground">
                   {note.map((line, li) => (
-                    <tspan key={li} x={boxRight + 24} dy={li === 0 ? 0 : 12}>
+                    <tspan key={li} x={boxRight + 24} dy={li === 0 ? 0 : 13}>
                       {richInline(line)}
                     </tspan>
                   ))}
@@ -250,9 +250,9 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
                 }}
               />
             )}
-            <text x={textX} y={(y1 + y2) / 2 - (lines.length > 1 ? 4 : -3)} fontSize="10" className="fill-muted-foreground">
+            <text x={textX} y={(y1 + y2) / 2 - (lines.length > 1 ? 4 : -3)} fontSize="11.5" className="fill-muted-foreground">
               {lines.map((line, li) => (
-                <tspan key={li} x={textX} dy={li === 0 ? 0 : 12}>
+                <tspan key={li} x={textX} dy={li === 0 ? 0 : 13}>
                   {richInline(line)}
                 </tspan>
               ))}
@@ -280,16 +280,46 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
   );
 }
 
-function ChildRow({ x, y, width, labels }: { x: number; y: number; width: number; labels: string[] }) {
+// SVG text doesn't wrap, so greedily break a label into lines that fit the
+// child box. Width is estimated by character count (~5.4px per char at 9.5px)
+// — crude but enough to keep labels like "Download signed applet to SE" inside
+// the box instead of overflowing.
+function wrapLabel(label: string, maxChars: number): string[] {
+  const words = label.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    if (!cur) cur = w;
+    else if (cur.length + 1 + w.length <= maxChars) cur += ' ' + w;
+    else {
+      lines.push(cur);
+      cur = w;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function ChildRow({ x, y, width, labels, connect = true }: { x: number; y: number; width: number; labels: string[]; connect?: boolean }) {
   const padding = 8;
   const gap = 6;
   const innerWidth = width - padding * 2;
   const childWidth = (innerWidth - gap * (labels.length - 1)) / labels.length;
+  const maxChars = Math.max(1, Math.floor((childWidth - 8) / 6.2));
+  const lineHeight = 12;
+  const midY = y + CLUSTER_CHILD_HEIGHT / 2;
 
   return (
     <>
+      {connect &&
+        labels.slice(1).map((_, i) => {
+          const lineX1 = x + padding + (i + 1) * (childWidth + gap) - gap;
+          return <line key={`c${i}`} x1={lineX1} y1={midY} x2={lineX1 + gap} y2={midY} strokeWidth="1" style={{ stroke: 'var(--mn-color)', strokeOpacity: 0.4 }} />;
+        })}
       {labels.map((label, i) => {
         const cx = x + padding + i * (childWidth + gap);
+        const lines = wrapLabel(label, maxChars);
+        const startY = y + CLUSTER_CHILD_HEIGHT / 2 + 3.5 - ((lines.length - 1) * lineHeight) / 2;
         return (
           <g key={i}>
             <rect
@@ -301,8 +331,12 @@ function ChildRow({ x, y, width, labels }: { x: number; y: number; width: number
               strokeWidth="1"
               style={{ fill: 'var(--mn-color)', fillOpacity: 0.12, stroke: 'var(--mn-color)', strokeOpacity: 0.4 }}
             />
-            <text x={cx + childWidth / 2} y={y + CLUSTER_CHILD_HEIGHT / 2 + 4} textAnchor="middle" fontSize="9.5" className="fill-foreground">
-              {richInline(label)}
+            <text x={cx + childWidth / 2} y={startY} textAnchor="middle" fontSize="11" className="fill-foreground">
+              {lines.map((ln, li) => (
+                <tspan key={li} x={cx + childWidth / 2} dy={li === 0 ? 0 : lineHeight}>
+                  {richInline(ln)}
+                </tspan>
+              ))}
             </text>
           </g>
         );

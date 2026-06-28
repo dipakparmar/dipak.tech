@@ -875,6 +875,13 @@
   --ac-fill:  oklch(78% 0.22 300 / 0.18);
   :is(.dark *) & { --mn-color: oklch(68% 0.22 300); --ac-fill: oklch(68% 0.22 300 / 0.22); }
 }
+.mdx-margin-note[data-color="neutral"],
+.mdx-margin-enclose[data-color="neutral"],
+.mdx-highlighter[data-color="neutral"],
+.flow-diagram [data-color="neutral"] {
+  --mn-color: var(--muted-foreground);
+  --ac-fill:  color-mix(in oklab, var(--muted-foreground) 12%, transparent);
+}
 
 /* Flow-diagram-only color keys: cycle through the chart palette by default. */
 .flow-diagram [data-color="chart-1"] { --mn-color: var(--chart-1); --ac-fill: color-mix(in oklab, var(--chart-1) 18%, transparent); }
