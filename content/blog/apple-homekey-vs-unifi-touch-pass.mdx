@@ -2,6 +2,7 @@
 title: "Apple Home Key vs. UniFi Touch Pass: A Deep Technical Breakdown of How Your Phone Unlocks Doors"
 description: "A technical breakdown of how Apple Home Key and UniFi Touch Pass use the Secure Element, NFC, provisioning, and access control."
 date: "2026-04-26"
+updated: "2026-06-27"
 tags: ["apple", "nfc", "security", "smart-home", "unifi"]
 ---
 
@@ -121,11 +122,23 @@ When you tap your phone on a Home Key lock, this is roughly what happens at the 
 4. `Authentication`: the lock decrypts the phone's response, checks for a matching Device Credential, and verifies the cryptographic signature. If valid, the lock opens <Cite n={5} />.
 5. `Visual Confirmation`: the phone displays a success or error animation.
 
-<FigureImage
-  src="/static/images/blog/home_key_nfc_transaction_flow%201.svg"
-  alt="Apple Home Key NFC transaction flow"
-  width={1600}
-  height={900}
+<FlowDiagram
+  ariaLabel="Apple Home Key NFC transaction flow: enhanced contactless polling, applet selection, key agreement, authentication, door unlocks"
+  title="Apple Home Key — NFC transaction flow"
+  nodes={[
+    { label: "1. Enhanced contactless polling", sublabel: "Lock broadcasts reader group identifier", color: "tip" },
+    { label: "2. Applet selection", sublabel: "SE activates HomeKey applet", color: "purple" },
+    { label: "3. Key agreement", sublabel: "Ephemeral secp256r1 key pair", color: "tip" },
+    { label: "4. Authentication", sublabel: "Verify device credential sig", color: "purple" },
+    { label: "5. Door unlocks", sublabel: "Phone shows checkmark, lock disengages", color: "tip" },
+  ]}
+  arrows={[
+    ["iPhone receives ECP,", "selects correct Home Key"],
+    ["Lock receives versions;", "phone sends supported versions"],
+    ["Both sides derive keys,", "shared encryption context"],
+    ["Lock validates:", "matches credential, checks sig"],
+  ]}
+  caption="Entire flow ~500ms · no internet required · works in power reserve. <br/> Protocol based on the Digital Car Key spec."
 />
 
 ### Express Mode
@@ -169,11 +182,18 @@ When an admin assigns a Touch Pass to a user, the flow looks like this:
 4. `TSM Personalization`: the developer's Trusted Service Manager servers personalize the applet instance with the user's keys and account bindings <Cite n={1} />.
 5. `Credential Active`: the Touch Pass appears in Apple Wallet and is ready for use <Cite n={10} />.
 
-<FigureImage
-  src="/static/images/blog/touch_pass_provisioning_pipeline_v2%201.svg"
-  alt="UniFi Touch Pass provisioning pipeline"
-  width={1600}
-  height={900}
+<FlowDiagram
+  ariaLabel="UniFi Touch Pass provisioning pipeline: admin assigns pass, user enrolls, Apple server infrastructure, TSM personalization, credential active"
+  title="UniFi Touch Pass — provisioning pipeline"
+  nodes={[
+    { label: "1. Admin assigns pass", sublabel: "UniFi Access controller", color: "neutral" },
+    { label: "2. User enrolls", sublabel: "Taps “Add to Apple Wallet”", color: "tip" },
+    { label: "3. Apple server infrastructure", color: "danger", children: ["Download signed applet to SE", "Create memory partition on SE", "Hand off to partner TSM"], note: ["Not needed", "in Home Key"] },
+    { label: "4. TSM personalization", sublabel: "Credential keys + permissions", color: "purple" },
+    { label: "5. Credential active", sublabel: "Touch Pass in Apple Wallet", color: "tip" },
+  ]}
+  arrows={["", "", "", ""]}
+  caption="Steps 3–4 (coral) are the per-user, per-credential infrastructure that drives the $5/user/year cost — Apple charges fees under an NDA'd commercial agreement."
 />
 
 ### The NFC Transaction
@@ -199,11 +219,39 @@ Touch Pass credentials can be managed centrally through the UniFi Access control
 | Management model | Consumer / Home app | Enterprise / UniFi Access controller |
 | Scale | Residential | Multi-site and enterprise |
 
-<FigureImage
-  src="/static/images/blog/home_key_vs_touch_pass_architecture%201.svg"
-  alt="Architecture comparison between Apple Home Key and UniFi Touch Pass"
-  width={1600}
-  height={900}
+<LaneDiagram
+  ariaLabel="Architecture comparison: Home Key runs peer-to-peer through the Secure Element, a HomeKit lock and iCloud sync for zero recurring cost; Touch Pass runs server-mediated through the Secure Element, a UniFi reader, Apple NFC and SE servers and TSM servers for $5 per user per year"
+  lanes={[
+    {
+      title: "Apple Home Key",
+      subtitle: "Peer-to-peer · Free",
+      nodes: [
+        { label: "iPhone Secure Element", sublabel: "HomeKey applet (pre-installed)", color: "purple" },
+        { label: "HomeKit lock", sublabel: "Reader key + device credentials", color: "tip" },
+        { label: "iCloud", sublabel: "HomeKit sync only", color: "neutral" },
+        { label: "Home app", sublabel: "Consumer management", color: "neutral" },
+        { label: "$0 recurring cost", color: "tip", caption: "MFi cert cost baked into lock retail price" },
+      ],
+      connectors: [
+        [{ label: "NFC", color: "warning" }, { label: "HAP" }],
+      ],
+    },
+    {
+      title: "UniFi Touch Pass",
+      subtitle: "Server-mediated · $5/user/yr",
+      nodes: [
+        { label: "iPhone Secure Element", sublabel: "Ubiquiti applet (provisioned)", color: "purple" },
+        { label: "UniFi G3 reader", sublabel: "Access point hardware", color: "tip" },
+        { label: "Apple NFC & SE servers", sublabel: "Applet signing + SE partition", color: "danger" },
+        { label: "TSM servers", sublabel: "Credential personalization", color: "danger" },
+        { label: "UniFi Access controller", sublabel: "Enterprise management", color: "neutral" },
+        { label: "$5/user/year", color: "warning", caption: "Apple platform fees + Ubiquiti backend costs" },
+      ],
+      connectors: [
+        { label: "NFC", align: "left", color: "warning" },
+      ],
+    },
+  ]}
 />
 
 ## Why One Is Free and the Other Costs Money
