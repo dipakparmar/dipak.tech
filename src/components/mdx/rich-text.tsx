@@ -7,6 +7,8 @@ import type { ReactNode } from 'react';
 //   <i>/<em> or *italic*         -> font-style italic
 //   <u>...</u>                   -> underline
 //   <br> / <br/>                 -> line break (richText only)
+// A * or ** with no matching closer on the same line is left as literal text,
+// so plain asterisks (multiplication, footnote marks) render as-is.
 
 export interface RichSeg {
   text: string;
@@ -47,17 +49,24 @@ export function parseInline(line: string): RichSeg[] {
       i += m[0].length;
       continue;
     }
+    // Only treat * / ** as a delimiter when it actually pairs: closing an open
+    // run, or opening one that has a matching closer later on the line. A lone
+    // asterisk (multiplication, "*est.") stays literal instead of swallowing the
+    // rest of the line.
     if (rest.startsWith('**')) {
-      flush();
-      bMd = !bMd;
-      i += 2;
-      continue;
-    }
-    if (rest[0] === '*') {
-      flush();
-      iMd = !iMd;
-      i += 1;
-      continue;
+      if (bMd || rest.slice(2).includes('**')) {
+        flush();
+        bMd = !bMd;
+        i += 2;
+        continue;
+      }
+    } else if (rest[0] === '*') {
+      if (iMd || rest.slice(1).includes('*')) {
+        flush();
+        iMd = !iMd;
+        i += 1;
+        continue;
+      }
     }
     buf += line[i];
     i += 1;

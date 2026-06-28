@@ -22,6 +22,12 @@ describe('parseInline', () => {
     ]);
   });
 
+  test('lone asterisk stays literal', () => {
+    expect(parseInline('2 * 3 = 6')).toEqual([{ text: '2 * 3 = 6', bold: false, italic: false, underline: false }]);
+    expect(parseInline('rate *est.')).toEqual([{ text: 'rate *est.', bold: false, italic: false, underline: false }]);
+    expect(parseInline('a ** b')).toEqual([{ text: 'a ** b', bold: false, italic: false, underline: false }]);
+  });
+
   test('nesting combines styles', () => {
     expect(parseInline('<b><u>hi</u></b>')).toEqual([{ text: 'hi', bold: true, italic: false, underline: true }]);
   });
