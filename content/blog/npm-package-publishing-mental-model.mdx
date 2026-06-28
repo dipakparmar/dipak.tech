@@ -2,7 +2,7 @@
 title: "The npm Package Publishing Mental Model"
 description: "Things you need to do for npm trusted publishing to work, and the secure mental model behind it: OIDC identity chain, provenance attestation, and a complete GitHub Actions workflow."
 date: "2026-06-15"
-updated: "2026-06-26"
+updated: "2026-06-28"
 tags: ["npm", "security", "ci-cd", "github-actions", "oidc", "devops"]
 ---
 
@@ -37,7 +37,9 @@ export const references = [
   },
 ];
 
-> npm trusted publishing works. The path to it is the problem.
+<Quote variant="gutter">
+npm trusted publishing works. The path to it is the problem.
+</Quote>
 
 I wanted to publish a package to the world, securely, from CI, without a long-lived npm token sitting in GitHub Secrets waiting to leak or be reused. That sounds like a solved problem in 2026. npm's OIDC-based trusted publishing has been generally available since mid-2025 <Cite n={1} />, the underlying security model is solid, and the documentation exists. The actual experience is still a maze of half-explained prerequisites and error messages that don't point at the real failure.
 
