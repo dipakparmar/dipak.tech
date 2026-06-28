@@ -3,6 +3,7 @@
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
 import type { FlowColor } from './flow-diagram';
+import { richText } from './rich-text';
 
 interface LaneNode {
   label: string;
@@ -49,7 +50,9 @@ const LANE_WIDTH = 340;
 const LANE_GAP = 24;
 const LANE_PADDING = 16;
 const HEADER_HEIGHT = 56;
-const LINE_OFFSET = 26;
+// Left/right connector labels sit at centerX ± LINE_OFFSET. Kept proportional
+// to LANE_WIDTH (~0.11) so widening the lane doesn't pull them back to center.
+const LINE_OFFSET = Math.round(LANE_WIDTH * 0.11);
 const BOTTOM_PADDING = 16;
 
 function normalizeConnector(connector: LaneConnector | undefined): LaneConnectorLine[] {
@@ -104,14 +107,20 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
               className="stroke-border"
               strokeWidth="1"
             />
-            <text x={centerX} y={LANE_PADDING + 24} textAnchor="middle" fontSize="16" fontWeight="500" className="fill-foreground">
-              {lane.title}
-            </text>
-            {lane.subtitle && (
-              <text x={centerX} y={LANE_PADDING + 40} textAnchor="middle" fontSize="12" className="fill-muted-foreground">
-                {lane.subtitle}
+            <motion.g
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={played ? { opacity: 1 } : undefined}
+              transition={{ duration: 0.4, ease: 'easeOut', delay: laneDelay }}
+            >
+              <text x={centerX} y={LANE_PADDING + 24} textAnchor="middle" fontSize="16" fontWeight="500" className="fill-foreground">
+                {richText(lane.title, centerX, 18)}
               </text>
-            )}
+              {lane.subtitle && (
+                <text x={centerX} y={LANE_PADDING + 40} textAnchor="middle" fontSize="12" className="fill-muted-foreground">
+                  {richText(lane.subtitle, centerX)}
+                </text>
+              )}
+            </motion.g>
 
             {lane.nodes.map((node, i) => {
               const y = LANE_PADDING + HEADER_HEIGHT + i * STEP;
@@ -131,32 +140,41 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                   >
                     <rect x={boxX} y={y} width={boxWidth} height={NODE_HEIGHT} rx="8" strokeWidth="1.5" style={{ fill: 'var(--ac-fill)', stroke: 'var(--mn-color)' }} />
                     <text x={centerX} y={y + (node.sublabel ? 23 : 32)} textAnchor="middle" fontSize="14" fontWeight="500" className="fill-foreground">
-                      {node.label}
+                      {richText(node.label, centerX)}
                     </text>
                     {node.sublabel && (
                       <text x={centerX} y={y + 40} textAnchor="middle" fontSize="11.5" className="fill-muted-foreground">
-                        {node.sublabel}
+                        {richText(node.sublabel, centerX)}
                       </text>
                     )}
                   </motion.g>
 
                   {lines.map((line, li) => {
-                    const x = lineX(centerX, line.align);
+                    const align = line.align ?? 'center';
+                    const x = lineX(centerX, align);
                     const y1 = y + NODE_HEIGHT;
                     const y2 = y + STEP;
-                    const labelY = y + NODE_HEIGHT + GAP / 2 - 6;
+                    const lineMid = y + NODE_HEIGHT + GAP / 2;
+                    // Centered label sits on the line (baseline nudged up so the split gap
+                    // brackets it); left/right labels sit beside the line, vertically centered.
+                    const labelY = align === 'center' ? lineMid - 6 : lineMid + 4;
                     const lineStyle = line.color ? { stroke: 'var(--mn-color)' } : undefined;
                     const lineClass = line.color ? undefined : 'stroke-border';
-                    // A label sits right on the line's midpoint — split the line around it
-                    // instead of drawing through the text. Gaps are asymmetric around the
-                    // text baseline (not its visual center): the ascender eats most of the
-                    // space above, the descender almost none below.
+                    // A centered label sits right on the line's midpoint — split the line
+                    // around it instead of drawing through the text. Gaps are asymmetric
+                    // around the text baseline (not its visual center): the ascender eats
+                    // most of the space above, the descender almost none below. A left/right
+                    // label sits at the lane edge, clear of the line, so the line stays whole.
                     const labelGapAbove = 10;
                     const labelGapBelow = 5;
+                    const splitLine = Boolean(line.label) && align === 'center';
+                    const labelGap = 6;
+                    const labelX = align === 'left' ? x - labelGap : align === 'right' ? x + labelGap : x;
+                    const labelAnchor = align === 'left' ? 'end' : align === 'right' ? 'start' : 'middle';
 
                     return (
                       <g key={li} data-color={line.color}>
-                        {line.label ? (
+                        {splitLine ? (
                           <>
                             <motion.path
                               d={`M ${x} ${y1} L ${x} ${labelY - labelGapAbove}`}
@@ -192,18 +210,37 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                           />
                         )}
                         {line.label && (
-                          <text x={x} y={labelY} textAnchor="middle" fontSize="11" className="fill-muted-foreground">
-                            {line.label}
-                          </text>
+                          <motion.g
+                            initial={reduceMotion ? false : { opacity: 0 }}
+                            animate={played ? { opacity: 1 } : undefined}
+                            transition={{ duration: 0.3, ease: 'easeOut', delay: delay + 0.3 }}
+                          >
+                            <text
+                              x={labelX}
+                              y={labelY}
+                              textAnchor={labelAnchor}
+                              fontSize="11"
+                              className={line.color ? undefined : 'fill-muted-foreground'}
+                              style={line.color ? { fill: 'var(--mn-color)' } : undefined}
+                            >
+                              {richText(line.label, labelX)}
+                            </text>
+                          </motion.g>
                         )}
                       </g>
                     );
                   })}
 
                   {node.caption && (
-                    <text x={centerX} y={y + NODE_HEIGHT + 16} textAnchor="middle" fontSize="11" className="fill-muted-foreground">
-                      {node.caption}
-                    </text>
+                    <motion.g
+                      initial={reduceMotion ? false : { opacity: 0 }}
+                      animate={played ? { opacity: 1 } : undefined}
+                      transition={{ duration: 0.4, ease: 'easeOut', delay: delay + 0.2 }}
+                    >
+                      <text x={centerX} y={y + NODE_HEIGHT + 16} textAnchor="middle" fontSize="11" className="fill-muted-foreground">
+                        {richText(node.caption, centerX)}
+                      </text>
+                    </motion.g>
                   )}
                 </g>
               );

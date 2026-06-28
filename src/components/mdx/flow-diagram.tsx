@@ -2,6 +2,7 @@
 
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { useRef } from 'react';
+import { richHtml, richInline, richText } from './rich-text';
 
 // Keys resolved by CSS in globals.css (.flow-diagram [data-color="..."]),
 // not Tailwind classes — content/blog/*.mdx isn't in tailwind.config.ts's
@@ -114,9 +115,15 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
 
       <g transform={shiftX ? `translate(${shiftX} 0)` : undefined}>
       {title && (
-        <text x={WIDTH / 2} y="20" textAnchor="middle" fontSize="14" fontWeight="500" className="fill-foreground">
-          {title}
-        </text>
+        <motion.g
+          initial={reduceMotion ? false : { opacity: 0 }}
+          animate={played ? { opacity: 1 } : undefined}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+        >
+          <text x={WIDTH / 2} y="20" textAnchor="middle" fontSize="14" fontWeight="500" className="fill-foreground">
+            {richText(title, WIDTH / 2, 16)}
+          </text>
+        </motion.g>
       )}
 
       {resolved.map(({ label, sublabel, color, children, note }, i) => {
@@ -153,11 +160,11 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
               fontWeight="500"
               className="fill-foreground"
             >
-              {label}
+              {richText(label, WIDTH / 2)}
             </text>
             {sublabel && !children?.length && (
               <text x={WIDTH / 2} y={y + 38} textAnchor="middle" fontSize="10.5" className="fill-muted-foreground">
-                {sublabel}
+                {richText(sublabel, WIDTH / 2)}
               </text>
             )}
             {children?.length && (
@@ -177,7 +184,7 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
                 <text x={boxRight + 24} y={y + boxHeight / 2 - (note.length > 1 ? 4 : -3)} fontSize="10" className="fill-muted-foreground">
                   {note.map((line, li) => (
                     <tspan key={li} x={boxRight + 24} dy={li === 0 ? 0 : 12}>
-                      {line}
+                      {richInline(line)}
                     </tspan>
                   ))}
                 </text>
@@ -246,7 +253,7 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
             <text x={textX} y={(y1 + y2) / 2 - (lines.length > 1 ? 4 : -3)} fontSize="10" className="fill-muted-foreground">
               {lines.map((line, li) => (
                 <tspan key={li} x={textX} dy={li === 0 ? 0 : 12}>
-                  {line}
+                  {richInline(line)}
                 </tspan>
               ))}
             </text>
@@ -261,9 +268,14 @@ export function FlowDiagram({ nodes, arrows, ariaLabel, title, caption, pulseLas
   return (
     <figure className="mdx-figure">
       {svg}
-      <figcaption className="mdx-figcaption">
-        <span className="mdx-figcaption-label">{caption}</span>
-      </figcaption>
+      <motion.figcaption
+        className="mdx-figcaption"
+        initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+        animate={played ? { opacity: 1, y: 0 } : undefined}
+        transition={{ duration: 0.45, ease: 'easeOut', delay: entranceDone }}
+      >
+        <span className="mdx-figcaption-label">{richHtml(caption)}</span>
+      </motion.figcaption>
     </figure>
   );
 }
@@ -290,7 +302,7 @@ function ChildRow({ x, y, width, labels }: { x: number; y: number; width: number
               style={{ fill: 'var(--mn-color)', fillOpacity: 0.12, stroke: 'var(--mn-color)', strokeOpacity: 0.4 }}
             />
             <text x={cx + childWidth / 2} y={y + CLUSTER_CHILD_HEIGHT / 2 + 4} textAnchor="middle" fontSize="9.5" className="fill-foreground">
-              {label}
+              {richInline(label)}
             </text>
           </g>
         );
