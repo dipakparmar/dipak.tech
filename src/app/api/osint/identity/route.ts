@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
 import { captureAPIError } from "@/lib/sentry-utils"
+import { isSsrfTarget } from "@/lib/ssrf-guard"
 import type { IdentityData } from "@/lib/osint-types"
 
 const RESPONSE_CACHE_TTL = 10 * 60 * 1000
@@ -37,6 +38,7 @@ async function fetchSecurityTxt(domain: string): Promise<IdentityData["securityT
 
   for (const url of paths) {
     try {
+      if (isSsrfTarget(url)) continue
       const controller = new AbortController()
       setTimeout(() => controller.abort(), 6000)
       const res = await fetch(url, {

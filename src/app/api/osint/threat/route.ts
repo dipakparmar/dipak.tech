@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
 import { captureAPIError } from "@/lib/sentry-utils"
+import { isSsrfTarget } from "@/lib/ssrf-guard"
 import type { ThreatData, ShodanHostInfo } from "@/lib/osint-types"
 
 const RESPONSE_CACHE_TTL = 30 * 60 * 1000
@@ -23,7 +24,7 @@ async function fetchShodan(ip: string): Promise<ShodanHostInfo | null> {
   try {
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 5000)
-    const res = await fetch(`https://internetdb.shodan.io/${ip}`, {
+    const res = await fetch(`https://internetdb.shodan.io/${encodeURIComponent(ip)}`, {
       signal: controller.signal,
       headers: { "User-Agent": "dipak.tech-osint/1.0" },
     })
@@ -88,6 +89,8 @@ async function fetchCrawlRules(domain: string): Promise<ThreatData["crawl"]> {
   const robots = { found: false, disallowCount: 0, userAgentCount: 0, sitemapUrls: [] as string[] }
   const sitemap = { found: false, urlCount: 0, lastModified: null as string | null }
 
+  if (isSsrfTarget(`https://${domain}`)) return { robots, sitemap }
+
   try {
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 5000)
@@ -106,6 +109,7 @@ async function fetchCrawlRules(domain: string): Promise<ThreatData["crawl"]> {
     : [`https://${domain}/sitemap.xml`, `https://${domain}/sitemap_index.xml`]
 
   for (const sitemapUrl of sitemapUrlsToTry) {
+    if (isSsrfTarget(sitemapUrl)) continue
     try {
       const controller = new AbortController()
       setTimeout(() => controller.abort(), 5000)

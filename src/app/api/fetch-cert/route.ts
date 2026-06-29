@@ -165,7 +165,7 @@ async function fetchCertificate(hostname: string, port: number = 443): Promise<C
         host: hostname,
         port,
         servername: hostname,
-        rejectUnauthorized: false, // Allow self-signed certs
+        rejectUnauthorized: false, // lgtm[js/disabling-certificate-validation] - intentional: tool purpose is to inspect certificates including self-signed/invalid ones
         timeout: 10000,
       },
       () => {

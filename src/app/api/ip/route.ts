@@ -122,9 +122,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch comprehensive IP information
+    const ipFields = "status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,reverse,mobile,proxy,hosting,query"
     const apiUrl = ip
-      ? `http://ip-api.com/json/${ip}?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,reverse,mobile,proxy,hosting,query`
-      : `http://ip-api.com/json?fields=status,message,continent,continentCode,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,offset,currency,isp,org,as,asname,reverse,mobile,proxy,hosting,query`
+      ? `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=${ipFields}`
+      : `http://ip-api.com/json?fields=${ipFields}`
 
     const response = await fetch(apiUrl, {
       headers: {
@@ -181,7 +182,7 @@ async function resolveDomainToIP(domain: string): Promise<string | null> {
       return response.Answer[0].data
     }
   } catch (error) {
-    console.error(`Failed to resolve A record for domain ${domain}:`, error)
+    console.error("Failed to resolve A record for domain:", domain, error)
   }
 
   try {
@@ -190,10 +191,10 @@ async function resolveDomainToIP(domain: string): Promise<string | null> {
       return fallback.Answer[0].data
     }
   } catch (error) {
-    console.error(`Failed to resolve AAAA record for domain ${domain}:`, error)
+    console.error("Failed to resolve AAAA record for domain:", domain, error)
   }
 
-  console.warn(`Domain ${domain} has no A or AAAA DNS records`)
+  console.warn("Domain has no A or AAAA DNS records:", domain)
   return null
 }
 
@@ -208,14 +209,14 @@ async function queryDNS(name: string, type: "A" | "AAAA"): Promise<DNSResponse> 
     })
 
     if (!response.ok) {
-      const error = new Error(`DNS query failed for ${name} (${type}): HTTP ${response.status}`)
-      console.error(error.message)
+      const error = new Error(`DNS query failed: HTTP ${response.status}`)
+      console.error("DNS query failed:", { name, type, status: response.status })
       throw error
     }
 
     return await response.json()
   } catch (error) {
-    console.error(`DNS query error for ${name} (${type}):`, error)
+    console.error("DNS query error:", { name, type }, error)
     throw error
   }
 }

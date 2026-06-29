@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getClientId } from "@/lib/osint-cache"
 import { verifyImageUrl } from "@/lib/osint-image-sign"
+import { isSsrfTarget } from "@/lib/ssrf-guard"
 
 const ALLOWED_CONTENT_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/x-icon", "image/avif"]
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 MB
@@ -42,6 +43,10 @@ export async function GET(request: Request) {
 
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     return NextResponse.json({ error: "Only http/https URLs allowed" }, { status: 400 })
+  }
+
+  if (isSsrfTarget(parsed)) {
+    return NextResponse.json({ error: "Private hosts are not allowed" }, { status: 400 })
   }
 
   try {

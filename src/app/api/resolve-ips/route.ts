@@ -47,10 +47,10 @@ export async function POST(request: Request) {
           const result = await resolveSubdomain(subdomain)
           return { subdomain, result }
         } catch (error) {
-          console.error(`Failed to resolve ${subdomain}:`, error)
-          Sentry.captureMessage(`Failed to resolve subdomain: ${subdomain}`, {
+          console.error("Failed to resolve subdomain:", subdomain, error)
+          Sentry.captureMessage("Failed to resolve subdomain", {
             level: 'warning',
-            extra: { error: error instanceof Error ? error.message : String(error) }
+            extra: { subdomain, error: error instanceof Error ? error.message : String(error) }
           })
           return { subdomain, result: { ips: [], isUnresolved: true } }
         }
@@ -125,10 +125,10 @@ async function resolveSubdomain(subdomain: string): Promise<ResolveResult> {
 
     return result
   } catch (error) {
-    console.error(`Failed to resolve ${subdomain}:`, error)
-    Sentry.captureMessage(`DNS resolution failed for subdomain: ${subdomain}`, {
+    console.error("DNS resolution failed for subdomain:", subdomain, error)
+    Sentry.captureMessage("DNS resolution failed for subdomain", {
       level: 'warning',
-      extra: { error: error instanceof Error ? error.message : String(error) }
+      extra: { subdomain, error: error instanceof Error ? error.message : String(error) }
     })
     return { ...result, isUnresolved: true }
   }

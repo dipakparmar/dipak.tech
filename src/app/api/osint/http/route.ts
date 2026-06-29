@@ -7,6 +7,7 @@ import {
   setCached,
 } from "@/lib/osint-cache"
 import { captureAPIError } from "@/lib/sentry-utils"
+import { isSsrfTarget } from "@/lib/ssrf-guard"
 import { detectWAF } from "@/lib/waf-detector"
 import { detectTechStack } from "@/lib/tech-stack"
 import { parseSocialTags } from "@/lib/social-tags"
@@ -146,6 +147,7 @@ async function fetchWithChain(startUrls: string[]) {
         const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
         const hopStart = Date.now()
 
+        if (isSsrfTarget(currentUrl)) break
         const response = await fetch(currentUrl, {
           method: "GET",
           redirect: "manual",

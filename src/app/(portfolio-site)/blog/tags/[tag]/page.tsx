@@ -67,7 +67,7 @@ export default async function TagPage({ params }: TagPageProps) {
           return (
             <li key={post.slug} className="border-b border-border/70">
               <Link
-                href={`/blog/${post.slug}`}
+                href={`/blog/${post.slug.replace(/[^a-zA-Z0-9/_-]/g, '')}`}
                 className="group grid grid-cols-[5.25rem_1fr] gap-x-5 sm:gap-x-8 items-baseline py-5 sm:py-6"
               >
                 <time

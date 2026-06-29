@@ -1,5 +1,12 @@
 import type { TechStackResult } from "./osint-types"
 
+// Checks that `domain` appears as a proper hostname boundary in HTML,
+// preventing false matches like `evil-google-analytics.com` matching `google-analytics.com`.
+function hasDomain(html: string, domain: string): boolean {
+  const esc = domain.replace(/\./g, '\\.')
+  return new RegExp(`(?://|["'(\\s])(?:[a-z0-9-]+\\.)*${esc}(?:[/"'?\\s]|$)`, 'i').test(html)
+}
+
 export function detectTechStack(
   headers: Record<string, string>,
   html: string
@@ -60,12 +67,12 @@ export function detectTechStack(
     if (!result.cms.includes("Shopify")) result.cms.push("Shopify")
   }
 
-  // Analytics
-  if (html.includes("google-analytics.com") || html.includes("gtag(") || html.includes("GoogleAnalyticsObject")) result.analytics.push("Google Analytics")
-  if (html.includes("plausible.io")) result.analytics.push("Plausible")
-  if (html.includes("fathom") && html.includes("cdn.usefathom.com")) result.analytics.push("Fathom")
-  if (html.includes("hotjar.com")) result.analytics.push("Hotjar")
-  if (html.includes("segment.com/analytics.js")) result.analytics.push("Segment")
+  // Analytics - use anchored patterns to avoid matching substrings of unrelated domains
+  if (hasDomain(html, "google-analytics.com") || html.includes("gtag(") || html.includes("GoogleAnalyticsObject")) result.analytics.push("Google Analytics")
+  if (hasDomain(html, "plausible.io")) result.analytics.push("Plausible")
+  if (html.includes("fathom") && hasDomain(html, "cdn.usefathom.com")) result.analytics.push("Fathom")
+  if (hasDomain(html, "hotjar.com")) result.analytics.push("Hotjar")
+  if (hasDomain(html, "segment.com")) result.analytics.push("Segment")
 
   // Deduplicate
   return {

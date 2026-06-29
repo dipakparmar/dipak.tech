@@ -372,7 +372,7 @@ export async function fetchReleases(repoName: string): Promise<Release[]> {
 
 function parseReleaseVersion(tagName: string): number[] | null {
   let version = tagName.replace(/^(v|release-|version-|rel-|tag-)/i, '');
-  const versionMatch = version.match(/(\d+(?:\.\d+)*(?:\.\d+)?)(?:-.*)?$/);
+  const versionMatch = version.match(/(\d+(?:\.\d+)*)(?:-.*)?$/);
   if (versionMatch) {
     version = versionMatch[1];
   }
@@ -428,7 +428,7 @@ async function fetchAllReleases(owner: string, repo: string, token?: string): Pr
   const perPage = 100;
 
   while (true) {
-    const url = `https://api.github.com/repos/${owner}/${repo}/releases?page=${page}&per_page=${perPage}`;
+    const url = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases?page=${page}&per_page=${perPage}`;
 
     const headers: Record<string, string> = {
       Accept: 'application/vnd.github.v3+json',
