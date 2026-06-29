@@ -28,6 +28,7 @@ export interface OffBlock {
   holidayCount: number
   weekendCount: number
   customDayCount: number
+  alreadyTakenCount: number
 }
 
 export interface PlanSummary {

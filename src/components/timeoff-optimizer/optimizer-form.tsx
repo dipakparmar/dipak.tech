@@ -54,6 +54,7 @@ const SAMPLE_BREAK: OffBlock = {
   holidayCount: 1,
   weekendCount: 2,
   customDayCount: 1,
+  alreadyTakenCount: 0,
   days: [
     {
       date: "2026-07-17",

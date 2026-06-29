@@ -277,8 +277,11 @@ function enumerateCandidates(
     for (let len = cfg.minLen; len <= cfg.maxLen; len++) {
       const end = start + len - 1
       if (end >= n) break
-      // Trim: ending on a fixed-off day is wasteful in the same sense.
-      if (isFixedOff(days[end])) continue
+      // Trim: ending on a plain weekend day is wasteful - that day is already
+      // free and the same PTO could end on the next working day for equal or
+      // better efficiency. However, ending on a public holiday or custom day
+      // off is valuable (it captures a free weekday), so those are kept.
+      if (days[end].isWeekend) continue
       let ptoCost = 0
       for (let i = start; i <= end; i++) {
         if (!isFixedOff(days[i])) ptoCost++
@@ -408,36 +411,35 @@ function markChosen(days: DayPlan[], chosen: Candidate[]): number {
  * This phase intentionally spends remaining PTO even if doing so falls outside
  * the preferred block lengths from the selected strategy.
  */
+/**
+ * Extends each existing break by at most ONE working day per call so that
+ * `spendRemaining`'s while-loop distributes leftover PTO evenly across all
+ * breaks rather than piling every remaining day onto the first break found.
+ * Returns the number of PTO days actually spent.
+ */
 function extendBreaksForward(days: DayPlan[], remaining: number): number {
   if (remaining <= 0) return 0
   const n = days.length
   let spent = 0
-  // Find each contiguous "inOffBlock" run, then try to extend forward.
   let i = 0
   while (i < n && remaining > 0) {
     if (!days[i].inOffBlock) {
       i++
       continue
     }
-    // Walk to the end of the run.
+    // Walk to the end of this contiguous run.
     let j = i
     while (j + 1 < n && days[j + 1].inOffBlock) j++
-    // Try to extend forward one working day at a time. Stop if the next day
-    // is fixed-off (don't "extend onto" a holiday/weekend - the spec is
-    // explicit about working days only) or already in another break.
-    let k = j + 1
-    while (k < n && remaining > 0) {
-      const next = days[k]
-      if (next.inOffBlock) break
-      if (isFixedOff(next)) break
-      next.isDayOff = true
-      next.inOffBlock = true
+    // Extend by exactly one working day (not fixed-off, not already claimed).
+    const k = j + 1
+    if (k < n && !days[k].inOffBlock && !isFixedOff(days[k])) {
+      days[k].isDayOff = true
+      days[k].inOffBlock = true
       remaining--
       spent++
-      k++
     }
-    // Move past this (possibly extended) run.
-    i = k > j + 1 ? k : j + 1
+    // Advance past the (possibly extended) run.
+    i = k + 1
   }
   return spent
 }
@@ -491,6 +493,43 @@ function spendRemaining(days: DayPlan[], remaining: number): void {
 }
 
 /**
+ * Expands each contiguous `inOffBlock` run to absorb any adjacent fixed-off
+ * days (weekends, public holidays, custom days off). This ensures that breaks
+ * formed by the extension/forced-segment phases display with their surrounding
+ * weekends included, and causes a forced Monday PTO (emitted after a
+ * Friday-ending block) to merge with that block via the intervening weekend.
+ *
+ * Only fixed-off days that are not already part of another block are absorbed,
+ * so two blocks separated by actual working days are never merged.
+ */
+function expandToAdjacentFixedOff(days: DayPlan[]): void {
+  const n = days.length
+  let i = 0
+  while (i < n) {
+    if (!days[i].inOffBlock) {
+      i++
+      continue
+    }
+    // Walk to the end of this contiguous inOffBlock run.
+    let j = i
+    while (j + 1 < n && days[j + 1].inOffBlock) j++
+    // Expand backward through consecutive fixed-off days preceding the block.
+    let lo = i - 1
+    while (lo >= 0 && !days[lo].inOffBlock && isFixedOff(days[lo])) {
+      days[lo].inOffBlock = true
+      lo--
+    }
+    // Expand forward through consecutive fixed-off days following the block.
+    let hi = j + 1
+    while (hi < n && !days[hi].inOffBlock && isFixedOff(days[hi])) {
+      days[hi].inOffBlock = true
+      hi++
+    }
+    i = hi
+  }
+}
+
+/**
  * Builds the `OffBlock[]` view from marked days.
  *
  * A break is any maximal contiguous run where `inOffBlock` is `true`.
@@ -511,6 +550,7 @@ function collectBreaks(days: DayPlan[]): OffBlock[] {
     let holidayCount = 0
     let weekendCount = 0
     let customDayCount = 0
+    let alreadyTakenCount = 0
     for (const d of slice) {
       if (d.isDayOff) dayOffCount++
       // Categorical counters: a single day might be both a public holiday
@@ -521,6 +561,7 @@ function collectBreaks(days: DayPlan[]): OffBlock[] {
       if (d.isPublicHoliday) holidayCount++
       else if (d.isCustomDayOff) customDayCount++
       else if (d.isWeekend) weekendCount++
+      else if (d.isAlreadyTaken && !d.isDayOff) alreadyTakenCount++
     }
     out.push({
       startDate: slice[0].date,
@@ -531,6 +572,7 @@ function collectBreaks(days: DayPlan[]): OffBlock[] {
       holidayCount,
       weekendCount,
       customDayCount,
+      alreadyTakenCount,
     })
     i = j + 1
   }
@@ -633,6 +675,11 @@ export function optimizeDays(params: PlanInputs): PlanResult {
   // Forced extension + forced segments to spend the rest of the budget.
   const remaining = effectiveBudget - ptoSpent
   spendRemaining(days, remaining)
+
+  // Absorb adjacent weekends/holidays into each break so that extension-phase
+  // and forced-segment PTO days display with surrounding context and naturally
+  // merge with adjacent blocks across a weekend gap.
+  expandToAdjacentFixedOff(days)
 
   const breaks = collectBreaks(days)
   const stats = computeStats(breaks, days)

@@ -1,7 +1,7 @@
 "use client"
 
-import { differenceInCalendarDays, format, parseISO } from "date-fns"
-import { CalendarDays, CalendarHeart, CalendarPlus, Sparkles, Briefcase } from "lucide-react"
+import { format, parseISO } from "date-fns"
+import { CalendarDays, CalendarHeart, CalendarPlus, Sparkles, Briefcase, History } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -36,7 +36,6 @@ function fmtRange(start: string, end: string) {
 }
 
 export function BreakCard({ break: br, index, titleTemplate, notesTemplate }: BreakCardProps) {
-  const totalDays = differenceInCalendarDays(parseISO(br.endDate), parseISO(br.startDate)) + 1
   const dayOffDays = br.days.filter((d) => d.isDayOff)
   const namedDays = br.days.filter((d) => d.holidayName || d.customDayName)
 
@@ -91,7 +90,7 @@ export function BreakCard({ break: br, index, titleTemplate, notesTemplate }: Br
               </DropdownMenuContent>
             </DropdownMenu>
             <div className="rounded-md bg-primary/10 px-2 py-1 text-center">
-              <p className="text-base font-semibold leading-none text-primary">{totalDays}</p>
+              <p className="text-base font-semibold leading-none text-primary">{br.totalDays}</p>
               <p className="text-[9px] uppercase text-muted-foreground">days off</p>
             </div>
           </div>
@@ -118,6 +117,12 @@ export function BreakCard({ break: br, index, titleTemplate, notesTemplate }: Br
             <span className="inline-flex items-center gap-1">
               <Briefcase className="size-3 text-accent-blue" />
               {br.customDayCount} company day{br.customDayCount === 1 ? "" : "s"}
+            </span>
+          )}
+          {br.alreadyTakenCount > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <History className="size-3 text-amber-500" />
+              {br.alreadyTakenCount} already taken
             </span>
           )}
         </div>
