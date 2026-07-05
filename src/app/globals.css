@@ -321,6 +321,28 @@
   }
 }
 
+/* NewStamp idle motion — the "new" text breathes and the hand-drawn circle
+   slowly rotates, so the stamp reads as alive without being distracting. */
+@keyframes new-stamp-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.new-stamp-breathe {
+  animation: new-stamp-breathe 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-stamp-breathe {
+    animation: none;
+  }
+}
+
 @keyframes wave {
   0%,
   100% {

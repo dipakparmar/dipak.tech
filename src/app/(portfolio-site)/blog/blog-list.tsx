@@ -81,11 +81,11 @@ export function BlogList({ posts }: BlogListProps) {
             <li key={post.slug} className="border-b border-border/70">
               <Link
                 href={`/blog/${post.slug.replace(/[^a-zA-Z0-9/_-]/g, '')}`}
-                className="group grid grid-cols-[5.25rem_1fr] gap-x-5 sm:gap-x-8 items-baseline py-5 sm:py-6"
+                className="group flex flex-col gap-y-1.5 sm:grid sm:grid-cols-[5.25rem_1fr] sm:gap-x-8 sm:items-baseline py-5 sm:py-6"
               >
                 <time
                   dateTime={post.date}
-                  className="text-[11px] uppercase tracking-[0.08em] tabular-nums text-muted-foreground/60 pt-[3px] group-hover:text-muted-foreground transition-colors duration-150"
+                  className="text-[11px] uppercase tracking-[0.08em] tabular-nums text-muted-foreground/60 sm:pt-[3px] group-hover:text-muted-foreground transition-colors duration-150"
                 >
                   <span className="sm:hidden">
                     {d.mon} {d.day}, {d.year}
@@ -98,13 +98,13 @@ export function BlogList({ posts }: BlogListProps) {
 
                 <div className="min-w-0">
                   <h2 className="relative text-[17px] font-[470] tracking-[-0.015em] leading-[1.35] text-foreground/95 text-pretty break-words">
-                    {fresh && <NewStamp />}
                     <span className="scribble-underline-text scribble-underline-text--draw">
                       {post.title}
                     </span>
+                    {fresh && <NewStamp />}
                   </h2>
                   {post.description && (
-                    <p className="text-[13.5px] text-muted-foreground/85 mt-1.5 leading-[1.55] tracking-[-0.005em]">
+                    <p className="text-[13.5px] text-muted-foreground/85 mt-1.5 leading-[1.55] tracking-[-0.005em] text-pretty">
                       {post.description}
                     </p>
                   )}
