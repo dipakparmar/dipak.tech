@@ -73,12 +73,12 @@ export function BlogList({ posts }: BlogListProps) {
         </div>
       </header>
 
-      <ol className="border-t border-border/70">
+      <ol>
         {posts.map((post) => {
           const d = formatRowDate(post.date);
           const fresh = isNew(post.date);
           return (
-            <li key={post.slug} className="border-b border-border/70">
+            <li key={post.slug}>
               <Link
                 href={`/blog/${post.slug.replace(/[^a-zA-Z0-9/_-]/g, '')}`}
                 className="group flex flex-col gap-y-1.5 sm:grid sm:grid-cols-[5.25rem_1fr] sm:gap-x-8 sm:items-baseline py-5 sm:py-6"
