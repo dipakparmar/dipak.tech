@@ -1,5 +1,5 @@
 import React from "react"
-import { Apple, CalendarHeart, Globe, KeyRound, Mail, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
+import { Apple, CalendarHeart, Globe, KeyRound, Mail, Music2, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
 import { GitHubIcon } from "@/components/icons"
 import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "schema-dts"
 import { personReference, personSchema } from "@/lib/schema"
@@ -115,7 +115,6 @@ const tools: Tool[] = [
     iconBg: "bg-blue-500/10",
     tagBg: "bg-blue-500/10 text-blue-500",
     hoverBg: "hover:bg-blue-500/10",
-    span: 2,
     stat: "Smart input · Accepts IP, ASN, CIDR, URLs",
     tags: ["Geolocation", "BGP Routing", "AS Path Graph", "RDAP"],
   },
@@ -183,6 +182,19 @@ const tools: Tool[] = [
     hoverBg: "hover:bg-rose-500/10",
     stat: "Client-side · ES256 signing via Web Crypto",
     tags: ["JWT", "ES256", "Sign in with Apple"],
+  },
+  {
+    title: "Music & Audio Tools",
+    description: "Browser-based music tools - 8D audio maker with Smart automation, and more on the way",
+    path: "music",
+    icon: Music2,
+    color: "text-sky-500",
+    borderColor: "hover:border-sky-500/30",
+    iconBg: "bg-sky-500/10",
+    tagBg: "bg-sky-500/10 text-sky-500",
+    hoverBg: "hover:bg-sky-500/10",
+    stat: "Client-side · 8D maker + more coming",
+    tags: ["8D Audio", "Smart 8D", "Timeline", "More soon"],
   },
   {
     title: "Time-off Optimizer",
@@ -268,7 +280,7 @@ export default async function ToolsPage() {
           </BlurFade>
 
           {/* Bento Grid */}
-          <div className="mx-auto grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mx-auto grid max-w-3xl grid-flow-row-dense grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {tools.map((tool, index) => (
               <BlurFade key={tool.path} delay={BLUR_FADE_DELAY * (index + 2)} className={tool.span === 2 ? "sm:col-span-2 lg:col-span-2" : ""}>
                 <ToolCard

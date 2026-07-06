@@ -119,6 +119,8 @@ export const toolIcons: Record<string, string> = {
   'password-generator': '🔑',
   'message-header-analyzer': '📧',
   'timeoff-optimizer': '🏖️',
+  music: '🎵',
+  '8d-audio': '🎧',
   default: '🛠️',
 };
 
