@@ -1,5 +1,5 @@
 import React from "react"
-import { Apple, CalendarHeart, Globe, KeyRound, Mail, Music2, Network, Search, Shield, Terminal, Wrench } from "lucide-react"
+import { Apple, CalendarHeart, Globe, KeyRound, Mail, Music2, Network, Palette, Search, Shield, Terminal, Wrench } from "lucide-react"
 import { GitHubIcon } from "@/components/icons"
 import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from "schema-dts"
 import { personReference, personSchema } from "@/lib/schema"
@@ -65,6 +65,20 @@ type Tool = {
 }
 
 const tools: Tool[] = [
+  {
+    title: "Design Studio",
+    description: "Design social posts, stories, carousels, and covers with templates, handwriting fonts, and hand-drawn shapes",
+    path: "studio",
+    icon: Palette,
+    color: "text-fuchsia-500",
+    borderColor: "hover:border-fuchsia-500/30",
+    iconBg: "bg-fuchsia-500/10",
+    tagBg: "bg-fuchsia-500/10 text-fuchsia-500",
+    hoverBg: "hover:bg-fuchsia-500/10",
+    span: 2,
+    stat: "Client-side · Photos never leave your browser",
+    tags: ["Templates", "Carousels", "Hand-drawn", "Hi-res Export"],
+  },
   {
     title: "Certificate Tools",
     description: "Search CT logs, decode certificates, generate CSRs and key pairs",
