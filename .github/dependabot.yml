@@ -29,3 +29,9 @@ updates:
     # Check the GitHub Actions API for updates every day (weekdays)
     schedule:
       interval: "weekly"
+
+  # Enable version updates for the Dockerfile base image
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
