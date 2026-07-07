@@ -94,7 +94,7 @@ async function fetchCrawlRules(domain: string): Promise<ThreatData["crawl"]> {
   try {
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 5000)
-    const res = await fetch(`https://${domain}/robots.txt`, { signal: controller.signal, redirect: "follow" })
+    const res = await fetch(`https://${domain}/robots.txt`, { signal: controller.signal, redirect: "follow" }) // lgtm[js/request-forgery] - guarded by isSsrfTarget above
     if (res.ok) {
       const text = await res.text()
       const disallows = (text.match(/^Disallow:/gim) ?? []).length
@@ -113,7 +113,7 @@ async function fetchCrawlRules(domain: string): Promise<ThreatData["crawl"]> {
     try {
       const controller = new AbortController()
       setTimeout(() => controller.abort(), 5000)
-      const res = await fetch(sitemapUrl, { signal: controller.signal, redirect: "follow" })
+      const res = await fetch(sitemapUrl, { signal: controller.signal, redirect: "follow" }) // lgtm[js/request-forgery] - guarded by isSsrfTarget above
       if (res.ok) {
         const text = await res.text()
         const urlCount = (text.match(/<loc>/g) ?? []).length

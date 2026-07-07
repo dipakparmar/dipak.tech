@@ -3,7 +3,7 @@ import type { TechStackResult } from "./osint-types"
 // Checks that `domain` appears as a proper hostname boundary in HTML,
 // preventing false matches like `evil-google-analytics.com` matching `google-analytics.com`.
 function hasDomain(html: string, domain: string): boolean {
-  const esc = domain.replace(/\./g, '\\.')
+  const esc = domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(`(?://|["'(\\s])(?:[a-z0-9-]+\\.)*${esc}(?:[/"'?\\s]|$)`, 'i').test(html)
 }
 

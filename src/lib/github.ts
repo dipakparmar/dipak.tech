@@ -372,7 +372,7 @@ export async function fetchReleases(repoName: string): Promise<Release[]> {
 
 function parseReleaseVersion(tagName: string): number[] | null {
   let version = tagName.replace(/^(v|release-|version-|rel-|tag-)/i, '');
-  const versionMatch = version.match(/(\d+(?:\.\d+)*)(?:-.*)?$/);
+  const versionMatch = version.match(/^(\d+(?:\.\d+)*)(?:-.*)?$/);
   if (versionMatch) {
     version = versionMatch[1];
   }

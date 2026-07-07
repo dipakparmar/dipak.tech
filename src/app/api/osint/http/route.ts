@@ -148,6 +148,7 @@ async function fetchWithChain(startUrls: string[]) {
         const hopStart = Date.now()
 
         if (isSsrfTarget(currentUrl)) break
+        // lgtm[js/request-forgery] - guarded by isSsrfTarget above
         const response = await fetch(currentUrl, {
           method: "GET",
           redirect: "manual",

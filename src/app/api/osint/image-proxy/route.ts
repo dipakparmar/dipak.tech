@@ -53,6 +53,7 @@ export async function GET(request: Request) {
     const controller = new AbortController()
     setTimeout(() => controller.abort(), 8000)
 
+    // lgtm[js/request-forgery] - guarded by isSsrfTarget above
     const upstream = await fetch(parsed.toString(), {
       signal: controller.signal,
       headers: { "User-Agent": "dipak.tech-osint/1.0" },

@@ -41,6 +41,7 @@ async function fetchSecurityTxt(domain: string): Promise<IdentityData["securityT
       if (isSsrfTarget(url)) continue
       const controller = new AbortController()
       setTimeout(() => controller.abort(), 6000)
+      // lgtm[js/request-forgery] - guarded by isSsrfTarget above
       const res = await fetch(url, {
         redirect: "follow",
         signal: controller.signal,
