@@ -142,8 +142,14 @@ const operationsDoc = `
   }
 `;
 
-function getLinks() {
-  return fetchGraphQL(operationsDoc, 'getLinks', {});
+async function getLinks() {
+  try {
+    return await fetchGraphQL(operationsDoc, 'getLinks', {});
+  } catch (err) {
+    // ponytail: GraphQL endpoint may be unset/unreachable at build time; don't fail the build over it
+    console.error('Failed to fetch links:', err);
+    return { errors: null, data: null };
+  }
 }
 
 export default async function LinksPage() {
