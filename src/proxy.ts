@@ -36,6 +36,8 @@ export function proxy(request: NextRequest) {
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
         request.headers.get("x-real-ip") ??
         null,
+      ua: request.headers.get("user-agent"),
+      referer: request.headers.get("referer"),
       ...geo(request),
       time: new Date().toISOString(),
     }),
