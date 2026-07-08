@@ -9,8 +9,9 @@ export function proxy(request: NextRequest) {
       method: request.method,
       host: request.headers.get("host"),
       path: request.nextUrl.pathname,
-      // ponytail: x-forwarded-for first hop is the client; falls back to x-real-ip.
+      // ponytail: CF-Connecting-IP is Cloudflare's trusted client IP; then XFF first hop, then x-real-ip.
       ip:
+        request.headers.get("cf-connecting-ip") ??
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
         request.headers.get("x-real-ip") ??
         null,
