@@ -9,7 +9,7 @@ import { HapticButton as Button } from "@/components/haptic-wrappers"
 import { CheckCircle2, AlertTriangle, Globe, MinusCircle, XCircle, ChevronDown, ChevronRight, GitBranch } from "lucide-react"
 import type { LiveAuthLookupContext } from "@/lib/message-auth-context"
 import type { CheckStatus, LiveAuthVerificationResponse, LiveCheck, SpfTreeNode } from "@/lib/message-auth-live"
-import { apexDomain, DomainBadge, DomainLink, IpBadge } from "./mha-links"
+import { DomainBadge, DomainLink, IpBadge } from "./mha-links"
 
 interface LiveAuthChecksProps {
   context: LiveAuthLookupContext
