@@ -2,6 +2,27 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // ponytail: access logging only — Next production has no built-in request logs.
 // Structured JSON so kubectl logs stays greppable. Add levels/redaction only if this falls short.
+// ponytail: geo comes from Cloudflare's "Add visitor location headers" managed transform.
+// Only country is sent by default; enable the transform in the CF dashboard for city/region/etc.
+const GEO_HEADERS = {
+  country: "cf-ipcountry",
+  city: "cf-ipcity",
+  region: "cf-region",
+  lat: "cf-iplatitude",
+  lon: "cf-iplongitude",
+  postal: "cf-postal-code",
+  timezone: "cf-timezone",
+} as const;
+
+function geo(request: NextRequest): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, header] of Object.entries(GEO_HEADERS)) {
+    const value = request.headers.get(header);
+    if (value) out[key] = value;
+  }
+  return out;
+}
+
 export function proxy(request: NextRequest) {
   console.log(
     JSON.stringify({
@@ -15,7 +36,8 @@ export function proxy(request: NextRequest) {
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
         request.headers.get("x-real-ip") ??
         null,
-      t: new Date().toISOString(),
+      ...geo(request),
+      time: new Date().toISOString(),
     }),
   );
   return NextResponse.next();
