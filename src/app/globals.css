@@ -6,6 +6,29 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Scrollbar that stays hidden until the pointer is over the element. Track space is
+   reserved with a transparent thumb (no layout shift, no flashing during programmatic
+   auto-scroll); the thumb only becomes visible on hover. */
+@utility scrollbar-hover {
+  scrollbar-width: none;
+  &:hover {
+    scrollbar-width: thin;
+  }
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 9999px;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
