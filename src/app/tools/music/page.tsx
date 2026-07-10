@@ -1,4 +1,4 @@
-import { ArrowLeft, AudioLines, Headphones, Music2, Piano, Wand2, Waves } from "lucide-react"
+import { ArrowLeft, AudioLines, Headphones, Music2, Piano, Split, Wand2, Waves } from "lucide-react"
 import type { CollectionPage, ItemList, ListItem, WithContext } from "schema-dts"
 
 import { BlurFade } from "@/components/magicui/blur-fade"
@@ -68,6 +68,19 @@ const tools: MusicTool[] = [
     span: 2,
     stat: "Client-side · Beat-synced Smart 8D",
     tags: ["8D Effect", "Smart 8D", "Timeline", "WAV Export"],
+  },
+  {
+    title: "Vocal Remover",
+    description: "Remove vocals or split any song into vocals, drums, bass, and other stems to make karaoke, instrumentals, or acapellas in your browser",
+    path: "music/vocal-remover",
+    icon: Split,
+    color: "text-violet-500",
+    borderColor: "hover:border-violet-500/30",
+    iconBg: "bg-violet-500/10",
+    tagBg: "bg-violet-500/10 text-violet-500",
+    hoverBg: "hover:bg-violet-500/10",
+    stat: "Client-side · WebGPU · 4-stem",
+    tags: ["Remove Vocals", "Karaoke", "Stems", "WAV Export"],
   },
 ]
 
