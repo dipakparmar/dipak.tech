@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    ".next/**",
+    "out/**",
+    "build/**",
+    "dist/**",
+    "coverage/**",
+    "public/**",
+    "src/**/vendor/**",
+    "next-env.d.ts",
+    "**/*.d.ts"
+  ],
+  "env": {
+    "es2024": true,
+    "browser": true,
+    "node": true
+  },
+  "globals": {
+    "React": "readonly"
+  },
+  "settings": {
+    "next": {
+      "rootDir": "."
+    }
+  },
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "nextjs",
+    "import"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "*.config.js",
+        "*.config.cjs",
+        "*.config.mjs",
+        "eslint.config.mjs"
+      ],
+      "env": {
+        "node": true
+      }
+    }
+  ]
+}

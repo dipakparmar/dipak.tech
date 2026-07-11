@@ -21,8 +21,9 @@ bun run build        # Build for production
 bun run start        # Start production server
 
 # Code Quality
-bun run lint         # Run ESLint
-bun run format       # Format with Prettier
+bun run lint         # Lint with oxlint
+bun run format       # Format src with oxfmt
+bun run format:check # Check formatting without writing
 
 # Other
 bun run analyze      # Bundle analysis
