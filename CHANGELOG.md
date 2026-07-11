@@ -47,7 +47,7 @@
 ### Features
 
 * **mdx:** add animated FlowDiagram/LaneDiagram components ([#103](https://github.com/dipakparmar/v2/issues/103)) ([b077403](https://github.com/dipakparmar/v2/commit/b0774031b14cf2236542995ae5dbf833000fc273))
-* **mdx:** add opt-in human-stroke mode for rough-notation highlights ([56c3e40](https://github.com/dipakparmar/v2/commit/56c3e40252fa2214e00d4b0589c22d79ef8ba3d7)), closes [rou#notation](https://github.com/rou/issues/notation)
+* **mdx:** add opt-in human-stroke mode for rough-notation highlights ([56c3e40](https://github.com/dipakparmar/v2/commit/56c3e40252fa2214e00d4b0589c22d79ef8ba3d7))
 * **timeoff-optimizer:** add one-click calendar import and gated subscription feed ([531d97d](https://github.com/dipakparmar/v2/commit/531d97d539646ffb2809934f3f6427cd1a2415ed))
 * **timeoff-optimizer:** add per-strategy booking lead time ([5a68fc8](https://github.com/dipakparmar/v2/commit/5a68fc8abba074b756159f40d0d8cccfa8f56b1c))
 * **timeoff-optimizer:** allow custom calendar event titles and notes ([38ca00c](https://github.com/dipakparmar/v2/commit/38ca00c1c1f7b00a96aeada94bbf618af2108a57))
@@ -73,8 +73,8 @@
 
 * **dmarc:** add RFC 9989 (DMARCbis) support with standard detection ([43bf237](https://github.com/dipakparmar/v2/commit/43bf237f972089fd3bbdbdefa7cdff2ef63dad34))
 * **github:** add support for GitHub notification headers with detailed descriptions and filtering rules ([6cd7616](https://github.com/dipakparmar/v2/commit/6cd761606b0881a435454eaee497684991c54c2b))
-* **mdx:** add Callout, Accent, References components with animations ([#95](https://github.com/dipakparmar/v2/issues/95)) ([0956fa4](https://github.com/dipakparmar/v2/commit/0956fa4055d32259796a94327917b4722be1f600)), closes [rou#notation](https://github.com/rou/issues/notation)
-* **mdx:** add Highlighter component and improve MDX component system ([#96](https://github.com/dipakparmar/v2/issues/96)) ([6f3e6b0](https://github.com/dipakparmar/v2/commit/6f3e6b0f1c98d21daf0ae4d17f2428a343e063ef)), closes [rou#notation](https://github.com/rou/issues/notation) [rou#notation](https://github.com/rou/issues/notation) [rou#notation](https://github.com/rou/issues/notation) [rou#notation](https://github.com/rou/issues/notation) [rou#notation](https://github.com/rou/issues/notation)
+* **mdx:** add Callout, Accent, References components with animations ([#95](https://github.com/dipakparmar/v2/issues/95)) ([0956fa4](https://github.com/dipakparmar/v2/commit/0956fa4055d32259796a94327917b4722be1f600))
+* **mdx:** add Highlighter component and improve MDX component system ([#96](https://github.com/dipakparmar/v2/issues/96)) ([6f3e6b0](https://github.com/dipakparmar/v2/commit/6f3e6b0f1c98d21daf0ae4d17f2428a343e063ef))
 * **message-header-auth:** add ATPS support per RFC 6541 ([561b801](https://github.com/dipakparmar/v2/commit/561b801ec344bdcc2626c1fdbfab3d89fc8addc8))
 * **mha:** add clickable domain and IP links across the tool ([bc11a65](https://github.com/dipakparmar/v2/commit/bc11a65cf27b04517cf73fd2332606d891c96465))
 * **mha:** add email header value parsing support with rich popover details ([49bb555](https://github.com/dipakparmar/v2/commit/49bb555a076161c1dd26eba87725f774e4e3a8ff))
