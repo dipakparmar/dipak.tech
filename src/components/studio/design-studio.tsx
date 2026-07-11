@@ -1,14 +1,26 @@
-"use client"
+'use client';
 
-import { ArrowLeft, FilePlus2, Minus, Palette, Plus, Redo2, TriangleAlert, Undo2 } from "lucide-react"
-import Link from "next/link"
-import { useRef, useState } from "react"
+import {
+  ArrowLeft,
+  FilePlus2,
+  Minus,
+  Palette,
+  Plus,
+  Redo2,
+  TriangleAlert,
+  Undo2
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRef, useState } from 'react';
 
-import { PagesStrip } from "@/components/studio/pages-strip"
-import { RightPanel } from "@/components/studio/right-panel"
-import { ExportDialog, TemplatesDialog } from "@/components/studio/studio-dialogs"
-import { ToolRail } from "@/components/studio/tool-rail"
-import { useStudio } from "@/components/studio/use-studio"
+import { PagesStrip } from '@/components/studio/pages-strip';
+import { RightPanel } from '@/components/studio/right-panel';
+import {
+  ExportDialog,
+  TemplatesDialog
+} from '@/components/studio/studio-dialogs';
+import { ToolRail } from '@/components/studio/tool-rail';
+import { useStudio } from '@/components/studio/use-studio';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,9 +30,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+  AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -28,23 +40,34 @@ import {
   SelectItem,
   SelectLabel,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Spinner } from "@/components/ui/spinner"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { STUDIO_FONT_CLASSES } from "@/lib/studio/fonts"
-import { presetGroups } from "@/lib/studio/presets"
+  SelectValue
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle
+} from '@/components/ui/sheet';
+import { Spinner } from '@/components/ui/spinner';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
+import { STUDIO_FONT_CLASSES } from '@/lib/studio/fonts';
+import { presetGroups } from '@/lib/studio/presets';
 
-export function DesignStudio({ backHref = "/tools" }: { backHref?: string }) {
-  const canvasElRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const studio = useStudio(canvasElRef, containerRef)
-  const [layersOpen, setLayersOpen] = useState(false)
+export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
+  const canvasElRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const studio = useStudio(canvasElRef, containerRef);
+  const [layersOpen, setLayersOpen] = useState(false);
 
   return (
-    <div className={`${STUDIO_FONT_CLASSES} flex h-dvh flex-col overflow-hidden bg-background`}>
+    <div
+      className={`${STUDIO_FONT_CLASSES} flex h-dvh flex-col overflow-hidden bg-background`}
+    >
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-1.5 border-b px-2 py-2 pr-16">
         <Link
@@ -68,7 +91,11 @@ export function DesignStudio({ backHref = "/tools" }: { backHref?: string }) {
               <SelectGroup key={group.group}>
                 <SelectLabel>{group.group}</SelectLabel>
                 {group.presets.map((preset) => (
-                  <SelectItem key={preset.id} value={preset.id} className="text-xs">
+                  <SelectItem
+                    key={preset.id}
+                    value={preset.id}
+                    className="text-xs"
+                  >
                     {preset.label} · {preset.width}×{preset.height}
                   </SelectItem>
                 ))}
@@ -121,7 +148,11 @@ export function DesignStudio({ backHref = "/tools" }: { backHref?: string }) {
             size="icon"
             className="h-8 w-8"
             aria-label="Zoom out"
-            onClick={() => studio.setZoomFactor(Math.max(0.4, Math.round((studio.zoomFactor - 0.2) * 10) / 10))}
+            onClick={() =>
+              studio.setZoomFactor(
+                Math.max(0.4, Math.round((studio.zoomFactor - 0.2) * 10) / 10)
+              )
+            }
           >
             <Minus className="h-4 w-4" />
           </Button>
@@ -134,7 +165,11 @@ export function DesignStudio({ backHref = "/tools" }: { backHref?: string }) {
             size="icon"
             className="h-8 w-8"
             aria-label="Zoom in"
-            onClick={() => studio.setZoomFactor(Math.min(3, Math.round((studio.zoomFactor + 0.2) * 10) / 10))}
+            onClick={() =>
+              studio.setZoomFactor(
+                Math.min(3, Math.round((studio.zoomFactor + 0.2) * 10) / 10)
+              )
+            }
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -147,7 +182,8 @@ export function DesignStudio({ backHref = "/tools" }: { backHref?: string }) {
                 <TriangleAlert className="h-4 w-4 text-amber-500" />
               </TooltipTrigger>
               <TooltipContent>
-                Browser storage is full - autosave/templates may not persist. Export your design to keep it safe.
+                Browser storage is full - autosave/templates may not persist.
+                Export your design to keep it safe.
               </TooltipContent>
             </Tooltip>
           )}
@@ -162,12 +198,15 @@ export function DesignStudio({ backHref = "/tools" }: { backHref?: string }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Start a new design?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This clears the canvas. Save it as a template first if you want to reuse it.
+                  This clears the canvas. Save it as a template first if you
+                  want to reuse it.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => void studio.newDesign()}>Clear canvas</AlertDialogAction>
+                <AlertDialogAction onClick={() => void studio.newDesign()}>
+                  Clear canvas
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
@@ -219,5 +258,5 @@ export function DesignStudio({ backHref = "/tools" }: { backHref?: string }) {
         </SheetContent>
       </Sheet>
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import {
   ActiveSelection,
@@ -15,15 +15,25 @@ import {
   Shadow,
   StaticCanvas,
   Textbox,
-  filters,
-} from "fabric"
-import { useCallback, useEffect, useReducer, useRef, useState } from "react"
+  filters
+} from 'fabric';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
-import { FONT_BODY, FONT_DISPLAY, FONT_HANDWRITING, FONT_MARKER, ensureFontLoaded } from "@/lib/studio/fonts"
-import { StudioHistory } from "@/lib/studio/history"
-import { createOverlay, type OverlayKind } from "@/lib/studio/overlays"
-import { DEFAULT_PRESET_ID, getPreset } from "@/lib/studio/presets"
-import { createRoughShape, type RoughShapeKind, type RoughShapeOptions } from "@/lib/studio/rough-shapes"
+import {
+  FONT_BODY,
+  FONT_DISPLAY,
+  FONT_HANDWRITING,
+  FONT_MARKER,
+  ensureFontLoaded
+} from '@/lib/studio/fonts';
+import { StudioHistory } from '@/lib/studio/history';
+import { createOverlay, type OverlayKind } from '@/lib/studio/overlays';
+import { DEFAULT_PRESET_ID, getPreset } from '@/lib/studio/presets';
+import {
+  createRoughShape,
+  type RoughShapeKind,
+  type RoughShapeOptions
+} from '@/lib/studio/rough-shapes';
 import {
   clearAutosave,
   deleteTemplate,
@@ -35,27 +45,37 @@ import {
   loadTemplates,
   saveTemplate,
   writeAutosave,
-  type SavedTemplate,
-} from "@/lib/studio/storage"
-import { BUILTIN_TEMPLATES } from "@/lib/studio/templates"
+  type SavedTemplate
+} from '@/lib/studio/storage';
+import { BUILTIN_TEMPLATES } from '@/lib/studio/templates';
 
-export type StudioObject = FabricObject & { name?: string; locked?: boolean }
+export type StudioObject = FabricObject & { name?: string; locked?: boolean };
 
-export type TextKind = "heading" | "subheading" | "body" | "handwritten" | "marker"
-export type DrawMode = "off" | "pen" | "marker" | "glow"
-export type ExportOptions = { format: "png" | "jpeg"; scale: 1 | 2 | 3; quality: number; pages: "current" | "all" }
+export type TextKind =
+  | 'heading'
+  | 'subheading'
+  | 'body'
+  | 'handwritten'
+  | 'marker';
+export type DrawMode = 'off' | 'pen' | 'marker' | 'glow';
+export type ExportOptions = {
+  format: 'png' | 'jpeg';
+  scale: 1 | 2 | 3;
+  quality: number;
+  pages: 'current' | 'all';
+};
 
 export type StudioPage = {
-  id: string
+  id: string;
   /** Serialized canvas JSON. Refreshed for the active page on autosave/switch. */
-  json: string | null
-  thumb: string | null
-}
+  json: string | null;
+  thumb: string | null;
+};
 
-let pageIdCounter = 0
+let pageIdCounter = 0;
 function newPageId(): string {
-  pageIdCounter += 1
-  return `page-${Date.now().toString(36)}-${pageIdCounter}`
+  pageIdCounter += 1;
+  return `page-${Date.now().toString(36)}-${pageIdCounter}`;
 }
 
 /** Render a serialized page on an offscreen canvas (thumbnails, multi-page export). */
@@ -63,913 +83,1075 @@ async function renderPageJson(
   json: string,
   width: number,
   height: number,
-  options: { format?: "png" | "jpeg"; quality?: number; multiplier: number },
+  options: { format?: 'png' | 'jpeg'; quality?: number; multiplier: number }
 ): Promise<string> {
-  const offscreen = new StaticCanvas(undefined, { width, height, enableRetinaScaling: false })
+  const offscreen = new StaticCanvas(undefined, {
+    width,
+    height,
+    enableRetinaScaling: false
+  });
   try {
-    await offscreen.loadFromJSON(JSON.parse(json))
-    offscreen.renderAll()
+    await offscreen.loadFromJSON(JSON.parse(json));
+    offscreen.renderAll();
     return offscreen.toDataURL({
-      format: options.format ?? "jpeg",
+      format: options.format ?? 'jpeg',
       quality: options.quality ?? 0.75,
       multiplier: options.multiplier,
-      enableRetinaScaling: false,
-    })
+      enableRetinaScaling: false
+    });
   } finally {
-    void offscreen.dispose()
+    void offscreen.dispose();
   }
 }
 
-const TEXT_PRESETS: Record<TextKind, { label: string; text: string; family: string; weight: string; sizeFactor: number }> = {
-  heading: { label: "Heading", text: "Big headline", family: FONT_DISPLAY, weight: "400", sizeFactor: 0.11 },
-  subheading: { label: "Subheading", text: "A short subheading", family: FONT_BODY, weight: "600", sizeFactor: 0.05 },
-  body: { label: "Body text", text: "Write something here", family: FONT_BODY, weight: "400", sizeFactor: 0.034 },
-  handwritten: { label: "Handwritten", text: "a handwritten note", family: FONT_HANDWRITING, weight: "700", sizeFactor: 0.09 },
-  marker: { label: "Marker", text: "MARKER NOTE", family: FONT_MARKER, weight: "400", sizeFactor: 0.06 },
-}
+const TEXT_PRESETS: Record<
+  TextKind,
+  {
+    label: string;
+    text: string;
+    family: string;
+    weight: string;
+    sizeFactor: number;
+  }
+> = {
+  heading: {
+    label: 'Heading',
+    text: 'Big headline',
+    family: FONT_DISPLAY,
+    weight: '400',
+    sizeFactor: 0.11
+  },
+  subheading: {
+    label: 'Subheading',
+    text: 'A short subheading',
+    family: FONT_BODY,
+    weight: '600',
+    sizeFactor: 0.05
+  },
+  body: {
+    label: 'Body text',
+    text: 'Write something here',
+    family: FONT_BODY,
+    weight: '400',
+    sizeFactor: 0.034
+  },
+  handwritten: {
+    label: 'Handwritten',
+    text: 'a handwritten note',
+    family: FONT_HANDWRITING,
+    weight: '700',
+    sizeFactor: 0.09
+  },
+  marker: {
+    label: 'Marker',
+    text: 'MARKER NOTE',
+    family: FONT_MARKER,
+    weight: '400',
+    sizeFactor: 0.06
+  }
+};
 
 function isTextLike(obj: FabricObject): obj is Textbox | IText {
-  return obj instanceof Textbox || obj instanceof IText
+  return obj instanceof Textbox || obj instanceof IText;
 }
 
 function isDarkColor(value: unknown): boolean {
-  if (typeof value !== "string") return true
+  if (typeof value !== 'string') return true;
   try {
-    const [r, g, b] = new Color(value).getSource()
-    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.55
+    const [r, g, b] = new Color(value).getSource();
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.55;
   } catch {
-    return true
+    return true;
   }
 }
 
 export function getObjectLabel(obj: StudioObject): string {
-  if (obj.name) return obj.name
+  if (obj.name) return obj.name;
   if (isTextLike(obj)) {
-    const text = (obj.text ?? "").replace(/\s+/g, " ").trim()
-    return text ? (text.length > 22 ? `${text.slice(0, 22)}…` : text) : "Text"
+    const text = (obj.text ?? '').replace(/\s+/g, ' ').trim();
+    return text ? (text.length > 22 ? `${text.slice(0, 22)}…` : text) : 'Text';
   }
-  if (obj instanceof FabricImage) return "Photo"
-  if (obj instanceof Path) return "Drawing"
-  if (obj instanceof Group) return "Shape"
-  if (obj instanceof Rect) return "Rectangle"
-  return obj.type ?? "Object"
+  if (obj instanceof FabricImage) return 'Photo';
+  if (obj instanceof Path) return 'Drawing';
+  if (obj instanceof Group) return 'Shape';
+  if (obj instanceof Rect) return 'Rectangle';
+  return obj.type ?? 'Object';
 }
 
-let defaultsApplied = false
+let defaultsApplied = false;
 function applyControlDefaults() {
-  if (defaultsApplied) return
-  defaultsApplied = true
+  if (defaultsApplied) return;
+  defaultsApplied = true;
   InteractiveFabricObject.ownDefaults = {
     ...InteractiveFabricObject.ownDefaults,
     // Fabric v7 changed the default origin to center; the studio's layout
     // math (templates, overlays, photo fitting) is written in top-left space.
-    originX: "left",
-    originY: "top",
-    cornerStyle: "circle",
-    cornerColor: "#38bdf8",
-    cornerStrokeColor: "#ffffff",
-    borderColor: "#38bdf8",
+    originX: 'left',
+    originY: 'top',
+    cornerStyle: 'circle',
+    cornerColor: '#38bdf8',
+    cornerStrokeColor: '#ffffff',
+    borderColor: '#38bdf8',
     transparentCorners: false,
     cornerSize: 10,
     touchCornerSize: 26,
     borderScaleFactor: 1.5,
-    borderOpacityWhenMoving: 0.6,
-  }
+    borderOpacityWhenMoving: 0.6
+  };
 }
 
 export function useStudio(
   canvasElRef: React.RefObject<HTMLCanvasElement | null>,
-  containerRef: React.RefObject<HTMLDivElement | null>,
+  containerRef: React.RefObject<HTMLDivElement | null>
 ) {
-  const canvasRef = useRef<Canvas | null>(null)
-  const historyRef = useRef<StudioHistory | null>(null)
-  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const canvasRef = useRef<Canvas | null>(null);
+  const historyRef = useRef<StudioHistory | null>(null);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [ready, setReady] = useState(false)
-  const [presetId, setPresetIdState] = useState(DEFAULT_PRESET_ID)
-  const [zoomFactor, setZoomFactor] = useState(1)
-  const [fitZoom, setFitZoom] = useState(0.3)
-  const [selected, setSelected] = useState<StudioObject[]>([])
-  const [drawMode, setDrawModeState] = useState<DrawMode>("off")
-  const [drawColor, setDrawColor] = useState("#FFE066")
-  const [drawWidth, setDrawWidth] = useState(8)
-  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false })
-  const [userTemplates, setUserTemplates] = useState<SavedTemplate[]>([])
-  const [storageWarning, setStorageWarning] = useState(false)
-  const [layers, setLayers] = useState<StudioObject[]>([])
-  const [backgroundColor, setBackgroundColorState] = useState("#ffffff")
-  const [version, bumpVersion] = useReducer((x: number) => x + 1, 0)
-  const [pages, setPages] = useState<StudioPage[]>([])
-  const [activePageIndex, setActivePageIndex] = useState(0)
+  const [ready, setReady] = useState(false);
+  const [presetId, setPresetIdState] = useState(DEFAULT_PRESET_ID);
+  const [zoomFactor, setZoomFactor] = useState(1);
+  const [fitZoom, setFitZoom] = useState(0.3);
+  const [selected, setSelected] = useState<StudioObject[]>([]);
+  const [drawMode, setDrawModeState] = useState<DrawMode>('off');
+  const [drawColor, setDrawColor] = useState('#FFE066');
+  const [drawWidth, setDrawWidth] = useState(8);
+  const [historyState, setHistoryState] = useState({
+    canUndo: false,
+    canRedo: false
+  });
+  const [userTemplates, setUserTemplates] = useState<SavedTemplate[]>([]);
+  const [storageWarning, setStorageWarning] = useState(false);
+  const [layers, setLayers] = useState<StudioObject[]>([]);
+  const [backgroundColor, setBackgroundColorState] = useState('#ffffff');
+  const [version, bumpVersion] = useReducer((x: number) => x + 1, 0);
+  const [pages, setPages] = useState<StudioPage[]>([]);
+  const [activePageIndex, setActivePageIndex] = useState(0);
 
-  const preset = getPreset(presetId)
-  const presetRef = useRef(preset)
-  presetRef.current = preset
-  const pagesRef = useRef(pages)
-  pagesRef.current = pages
-  const activePageRef = useRef(activePageIndex)
-  activePageRef.current = activePageIndex
+  const preset = getPreset(presetId);
+  const presetRef = useRef(preset);
+  presetRef.current = preset;
+  const pagesRef = useRef(pages);
+  pagesRef.current = pages;
+  const activePageRef = useRef(activePageIndex);
+  activePageRef.current = activePageIndex;
 
-  const THUMB_WIDTH = 140
+  const THUMB_WIDTH = 140;
 
   /** Snapshot the live canvas into the active page entry (json + thumbnail). */
   const captureActivePage = useCallback((): StudioPage[] => {
-    const canvas = canvasRef.current
-    const history = historyRef.current
-    if (!canvas || !history) return pagesRef.current
-    const zoom = canvas.getZoom() || 1
+    const canvas = canvasRef.current;
+    const history = historyRef.current;
+    if (!canvas || !history) return pagesRef.current;
+    const zoom = canvas.getZoom() || 1;
     const thumb = canvas.toDataURL({
-      format: "jpeg",
+      format: 'jpeg',
       quality: 0.7,
       multiplier: THUMB_WIDTH / (presetRef.current.width * zoom),
-      enableRetinaScaling: false,
-    })
+      enableRetinaScaling: false
+    });
     const next = pagesRef.current.map((page, index) =>
-      index === activePageRef.current ? { ...page, json: history.snapshot(), thumb } : page,
-    )
-    pagesRef.current = next
-    setPages(next)
-    return next
-  }, [])
+      index === activePageRef.current
+        ? { ...page, json: history.snapshot(), thumb }
+        : page
+    );
+    pagesRef.current = next;
+    setPages(next);
+    return next;
+  }, []);
 
   const scheduleAutosave = useCallback(() => {
-    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
-      const history = historyRef.current
-      if (!history) return
-      const current = captureActivePage()
+      const history = historyRef.current;
+      if (!history) return;
+      const current = captureActivePage();
       const ok = writeAutosave({
         presetId: presetRef.current.id,
-        pages: current.map((page) => page.json ?? "{}"),
+        pages: current.map((page) => page.json ?? '{}'),
         activeIndex: activePageRef.current,
-        savedAt: Date.now(),
-      })
-      setStorageWarning(!ok)
-    }, 800)
-  }, [captureActivePage])
+        savedAt: Date.now()
+      });
+      setStorageWarning(!ok);
+    }, 800);
+  }, [captureActivePage]);
 
   const commitSoon = useCallback(() => {
-    if (commitTimer.current) clearTimeout(commitTimer.current)
-    commitTimer.current = setTimeout(() => historyRef.current?.commit(), 500)
-  }, [])
+    if (commitTimer.current) clearTimeout(commitTimer.current);
+    commitTimer.current = setTimeout(() => historyRef.current?.commit(), 500);
+  }, []);
 
   const markChanged = useCallback(() => {
-    bumpVersion()
-    scheduleAutosave()
-    const canvas = canvasRef.current
+    bumpVersion();
+    scheduleAutosave();
+    const canvas = canvasRef.current;
     if (canvas) {
-      setLayers([...canvas.getObjects()].reverse() as StudioObject[])
-      if (typeof canvas.backgroundColor === "string") setBackgroundColorState(canvas.backgroundColor)
+      setLayers([...canvas.getObjects()].reverse() as StudioObject[]);
+      if (typeof canvas.backgroundColor === 'string')
+        setBackgroundColorState(canvas.backgroundColor);
     }
-  }, [scheduleAutosave])
+  }, [scheduleAutosave]);
 
   // ---- Canvas lifecycle -------------------------------------------------
   useEffect(() => {
-    const el = canvasElRef.current
-    if (!el) return
-    applyControlDefaults()
+    const el = canvasElRef.current;
+    if (!el) return;
+    applyControlDefaults();
 
     const canvas = new Canvas(el, {
       preserveObjectStacking: true,
-      selectionColor: "rgba(56,189,248,0.12)",
-      selectionBorderColor: "#38bdf8",
+      selectionColor: 'rgba(56,189,248,0.12)',
+      selectionBorderColor: '#38bdf8',
       selectionLineWidth: 1.5,
-      backgroundColor: "#ffffff",
-    })
-    canvasRef.current = canvas
-    if (process.env.NODE_ENV === "development") {
-      ;(window as unknown as Record<string, unknown>).__studioCanvas = canvas
+      backgroundColor: '#ffffff'
+    });
+    canvasRef.current = canvas;
+    if (process.env.NODE_ENV === 'development') {
+      (window as unknown as Record<string, unknown>).__studioCanvas = canvas;
     }
 
     const history = new StudioHistory(canvas, () => {
-      setHistoryState({ canUndo: history.canUndo, canRedo: history.canRedo })
-    })
-    historyRef.current = history
+      setHistoryState({ canUndo: history.canUndo, canRedo: history.canRedo });
+    });
+    historyRef.current = history;
 
-    const refreshSelection = () => setSelected([...canvas.getActiveObjects()] as StudioObject[])
-    canvas.on("selection:created", refreshSelection)
-    canvas.on("selection:updated", refreshSelection)
-    canvas.on("selection:cleared", () => setSelected([]))
-    canvas.on("object:added", (e) => {
-      const obj = e.target as StudioObject
-      if (obj instanceof Path && !(obj as StudioObject).name) obj.set({ name: "Drawing" })
-      history.commit()
-      markChanged()
-    })
-    canvas.on("object:removed", () => {
-      history.commit()
-      markChanged()
-    })
-    canvas.on("object:modified", () => {
-      history.commit()
-      markChanged()
-    })
-    canvas.on("text:editing:exited", () => {
-      history.commit()
-      markChanged()
-    })
+    const refreshSelection = () =>
+      setSelected([...canvas.getActiveObjects()] as StudioObject[]);
+    canvas.on('selection:created', refreshSelection);
+    canvas.on('selection:updated', refreshSelection);
+    canvas.on('selection:cleared', () => setSelected([]));
+    canvas.on('object:added', (e) => {
+      const obj = e.target as StudioObject;
+      if (obj instanceof Path && !(obj as StudioObject).name)
+        obj.set({ name: 'Drawing' });
+      history.commit();
+      markChanged();
+    });
+    canvas.on('object:removed', () => {
+      history.commit();
+      markChanged();
+    });
+    canvas.on('object:modified', () => {
+      history.commit();
+      markChanged();
+    });
+    canvas.on('text:editing:exited', () => {
+      history.commit();
+      markChanged();
+    });
 
-    let cancelled = false
+    let cancelled = false;
     const init = async () => {
-      const saved = loadAutosave()
+      const saved = loadAutosave();
       if (saved) {
-        setPresetIdState(saved.presetId)
-        const savedPreset = getPreset(saved.presetId)
-        canvas.setDimensions({ width: savedPreset.width, height: savedPreset.height })
+        setPresetIdState(saved.presetId);
+        const savedPreset = getPreset(saved.presetId);
+        canvas.setDimensions({
+          width: savedPreset.width,
+          height: savedPreset.height
+        });
         try {
           await history.suspendWhile(async () => {
-            await canvas.loadFromJSON(JSON.parse(saved.pages[saved.activeIndex] ?? "{}"))
-          })
-          const initialPages = saved.pages.map((json) => ({ id: newPageId(), json, thumb: null }))
-          pagesRef.current = initialPages
-          setPages(initialPages)
-          setActivePageIndex(saved.activeIndex)
-          activePageRef.current = saved.activeIndex
+            await canvas.loadFromJSON(
+              JSON.parse(saved.pages[saved.activeIndex] ?? '{}')
+            );
+          });
+          const initialPages = saved.pages.map((json) => ({
+            id: newPageId(),
+            json,
+            thumb: null
+          }));
+          pagesRef.current = initialPages;
+          setPages(initialPages);
+          setActivePageIndex(saved.activeIndex);
+          activePageRef.current = saved.activeIndex;
         } catch {
-          clearAutosave()
+          clearAutosave();
         }
       }
       if (!pagesRef.current.length) {
-        const defaultPreset = getPreset(DEFAULT_PRESET_ID)
-        canvas.setDimensions({ width: defaultPreset.width, height: defaultPreset.height })
+        const defaultPreset = getPreset(DEFAULT_PRESET_ID);
+        canvas.setDimensions({
+          width: defaultPreset.width,
+          height: defaultPreset.height
+        });
         await history.suspendWhile(() =>
-          BUILTIN_TEMPLATES[0].pages[0](canvas, defaultPreset.width, defaultPreset.height),
-        )
-        const first: StudioPage = { id: newPageId(), json: null, thumb: null }
-        pagesRef.current = [first]
-        setPages([first])
-        setActivePageIndex(0)
-        activePageRef.current = 0
+          BUILTIN_TEMPLATES[0].pages[0](
+            canvas,
+            defaultPreset.width,
+            defaultPreset.height
+          )
+        );
+        const first: StudioPage = { id: newPageId(), json: null, thumb: null };
+        pagesRef.current = [first];
+        setPages([first]);
+        setActivePageIndex(0);
+        activePageRef.current = 0;
       }
-      if (cancelled) return
-      canvas.requestRenderAll()
-      history.reset()
-      setUserTemplates(loadTemplates())
-      setReady(true)
-      markChanged()
-    }
-    void init()
+      if (cancelled) return;
+      canvas.requestRenderAll();
+      history.reset();
+      setUserTemplates(loadTemplates());
+      setReady(true);
+      markChanged();
+    };
+    void init();
 
     return () => {
-      cancelled = true
-      canvasRef.current = null
-      historyRef.current = null
-      void canvas.dispose()
-    }
+      cancelled = true;
+      canvasRef.current = null;
+      historyRef.current = null;
+      void canvas.dispose();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
   // ---- Zoom / fit -------------------------------------------------------
   useEffect(() => {
-    const container = containerRef.current
-    const canvas = canvasRef.current
-    if (!container || !canvas || !ready) return
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas || !ready) return;
 
     const applyFit = () => {
-      const padding = 48
-      const availWidth = Math.max(container.clientWidth - padding, 100)
-      const availHeight = Math.max(container.clientHeight - padding, 100)
-      const fit = Math.min(availWidth / preset.width, availHeight / preset.height, 1)
-      setFitZoom(fit)
-      const zoom = fit * zoomFactor
-      canvas.setDimensions({ width: preset.width * zoom, height: preset.height * zoom })
-      canvas.setZoom(zoom)
-      canvas.requestRenderAll()
-    }
+      const padding = 48;
+      const availWidth = Math.max(container.clientWidth - padding, 100);
+      const availHeight = Math.max(container.clientHeight - padding, 100);
+      const fit = Math.min(
+        availWidth / preset.width,
+        availHeight / preset.height,
+        1
+      );
+      setFitZoom(fit);
+      const zoom = fit * zoomFactor;
+      canvas.setDimensions({
+        width: preset.width * zoom,
+        height: preset.height * zoom
+      });
+      canvas.setZoom(zoom);
+      canvas.requestRenderAll();
+    };
 
-    applyFit()
-    const observer = new ResizeObserver(applyFit)
-    observer.observe(container)
-    return () => observer.disconnect()
-  }, [ready, preset.width, preset.height, zoomFactor, containerRef])
+    applyFit();
+    const observer = new ResizeObserver(applyFit);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [ready, preset.width, preset.height, zoomFactor, containerRef]);
 
-  const zoom = fitZoom * zoomFactor
+  const zoom = fitZoom * zoomFactor;
 
   // ---- Drawing mode -----------------------------------------------------
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !ready) return
-    if (drawMode === "off") {
-      canvas.isDrawingMode = false
-      return
+    const canvas = canvasRef.current;
+    if (!canvas || !ready) return;
+    if (drawMode === 'off') {
+      canvas.isDrawingMode = false;
+      return;
     }
-    const brush = new PencilBrush(canvas)
-    brush.decimate = 2
-    if (drawMode === "marker") {
-      brush.color = new Color(drawColor).setAlpha(0.45).toRgba()
-      brush.width = drawWidth * 2.5
+    const brush = new PencilBrush(canvas);
+    brush.decimate = 2;
+    if (drawMode === 'marker') {
+      brush.color = new Color(drawColor).setAlpha(0.45).toRgba();
+      brush.width = drawWidth * 2.5;
     } else {
-      brush.color = drawColor
-      brush.width = drawWidth
+      brush.color = drawColor;
+      brush.width = drawWidth;
     }
-    if (drawMode === "glow") {
-      brush.shadow = new Shadow({ color: drawColor, blur: drawWidth * 2.5, offsetX: 0, offsetY: 0 })
+    if (drawMode === 'glow') {
+      brush.shadow = new Shadow({
+        color: drawColor,
+        blur: drawWidth * 2.5,
+        offsetX: 0,
+        offsetY: 0
+      });
     }
-    canvas.freeDrawingBrush = brush
-    canvas.isDrawingMode = true
-  }, [drawMode, drawColor, drawWidth, ready])
+    canvas.freeDrawingBrush = brush;
+    canvas.isDrawingMode = true;
+  }, [drawMode, drawColor, drawWidth, ready]);
 
   // ---- Object helpers ---------------------------------------------------
   const addAndSelect = useCallback((obj: FabricObject) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    canvas.add(obj)
-    canvas.setActiveObject(obj)
-    canvas.requestRenderAll()
-  }, [])
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.add(obj);
+    canvas.setActiveObject(obj);
+    canvas.requestRenderAll();
+  }, []);
 
   const addText = useCallback(
     async (kind: TextKind) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const { width, height } = presetRef.current
-      const config = TEXT_PRESETS[kind]
-      await ensureFontLoaded(config.family, config.weight)
-      const darkBg = isDarkColor(canvas.backgroundColor)
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const { width, height } = presetRef.current;
+      const config = TEXT_PRESETS[kind];
+      await ensureFontLoaded(config.family, config.weight);
+      const darkBg = isDarkColor(canvas.backgroundColor);
       const textbox = new Textbox(config.text, {
         left: width / 2,
         top: height * 0.42,
         width: width * 0.72,
-        originX: "center",
-        textAlign: "center",
+        originX: 'center',
+        textAlign: 'center',
         fontFamily: config.family,
         fontWeight: config.weight,
         fontSize: Math.round(Math.min(width, height) * config.sizeFactor),
-        fill: darkBg ? "#ffffff" : "#111111",
-      })
-      textbox.set({ name: config.label })
-      addAndSelect(textbox)
+        fill: darkBg ? '#ffffff' : '#111111'
+      });
+      textbox.set({ name: config.label });
+      addAndSelect(textbox);
     },
-    [addAndSelect],
-  )
+    [addAndSelect]
+  );
 
   const addShape = useCallback(
     (kind: RoughShapeKind, options?: Partial<RoughShapeOptions>) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const { width, height } = presetRef.current
-      const darkBg = isDarkColor(canvas.backgroundColor)
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const { width, height } = presetRef.current;
+      const darkBg = isDarkColor(canvas.backgroundColor);
       const shape = createRoughShape(kind, width * 0.35, {
-        stroke: options?.stroke ?? (darkBg ? "#FFE066" : "#111111"),
+        stroke: options?.stroke ?? (darkBg ? '#FFE066' : '#111111'),
         strokeWidth: options?.strokeWidth ?? 3,
         fill: options?.fill,
-        fillStyle: options?.fillStyle,
-      })
-      shape.set({ left: width / 2 - (shape.width * shape.scaleX) / 2, top: height / 2 - (shape.height * shape.scaleY) / 2 })
-      addAndSelect(shape)
+        fillStyle: options?.fillStyle
+      });
+      shape.set({
+        left: width / 2 - (shape.width * shape.scaleX) / 2,
+        top: height / 2 - (shape.height * shape.scaleY) / 2
+      });
+      addAndSelect(shape);
     },
-    [addAndSelect],
-  )
+    [addAndSelect]
+  );
 
   const addOverlay = useCallback(
     (kind: OverlayKind) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const { width, height } = presetRef.current
-      const overlay = createOverlay(kind, width, height) as StudioObject
-      overlay.set({ name: kind.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) })
-      addAndSelect(overlay)
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const { width, height } = presetRef.current;
+      const overlay = createOverlay(kind, width, height) as StudioObject;
+      overlay.set({
+        name: kind.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+      });
+      addAndSelect(overlay);
     },
-    [addAndSelect],
-  )
+    [addAndSelect]
+  );
 
   const addPhoto = useCallback(
     async (file: File) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const dataUrl = await fileToImageDataUrl(file)
-      const image = await FabricImage.fromURL(dataUrl)
-      const { width, height } = presetRef.current
-      const scale = Math.min((width * 0.85) / image.width, (height * 0.85) / image.height, 1)
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dataUrl = await fileToImageDataUrl(file);
+      const image = await FabricImage.fromURL(dataUrl);
+      const { width, height } = presetRef.current;
+      const scale = Math.min(
+        (width * 0.85) / image.width,
+        (height * 0.85) / image.height,
+        1
+      );
       image.set({
         scaleX: scale,
         scaleY: scale,
         left: (width - image.width * scale) / 2,
         top: (height - image.height * scale) / 2,
-        name: file.name.replace(/\.[^.]+$/, "") || "Photo",
-      })
-      addAndSelect(image)
+        name: file.name.replace(/\.[^.]+$/, '') || 'Photo'
+      });
+      addAndSelect(image);
     },
-    [addAndSelect],
-  )
+    [addAndSelect]
+  );
 
   const fitPhotoAsBackground = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const image = canvas.getActiveObject()
-    if (!(image instanceof FabricImage)) return
-    const { width, height } = presetRef.current
-    const scale = Math.max(width / image.width, height / image.height)
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const image = canvas.getActiveObject();
+    if (!(image instanceof FabricImage)) return;
+    const { width, height } = presetRef.current;
+    const scale = Math.max(width / image.width, height / image.height);
     image.set({
       scaleX: scale,
       scaleY: scale,
       left: (width - image.width * scale) / 2,
       top: (height - image.height * scale) / 2,
-      angle: 0,
-    })
-    canvas.sendObjectToBack(image)
-    const background = canvas.getObjects().find((o) => (o as StudioObject).name === "Background")
-    if (background) canvas.sendObjectToBack(background)
-    canvas.requestRenderAll()
-    historyRef.current?.commit()
-    markChanged()
-  }, [markChanged])
+      angle: 0
+    });
+    canvas.sendObjectToBack(image);
+    const background = canvas
+      .getObjects()
+      .find((o) => (o as StudioObject).name === 'Background');
+    if (background) canvas.sendObjectToBack(background);
+    canvas.requestRenderAll();
+    historyRef.current?.commit();
+    markChanged();
+  }, [markChanged]);
 
   const setBackgroundColor = useCallback(
     (color: string) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      canvas.backgroundColor = color
-      canvas.requestRenderAll()
-      commitSoon()
-      markChanged()
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.backgroundColor = color;
+      canvas.requestRenderAll();
+      commitSoon();
+      markChanged();
     },
-    [commitSoon, markChanged],
-  )
+    [commitSoon, markChanged]
+  );
 
   const deleteSelected = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const objects = canvas.getActiveObjects()
-    canvas.discardActiveObject()
-    objects.forEach((obj) => canvas.remove(obj))
-    canvas.requestRenderAll()
-  }, [])
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const objects = canvas.getActiveObjects();
+    canvas.discardActiveObject();
+    objects.forEach((obj) => canvas.remove(obj));
+    canvas.requestRenderAll();
+  }, []);
 
   const duplicateSelected = useCallback(async () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const objects = canvas.getActiveObjects()
-    if (!objects.length) return
-    canvas.discardActiveObject()
-    const clones: FabricObject[] = []
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const objects = canvas.getActiveObjects();
+    if (!objects.length) return;
+    canvas.discardActiveObject();
+    const clones: FabricObject[] = [];
     for (const obj of objects) {
-      const clone = await obj.clone()
-      clone.set({ left: (obj.left ?? 0) + 24, top: (obj.top ?? 0) + 24 })
-      canvas.add(clone)
-      clones.push(clone)
+      const clone = await obj.clone();
+      clone.set({ left: (obj.left ?? 0) + 24, top: (obj.top ?? 0) + 24 });
+      canvas.add(clone);
+      clones.push(clone);
     }
-    if (clones.length === 1) canvas.setActiveObject(clones[0])
-    else canvas.setActiveObject(new ActiveSelection(clones, { canvas }))
-    canvas.requestRenderAll()
-  }, [])
+    if (clones.length === 1) canvas.setActiveObject(clones[0]);
+    else canvas.setActiveObject(new ActiveSelection(clones, { canvas }));
+    canvas.requestRenderAll();
+  }, []);
 
   const selectObject = useCallback((obj: StudioObject) => {
-    const canvas = canvasRef.current
-    if (!canvas || obj.locked) return
-    canvas.setActiveObject(obj)
-    canvas.requestRenderAll()
-    setSelected([obj])
-  }, [])
+    const canvas = canvasRef.current;
+    if (!canvas || obj.locked) return;
+    canvas.setActiveObject(obj);
+    canvas.requestRenderAll();
+    setSelected([obj]);
+  }, []);
 
   const toggleLock = useCallback(
     (obj: StudioObject) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const locked = !obj.locked
-      obj.set({ locked, selectable: !locked, evented: !locked })
-      if (locked && canvas.getActiveObjects().includes(obj)) canvas.discardActiveObject()
-      canvas.requestRenderAll()
-      historyRef.current?.commit()
-      markChanged()
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const locked = !obj.locked;
+      obj.set({ locked, selectable: !locked, evented: !locked });
+      if (locked && canvas.getActiveObjects().includes(obj))
+        canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      historyRef.current?.commit();
+      markChanged();
     },
-    [markChanged],
-  )
+    [markChanged]
+  );
 
   const toggleVisible = useCallback(
     (obj: StudioObject) => {
-      obj.set({ visible: !obj.visible })
-      canvasRef.current?.requestRenderAll()
-      historyRef.current?.commit()
-      markChanged()
+      obj.set({ visible: !obj.visible });
+      canvasRef.current?.requestRenderAll();
+      historyRef.current?.commit();
+      markChanged();
     },
-    [markChanged],
-  )
+    [markChanged]
+  );
 
   const removeObject = useCallback((obj: StudioObject) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    if (canvas.getActiveObjects().includes(obj)) canvas.discardActiveObject()
-    canvas.remove(obj)
-    canvas.requestRenderAll()
-  }, [])
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (canvas.getActiveObjects().includes(obj)) canvas.discardActiveObject();
+    canvas.remove(obj);
+    canvas.requestRenderAll();
+  }, []);
 
   const moveLayer = useCallback(
-    (obj: StudioObject, direction: "up" | "down") => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      if (direction === "up") canvas.bringObjectForward(obj)
-      else canvas.sendObjectBackwards(obj)
-      canvas.requestRenderAll()
-      historyRef.current?.commit()
-      markChanged()
+    (obj: StudioObject, direction: 'up' | 'down') => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      if (direction === 'up') canvas.bringObjectForward(obj);
+      else canvas.sendObjectBackwards(obj);
+      canvas.requestRenderAll();
+      historyRef.current?.commit();
+      markChanged();
     },
-    [markChanged],
-  )
+    [markChanged]
+  );
 
   /** Mutate the current selection (or a specific object) and refresh/commit. */
   const updateObjects = useCallback(
     (mutate: (obj: StudioObject) => void, target?: StudioObject) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const targets = target ? [target] : (canvas.getActiveObjects() as StudioObject[])
-      targets.forEach(mutate)
-      canvas.requestRenderAll()
-      commitSoon()
-      markChanged()
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const targets = target
+        ? [target]
+        : (canvas.getActiveObjects() as StudioObject[]);
+      targets.forEach(mutate);
+      canvas.requestRenderAll();
+      commitSoon();
+      markChanged();
     },
-    [commitSoon, markChanged],
-  )
+    [commitSoon, markChanged]
+  );
 
   const setImageAdjust = useCallback(
-    (image: FabricImage, adjust: { brightness: number; contrast: number; saturation: number }) => {
+    (
+      image: FabricImage,
+      adjust: { brightness: number; contrast: number; saturation: number }
+    ) => {
       image.filters = [
         new filters.Brightness({ brightness: adjust.brightness }),
         new filters.Contrast({ contrast: adjust.contrast }),
-        new filters.Saturation({ saturation: adjust.saturation }),
-      ]
-      image.applyFilters()
-      canvasRef.current?.requestRenderAll()
-      commitSoon()
-      markChanged()
+        new filters.Saturation({ saturation: adjust.saturation })
+      ];
+      image.applyFilters();
+      canvasRef.current?.requestRenderAll();
+      commitSoon();
+      markChanged();
     },
-    [commitSoon, markChanged],
-  )
+    [commitSoon, markChanged]
+  );
 
   // ---- Pages ------------------------------------------------------------
   /** Replace canvas contents with a page's JSON (null = blank page). */
   const loadPageJson = useCallback(async (json: string | null) => {
-    const canvas = canvasRef.current
-    const history = historyRef.current
-    if (!canvas || !history) return
+    const canvas = canvasRef.current;
+    const history = historyRef.current;
+    if (!canvas || !history) return;
     await history.suspendWhile(async () => {
-      canvas.discardActiveObject()
-      canvas.clear()
-      canvas.backgroundColor = "#ffffff"
-      if (json) await canvas.loadFromJSON(JSON.parse(json))
-    })
-    canvas.requestRenderAll()
-    history.reset()
-    setSelected([])
-  }, [])
+      canvas.discardActiveObject();
+      canvas.clear();
+      canvas.backgroundColor = '#ffffff';
+      if (json) await canvas.loadFromJSON(JSON.parse(json));
+    });
+    canvas.requestRenderAll();
+    history.reset();
+    setSelected([]);
+  }, []);
 
   const setPagesState = useCallback((next: StudioPage[], active: number) => {
-    pagesRef.current = next
-    setPages(next)
-    setActivePageIndex(active)
-    activePageRef.current = active
-  }, [])
+    pagesRef.current = next;
+    setPages(next);
+    setActivePageIndex(active);
+    activePageRef.current = active;
+  }, []);
 
   const switchPage = useCallback(
     async (index: number) => {
-      if (index === activePageRef.current || index < 0 || index >= pagesRef.current.length) return
-      const current = captureActivePage()
-      setPagesState(current, index)
-      await loadPageJson(current[index].json)
-      markChanged()
+      if (
+        index === activePageRef.current ||
+        index < 0 ||
+        index >= pagesRef.current.length
+      )
+        return;
+      const current = captureActivePage();
+      setPagesState(current, index);
+      await loadPageJson(current[index].json);
+      markChanged();
     },
-    [captureActivePage, loadPageJson, markChanged, setPagesState],
-  )
+    [captureActivePage, loadPageJson, markChanged, setPagesState]
+  );
 
   const addPage = useCallback(async () => {
-    const current = captureActivePage()
-    const next = [...current, { id: newPageId(), json: null, thumb: null }]
-    setPagesState(next, next.length - 1)
-    await loadPageJson(null)
-    markChanged()
-  }, [captureActivePage, loadPageJson, markChanged, setPagesState])
+    const current = captureActivePage();
+    const next = [...current, { id: newPageId(), json: null, thumb: null }];
+    setPagesState(next, next.length - 1);
+    await loadPageJson(null);
+    markChanged();
+  }, [captureActivePage, loadPageJson, markChanged, setPagesState]);
 
   const duplicatePage = useCallback(
     async (index: number) => {
-      const current = captureActivePage()
-      const source = current[index]
-      if (!source?.json) return
-      const copy: StudioPage = { id: newPageId(), json: source.json, thumb: source.thumb }
-      const next = [...current.slice(0, index + 1), copy, ...current.slice(index + 1)]
-      setPagesState(next, index + 1)
-      await loadPageJson(copy.json)
-      markChanged()
+      const current = captureActivePage();
+      const source = current[index];
+      if (!source?.json) return;
+      const copy: StudioPage = {
+        id: newPageId(),
+        json: source.json,
+        thumb: source.thumb
+      };
+      const next = [
+        ...current.slice(0, index + 1),
+        copy,
+        ...current.slice(index + 1)
+      ];
+      setPagesState(next, index + 1);
+      await loadPageJson(copy.json);
+      markChanged();
     },
-    [captureActivePage, loadPageJson, markChanged, setPagesState],
-  )
+    [captureActivePage, loadPageJson, markChanged, setPagesState]
+  );
 
   const deletePage = useCallback(
     async (index: number) => {
-      if (pagesRef.current.length <= 1) return
-      const current = captureActivePage()
-      const next = current.filter((_, i) => i !== index)
-      const active = activePageRef.current
+      if (pagesRef.current.length <= 1) return;
+      const current = captureActivePage();
+      const next = current.filter((_, i) => i !== index);
+      const active = activePageRef.current;
       if (index === active) {
-        const newActive = Math.max(0, index - 1)
-        setPagesState(next, newActive)
-        await loadPageJson(next[newActive].json)
+        const newActive = Math.max(0, index - 1);
+        setPagesState(next, newActive);
+        await loadPageJson(next[newActive].json);
       } else {
-        setPagesState(next, index < active ? active - 1 : active)
+        setPagesState(next, index < active ? active - 1 : active);
       }
-      markChanged()
+      markChanged();
     },
-    [captureActivePage, loadPageJson, markChanged, setPagesState],
-  )
+    [captureActivePage, loadPageJson, markChanged, setPagesState]
+  );
 
   const movePage = useCallback(
-    (index: number, direction: "left" | "right") => {
-      const target = index + (direction === "left" ? -1 : 1)
-      if (target < 0 || target >= pagesRef.current.length) return
-      const current = captureActivePage()
-      const next = [...current]
-      ;[next[index], next[target]] = [next[target], next[index]]
-      let active = activePageRef.current
-      if (active === index) active = target
-      else if (active === target) active = index
-      setPagesState(next, active)
-      markChanged()
+    (index: number, direction: 'left' | 'right') => {
+      const target = index + (direction === 'left' ? -1 : 1);
+      if (target < 0 || target >= pagesRef.current.length) return;
+      const current = captureActivePage();
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      let active = activePageRef.current;
+      if (active === index) active = target;
+      else if (active === target) active = index;
+      setPagesState(next, active);
+      markChanged();
     },
-    [captureActivePage, markChanged, setPagesState],
-  )
+    [captureActivePage, markChanged, setPagesState]
+  );
 
   // Regenerate missing page thumbnails (after reload / template import) offscreen.
-  const thumbJobRef = useRef(false)
+  const thumbJobRef = useRef(false);
   useEffect(() => {
-    if (!ready || thumbJobRef.current) return
-    if (!pages.some((page) => page.json && !page.thumb)) return
-    thumbJobRef.current = true
-    const { width, height } = presetRef.current
+    if (!ready || thumbJobRef.current) return;
+    if (!pages.some((page) => page.json && !page.thumb)) return;
+    thumbJobRef.current = true;
+    const { width, height } = presetRef.current;
     void (async () => {
       try {
         for (const page of [...pagesRef.current]) {
-          if (!page.json || page.thumb) continue
-          const thumb = await renderPageJson(page.json, width, height, { multiplier: THUMB_WIDTH / width })
-          const next = pagesRef.current.map((p) => (p.id === page.id ? { ...p, thumb } : p))
-          pagesRef.current = next
-          setPages(next)
+          if (!page.json || page.thumb) continue;
+          const thumb = await renderPageJson(page.json, width, height, {
+            multiplier: THUMB_WIDTH / width
+          });
+          const next = pagesRef.current.map((p) =>
+            p.id === page.id ? { ...p, thumb } : p
+          );
+          pagesRef.current = next;
+          setPages(next);
         }
       } finally {
-        thumbJobRef.current = false
+        thumbJobRef.current = false;
       }
-    })()
-  }, [ready, pages])
+    })();
+  }, [ready, pages]);
 
   // ---- History ----------------------------------------------------------
   const undo = useCallback(async () => {
-    await historyRef.current?.undo()
-    setSelected([])
-    markChanged()
-  }, [markChanged])
+    await historyRef.current?.undo();
+    setSelected([]);
+    markChanged();
+  }, [markChanged]);
 
   const redo = useCallback(async () => {
-    await historyRef.current?.redo()
-    setSelected([])
-    markChanged()
-  }, [markChanged])
+    await historyRef.current?.redo();
+    setSelected([]);
+    markChanged();
+  }, [markChanged]);
 
   // ---- Templates --------------------------------------------------------
   const clearCanvas = useCallback(async () => {
-    const canvas = canvasRef.current
-    const history = historyRef.current
-    if (!canvas || !history) return
+    const canvas = canvasRef.current;
+    const history = historyRef.current;
+    if (!canvas || !history) return;
     await history.suspendWhile(() => {
-      canvas.discardActiveObject()
-      canvas.clear()
-      canvas.backgroundColor = "#ffffff"
-    })
-    setSelected([])
-  }, [])
+      canvas.discardActiveObject();
+      canvas.clear();
+      canvas.backgroundColor = '#ffffff';
+    });
+    setSelected([]);
+  }, []);
 
   const newDesign = useCallback(async () => {
-    await clearCanvas()
-    canvasRef.current?.requestRenderAll()
-    historyRef.current?.reset()
-    setPagesState([{ id: newPageId(), json: null, thumb: null }], 0)
-    clearAutosave()
-    markChanged()
-  }, [clearCanvas, markChanged, setPagesState])
+    await clearCanvas();
+    canvasRef.current?.requestRenderAll();
+    historyRef.current?.reset();
+    setPagesState([{ id: newPageId(), json: null, thumb: null }], 0);
+    clearAutosave();
+    markChanged();
+  }, [clearCanvas, markChanged, setPagesState]);
 
   const applyBuiltinTemplate = useCallback(
     async (id: string) => {
-      const canvas = canvasRef.current
-      const history = historyRef.current
-      if (!canvas || !history) return
-      const template = BUILTIN_TEMPLATES.find((t) => t.id === id)
-      if (!template) return
-      const { width, height } = presetRef.current
-      const zoom = canvas.getZoom() || 1
-      const builtPages: StudioPage[] = []
+      const canvas = canvasRef.current;
+      const history = historyRef.current;
+      if (!canvas || !history) return;
+      const template = BUILTIN_TEMPLATES.find((t) => t.id === id);
+      if (!template) return;
+      const { width, height } = presetRef.current;
+      const zoom = canvas.getZoom() || 1;
+      const builtPages: StudioPage[] = [];
       await history.suspendWhile(async () => {
         for (const buildPage of template.pages) {
-          canvas.discardActiveObject()
-          canvas.clear()
-          canvas.backgroundColor = "#ffffff"
-          await buildPage(canvas, width, height)
-          canvas.requestRenderAll()
+          canvas.discardActiveObject();
+          canvas.clear();
+          canvas.backgroundColor = '#ffffff';
+          await buildPage(canvas, width, height);
+          canvas.requestRenderAll();
           builtPages.push({
             id: newPageId(),
             json: history.snapshot(),
             thumb: canvas.toDataURL({
-              format: "jpeg",
+              format: 'jpeg',
               quality: 0.7,
               multiplier: THUMB_WIDTH / (width * zoom),
-              enableRetinaScaling: false,
-            }),
-          })
+              enableRetinaScaling: false
+            })
+          });
         }
-        canvas.clear()
-        canvas.backgroundColor = "#ffffff"
-        await canvas.loadFromJSON(JSON.parse(builtPages[0].json ?? "{}"))
-      })
-      canvas.requestRenderAll()
-      setPagesState(builtPages, 0)
-      history.reset()
-      setSelected([])
-      markChanged()
+        canvas.clear();
+        canvas.backgroundColor = '#ffffff';
+        await canvas.loadFromJSON(JSON.parse(builtPages[0].json ?? '{}'));
+      });
+      canvas.requestRenderAll();
+      setPagesState(builtPages, 0);
+      history.reset();
+      setSelected([]);
+      markChanged();
     },
-    [markChanged, setPagesState],
-  )
+    [markChanged, setPagesState]
+  );
 
   const applySavedTemplate = useCallback(
     async (template: SavedTemplate) => {
-      const canvas = canvasRef.current
-      const history = historyRef.current
-      if (!canvas || !history) return
-      setPresetIdState(template.presetId)
-      const templatePreset = getPreset(template.presetId)
-      canvas.setDimensions({ width: templatePreset.width, height: templatePreset.height })
-      const newPages: StudioPage[] = template.pages.map((json) => ({ id: newPageId(), json, thumb: null }))
-      setPagesState(newPages, 0)
-      await loadPageJson(newPages[0].json)
-      markChanged()
+      const canvas = canvasRef.current;
+      const history = historyRef.current;
+      if (!canvas || !history) return;
+      setPresetIdState(template.presetId);
+      const templatePreset = getPreset(template.presetId);
+      canvas.setDimensions({
+        width: templatePreset.width,
+        height: templatePreset.height
+      });
+      const newPages: StudioPage[] = template.pages.map((json) => ({
+        id: newPageId(),
+        json,
+        thumb: null
+      }));
+      setPagesState(newPages, 0);
+      await loadPageJson(newPages[0].json);
+      markChanged();
     },
-    [loadPageJson, markChanged, setPagesState],
-  )
+    [loadPageJson, markChanged, setPagesState]
+  );
 
   const saveCurrentAsTemplate = useCallback(
     (name: string): boolean => {
-      const canvas = canvasRef.current
-      const history = historyRef.current
-      if (!canvas || !history) return false
-      canvas.discardActiveObject()
-      canvas.requestRenderAll()
-      const current = captureActivePage()
+      const canvas = canvasRef.current;
+      const history = historyRef.current;
+      if (!canvas || !history) return false;
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const current = captureActivePage();
       const ok = saveTemplate({
         id: `tpl-${Date.now().toString(36)}`,
         name,
         presetId: presetRef.current.id,
-        pages: current.map((page) => page.json ?? "{}"),
-        preview: current[0].thumb ?? "",
-        createdAt: Date.now(),
-      })
-      setStorageWarning(!ok)
-      if (ok) setUserTemplates(loadTemplates())
-      return ok
+        pages: current.map((page) => page.json ?? '{}'),
+        preview: current[0].thumb ?? '',
+        createdAt: Date.now()
+      });
+      setStorageWarning(!ok);
+      if (ok) setUserTemplates(loadTemplates());
+      return ok;
     },
-    [captureActivePage],
-  )
+    [captureActivePage]
+  );
 
   const removeSavedTemplate = useCallback((id: string) => {
-    setUserTemplates(deleteTemplate(id))
-  }, [])
+    setUserTemplates(deleteTemplate(id));
+  }, []);
 
   const exportTemplateFile = useCallback((template: SavedTemplate) => {
-    downloadJson(`${template.name.replace(/\s+/g, "-").toLowerCase()}.studio.json`, template)
-  }, [])
+    downloadJson(
+      `${template.name.replace(/\s+/g, '-').toLowerCase()}.studio.json`,
+      template
+    );
+  }, []);
 
-  const importTemplateFile = useCallback(async (file: File): Promise<boolean> => {
-    try {
-      const parsed = JSON.parse(await file.text()) as SavedTemplate & { json?: string }
-      const importedPages =
-        Array.isArray(parsed.pages) && parsed.pages.length
-          ? parsed.pages
-          : typeof parsed.json === "string"
-            ? [parsed.json]
-            : null
-      if (!importedPages || !parsed.presetId) return false
-      const template: SavedTemplate = {
-        ...parsed,
-        pages: importedPages,
-        id: `tpl-${Date.now().toString(36)}`,
-        name: parsed.name || "Imported template",
-        createdAt: Date.now(),
+  const importTemplateFile = useCallback(
+    async (file: File): Promise<boolean> => {
+      try {
+        const parsed = JSON.parse(await file.text()) as SavedTemplate & {
+          json?: string;
+        };
+        const importedPages =
+          Array.isArray(parsed.pages) && parsed.pages.length
+            ? parsed.pages
+            : typeof parsed.json === 'string'
+              ? [parsed.json]
+              : null;
+        if (!importedPages || !parsed.presetId) return false;
+        const template: SavedTemplate = {
+          ...parsed,
+          pages: importedPages,
+          id: `tpl-${Date.now().toString(36)}`,
+          name: parsed.name || 'Imported template',
+          createdAt: Date.now()
+        };
+        const ok = saveTemplate(template);
+        if (ok) setUserTemplates(loadTemplates());
+        return ok;
+      } catch {
+        return false;
       }
-      const ok = saveTemplate(template)
-      if (ok) setUserTemplates(loadTemplates())
-      return ok
-    } catch {
-      return false
-    }
-  }, [])
+    },
+    []
+  );
 
   // ---- Export -----------------------------------------------------------
   const exportImage = useCallback(
     async (options: ExportOptions) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
-      canvas.discardActiveObject()
-      canvas.requestRenderAll()
-      const stamp = new Date().toISOString().slice(0, 10)
-      const ext = options.format === "jpeg" ? "jpg" : "png"
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const stamp = new Date().toISOString().slice(0, 10);
+      const ext = options.format === 'jpeg' ? 'jpg' : 'png';
 
-      if (options.pages === "current" || pagesRef.current.length === 1) {
+      if (options.pages === 'current' || pagesRef.current.length === 1) {
         const dataUrl = canvas.toDataURL({
           format: options.format,
           quality: options.quality,
           multiplier: options.scale / canvas.getZoom(),
-          enableRetinaScaling: false,
-        })
-        downloadDataUrl(`${presetRef.current.id}-${stamp}.${ext}`, dataUrl)
-        return
+          enableRetinaScaling: false
+        });
+        downloadDataUrl(`${presetRef.current.id}-${stamp}.${ext}`, dataUrl);
+        return;
       }
 
-      const current = captureActivePage()
-      const { width, height } = presetRef.current
-      const images: { name: string; dataUrl: string }[] = []
+      const current = captureActivePage();
+      const { width, height } = presetRef.current;
+      const images: { name: string; dataUrl: string }[] = [];
       for (let index = 0; index < current.length; index++) {
-        const json = current[index].json
-        if (!json) continue
+        const json = current[index].json;
+        if (!json) continue;
         const dataUrl = await renderPageJson(json, width, height, {
           format: options.format,
           quality: options.quality,
-          multiplier: options.scale,
-        })
-        images.push({ name: `slide-${String(index + 1).padStart(2, "0")}.${ext}`, dataUrl })
+          multiplier: options.scale
+        });
+        images.push({
+          name: `slide-${String(index + 1).padStart(2, '0')}.${ext}`,
+          dataUrl
+        });
       }
       // Browsers block several programmatic downloads in a row - ship one zip.
-      await downloadImagesAsZip(`${presetRef.current.id}-carousel-${stamp}.zip`, images)
+      await downloadImagesAsZip(
+        `${presetRef.current.id}-carousel-${stamp}.zip`,
+        images
+      );
     },
-    [captureActivePage],
-  )
+    [captureActivePage]
+  );
 
   // ---- Preset change ----------------------------------------------------
   const setPresetId = useCallback(
     (id: string) => {
-      setPresetIdState(id)
-      const next = getPreset(id)
-      const canvas = canvasRef.current
+      setPresetIdState(id);
+      const next = getPreset(id);
+      const canvas = canvasRef.current;
       if (canvas) {
-        canvas.setDimensions({ width: next.width, height: next.height })
-        canvas.requestRenderAll()
-        historyRef.current?.commit()
+        canvas.setDimensions({ width: next.width, height: next.height });
+        canvas.requestRenderAll();
+        historyRef.current?.commit();
         // Thumbnails have the old aspect ratio - drop them so they regenerate.
-        const stale = pagesRef.current.map((page) => ({ ...page, thumb: null }))
-        pagesRef.current = stale
-        setPages(stale)
-        markChanged()
+        const stale = pagesRef.current.map((page) => ({
+          ...page,
+          thumb: null
+        }));
+        pagesRef.current = stale;
+        setPages(stale);
+        markChanged();
       }
     },
-    [markChanged],
-  )
+    [markChanged]
+  );
 
   // ---- Keyboard shortcuts -----------------------------------------------
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return
-      const canvas = canvasRef.current
-      if (!canvas) return
-      const meta = event.metaKey || event.ctrlKey
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      )
+        return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const meta = event.metaKey || event.ctrlKey;
 
-      if (meta && event.key.toLowerCase() === "z") {
-        event.preventDefault()
-        void (event.shiftKey ? redo() : undo())
-        return
+      if (meta && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        void (event.shiftKey ? redo() : undo());
+        return;
       }
-      if (meta && event.key.toLowerCase() === "y") {
-        event.preventDefault()
-        void redo()
-        return
+      if (meta && event.key.toLowerCase() === 'y') {
+        event.preventDefault();
+        void redo();
+        return;
       }
-      if (meta && event.key.toLowerCase() === "d") {
-        event.preventDefault()
-        void duplicateSelected()
-        return
+      if (meta && event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        void duplicateSelected();
+        return;
       }
-      if (event.key === "Delete" || event.key === "Backspace") {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
         if (canvas.getActiveObjects().length) {
-          event.preventDefault()
-          deleteSelected()
+          event.preventDefault();
+          deleteSelected();
         }
-        return
+        return;
       }
-      if (event.key === "Escape") {
-        canvas.discardActiveObject()
-        canvas.requestRenderAll()
-        return
+      if (event.key === 'Escape') {
+        canvas.discardActiveObject();
+        canvas.requestRenderAll();
+        return;
       }
-      if (event.key.startsWith("Arrow")) {
-        const objects = canvas.getActiveObjects()
-        if (!objects.length) return
-        event.preventDefault()
-        const step = event.shiftKey ? 10 : 1
-        const dx = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0
-        const dy = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0
-        objects.forEach((obj) => obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy }))
-        canvas.requestRenderAll()
-        commitSoon()
-        scheduleAutosave()
+      if (event.key.startsWith('Arrow')) {
+        const objects = canvas.getActiveObjects();
+        if (!objects.length) return;
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 1;
+        const dx =
+          event.key === 'ArrowLeft'
+            ? -step
+            : event.key === 'ArrowRight'
+              ? step
+              : 0;
+        const dy =
+          event.key === 'ArrowUp'
+            ? -step
+            : event.key === 'ArrowDown'
+              ? step
+              : 0;
+        objects.forEach((obj) =>
+          obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy })
+        );
+        canvas.requestRenderAll();
+        commitSoon();
+        scheduleAutosave();
       }
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [undo, redo, duplicateSelected, deleteSelected, commitSoon, scheduleAutosave])
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    undo,
+    redo,
+    duplicateSelected,
+    deleteSelected,
+    commitSoon,
+    scheduleAutosave
+  ]);
 
   return {
     ready,
@@ -1024,8 +1206,8 @@ export function useStudio(
     importTemplateFile,
     userTemplates,
     exportImage,
-    storageWarning,
-  }
+    storageWarning
+  };
 }
 
-export type StudioApi = ReturnType<typeof useStudio>
+export type StudioApi = ReturnType<typeof useStudio>;

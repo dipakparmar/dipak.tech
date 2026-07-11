@@ -10,9 +10,9 @@ import { annotate } from '@/lib/vendor/rough-notation';
 type HighlightIntensity = 'light' | 'medium' | 'strong';
 
 const ITERATIONS: Record<HighlightIntensity, number> = {
-  light:  1,
+  light: 1,
   medium: 2,
-  strong: 3,
+  strong: 3
 };
 
 interface HighlighterProps {
@@ -27,7 +27,14 @@ interface HighlighterProps {
   humanStroke?: boolean;
 }
 
-export function Highlighter({ children, color, intensity = 'medium', padding, strokeWidth, humanStroke }: HighlighterProps) {
+export function Highlighter({
+  children,
+  color,
+  intensity = 'medium',
+  padding,
+  strokeWidth,
+  humanStroke
+}: HighlighterProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const annotationRef = useRef<RoughAnnotation | null>(null);
   const inView = useInView(ref, { once: true, margin: '-5% 0px' });
@@ -50,7 +57,7 @@ export function Highlighter({ children, color, intensity = 'medium', padding, st
       animate: !reduced,
       humanStroke,
       ...(padding !== undefined && { padding }),
-      ...(strokeWidth !== undefined && { strokeWidth }),
+      ...(strokeWidth !== undefined && { strokeWidth })
     });
     annotationRef.current = annotation;
 
@@ -68,7 +75,12 @@ export function Highlighter({ children, color, intensity = 'medium', padding, st
   }, [inView, reduced]);
 
   return (
-    <span ref={ref} className="mdx-highlighter" data-color={color} data-intensity={intensity}>
+    <span
+      ref={ref}
+      className="mdx-highlighter"
+      data-color={color}
+      data-intensity={intensity}
+    >
       {children}
     </span>
   );

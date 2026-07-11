@@ -21,7 +21,11 @@ export async function GET(
   // Parse the path to extract registry, image, endpoint, reference
   const parsed = parseRegistryPath(path);
   if (!parsed) {
-    return registryError('NAME_INVALID', 'Invalid repository name or path', 400);
+    return registryError(
+      'NAME_INVALID',
+      'Invalid repository name or path',
+      400
+    );
   }
 
   // Get authorization header from client
@@ -70,7 +74,11 @@ export async function HEAD(
 
   const parsed = parseRegistryPath(path);
   if (!parsed) {
-    return registryError('NAME_INVALID', 'Invalid repository name or path', 400);
+    return registryError(
+      'NAME_INVALID',
+      'Invalid repository name or path',
+      400
+    );
   }
 
   const authHeader = request.headers.get('Authorization');
@@ -97,5 +105,9 @@ export async function HEAD(
     );
   }
 
-  return registryError('UNSUPPORTED', 'HEAD not supported for this endpoint', 400);
+  return registryError(
+    'UNSUPPORTED',
+    'HEAD not supported for this endpoint',
+    400
+  );
 }

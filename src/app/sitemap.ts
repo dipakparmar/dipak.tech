@@ -1,7 +1,12 @@
 import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { getAllPosts, getAllTags } from '@/lib/blog';
-import { buildCanonicalUrl, detectHost, type HostKey, getCanonicalBaseUrl } from '@/lib/host-routing';
+import {
+  buildCanonicalUrl,
+  detectHost,
+  type HostKey,
+  getCanonicalBaseUrl
+} from '@/lib/host-routing';
 
 function getPostLastModified(date: string): Date {
   return new Date(date);
@@ -9,12 +14,16 @@ function getPostLastModified(date: string): Date {
 
 function getLatestBlogPostDate() {
   const posts = getAllPosts();
-  return posts[0] ? getPostLastModified(posts[0].updated ?? posts[0].date) : undefined;
+  return posts[0]
+    ? getPostLastModified(posts[0].updated ?? posts[0].date)
+    : undefined;
 }
 
 function getLatestTagDate(tagName: string) {
   const posts = getAllPosts().filter((post) => post.tags.includes(tagName));
-  return posts[0] ? getPostLastModified(posts[0].updated ?? posts[0].date) : undefined;
+  return posts[0]
+    ? getPostLastModified(posts[0].updated ?? posts[0].date)
+    : undefined;
 }
 
 function portfolioEntries(): MetadataRoute.Sitemap {
@@ -24,39 +33,41 @@ function portfolioEntries(): MetadataRoute.Sitemap {
     {
       url: buildCanonicalUrl('portfolio'),
       changeFrequency: 'weekly',
-      priority: 1,
+      priority: 1
     },
     {
       url: buildCanonicalUrl('portfolio', '/resume'),
       changeFrequency: 'monthly',
-      priority: 0.8,
+      priority: 0.8
     },
     {
       url: buildCanonicalUrl('portfolio', '/blog'),
       ...(latestBlogDate && { lastModified: latestBlogDate }),
       changeFrequency: 'weekly',
-      priority: 0.8,
+      priority: 0.8
     },
     {
       url: buildCanonicalUrl('portfolio', '/blog/tags'),
       ...(latestBlogDate && { lastModified: latestBlogDate }),
       changeFrequency: 'weekly',
-      priority: 0.6,
-    },
+      priority: 0.6
+    }
   ];
 
   const blogEntries: MetadataRoute.Sitemap = getAllPosts().map((post) => ({
     url: buildCanonicalUrl('portfolio', `/blog/${post.slug}`),
     lastModified: getPostLastModified(post.updated ?? post.date),
     changeFrequency: 'monthly',
-    priority: 0.7,
+    priority: 0.7
   }));
 
   const tagEntries: MetadataRoute.Sitemap = getAllTags().map((tag) => ({
     url: buildCanonicalUrl('portfolio', `/blog/tags/${tag.name}`),
-    ...(getLatestTagDate(tag.name) && { lastModified: getLatestTagDate(tag.name) }),
+    ...(getLatestTagDate(tag.name) && {
+      lastModified: getLatestTagDate(tag.name)
+    }),
     changeFrequency: 'weekly',
-    priority: 0.6,
+    priority: 0.6
   }));
 
   return [...staticEntries, ...blogEntries, ...tagEntries];
@@ -64,25 +75,64 @@ function portfolioEntries(): MetadataRoute.Sitemap {
 
 function toolsEntries(): MetadataRoute.Sitemap {
   return [
-    { url: buildCanonicalUrl('tools'), changeFrequency: 'weekly', priority: 0.9 },
-    { url: buildCanonicalUrl('tools', '/apple-secret-generator'), changeFrequency: 'monthly', priority: 0.7 },
-    { url: buildCanonicalUrl('tools', '/certificates'), changeFrequency: 'weekly', priority: 0.8 },
-    { url: buildCanonicalUrl('tools', '/github-release-notes'), changeFrequency: 'monthly', priority: 0.7 },
-    { url: buildCanonicalUrl('tools', '/message-header-analyzer'), changeFrequency: 'weekly', priority: 0.8 },
-    { url: buildCanonicalUrl('tools', '/osint'), changeFrequency: 'weekly', priority: 0.8 },
-    { url: buildCanonicalUrl('tools', '/password-generator'), changeFrequency: 'monthly', priority: 0.7 },
-    { url: buildCanonicalUrl('tools', '/timeoff-optimizer'), changeFrequency: 'monthly', priority: 0.7 },
-    { url: buildCanonicalUrl('tools', '/web-terminal'), changeFrequency: 'monthly', priority: 0.7 },
+    {
+      url: buildCanonicalUrl('tools'),
+      changeFrequency: 'weekly',
+      priority: 0.9
+    },
+    {
+      url: buildCanonicalUrl('tools', '/apple-secret-generator'),
+      changeFrequency: 'monthly',
+      priority: 0.7
+    },
+    {
+      url: buildCanonicalUrl('tools', '/certificates'),
+      changeFrequency: 'weekly',
+      priority: 0.8
+    },
+    {
+      url: buildCanonicalUrl('tools', '/github-release-notes'),
+      changeFrequency: 'monthly',
+      priority: 0.7
+    },
+    {
+      url: buildCanonicalUrl('tools', '/message-header-analyzer'),
+      changeFrequency: 'weekly',
+      priority: 0.8
+    },
+    {
+      url: buildCanonicalUrl('tools', '/osint'),
+      changeFrequency: 'weekly',
+      priority: 0.8
+    },
+    {
+      url: buildCanonicalUrl('tools', '/password-generator'),
+      changeFrequency: 'monthly',
+      priority: 0.7
+    },
+    {
+      url: buildCanonicalUrl('tools', '/timeoff-optimizer'),
+      changeFrequency: 'monthly',
+      priority: 0.7
+    },
+    {
+      url: buildCanonicalUrl('tools', '/web-terminal'),
+      changeFrequency: 'monthly',
+      priority: 0.7
+    }
   ];
 }
 
-function singlePageEntry(hostKey: HostKey, priority: number): MetadataRoute.Sitemap {
+function singlePageEntry(
+  hostKey: HostKey,
+  priority: number
+): MetadataRoute.Sitemap {
   return [
     {
       url: getCanonicalBaseUrl(hostKey),
       changeFrequency: 'weekly',
-      priority,
-    },
+      priority
+    }
   ];
 }
 

@@ -385,8 +385,12 @@ function parseReleaseVersion(tagName: string): number[] | null {
   if (parts.some(isNaN)) {
     const fallbackMatch = tagName.match(/(\d+(?:\.\d+)*)/g);
     if (fallbackMatch && fallbackMatch.length > 0) {
-      const longestMatch = fallbackMatch.reduce((a, b) => (a.length > b.length ? a : b));
-      const fallbackParts = longestMatch.split('.').map((num) => Number.parseInt(num, 10));
+      const longestMatch = fallbackMatch.reduce((a, b) =>
+        a.length > b.length ? a : b
+      );
+      const fallbackParts = longestMatch
+        .split('.')
+        .map((num) => Number.parseInt(num, 10));
       if (!fallbackParts.some(isNaN)) {
         return fallbackParts;
       }
@@ -412,17 +416,37 @@ function compareReleaseVersions(a: number[], b: number[]): number {
   return 0;
 }
 
-function isVersionInRange(tagVersion: number[], minVersion: number[], maxVersion: number[]): boolean {
-  return compareReleaseVersions(tagVersion, minVersion) >= 0 && compareReleaseVersions(tagVersion, maxVersion) <= 0;
+function isVersionInRange(
+  tagVersion: number[],
+  minVersion: number[],
+  maxVersion: number[]
+): boolean {
+  return (
+    compareReleaseVersions(tagVersion, minVersion) >= 0 &&
+    compareReleaseVersions(tagVersion, maxVersion) <= 0
+  );
 }
 
 function isStableRelease(tagName: string): boolean {
   const tagLower = tagName.toLowerCase();
-  const preReleaseIndicators = ['alpha', 'beta', 'rc', 'dev', 'pre', 'snapshot'];
-  return !preReleaseIndicators.some((indicator) => tagLower.includes(indicator));
+  const preReleaseIndicators = [
+    'alpha',
+    'beta',
+    'rc',
+    'dev',
+    'pre',
+    'snapshot'
+  ];
+  return !preReleaseIndicators.some((indicator) =>
+    tagLower.includes(indicator)
+  );
 }
 
-async function fetchAllReleases(owner: string, repo: string, token?: string): Promise<Release[]> {
+async function fetchAllReleases(
+  owner: string,
+  repo: string,
+  token?: string
+): Promise<Release[]> {
   const allReleases: Release[] = [];
   let page = 1;
   const perPage = 100;
@@ -445,12 +469,20 @@ async function fetchAllReleases(owner: string, repo: string, token?: string): Pr
         throw new Error('Repository not found');
       }
       if (response.status === 403) {
-        throw new Error('Rate limit exceeded. Try again later or use a GitHub token.');
+        throw new Error(
+          'Rate limit exceeded. Try again later or use a GitHub token.'
+        );
       }
       if (response.status === 422) {
         const errorData = await response.json().catch(() => ({}));
-        if (errorData.message?.includes('Only the first 1000 results are available')) {
-          console.warn('GitHub API limit reached: Only first 1000 releases available');
+        if (
+          errorData.message?.includes(
+            'Only the first 1000 results are available'
+          )
+        ) {
+          console.warn(
+            'GitHub API limit reached: Only first 1000 releases available'
+          );
           break;
         }
       }
@@ -484,14 +516,22 @@ export async function fetchReleaseNotes(
     throw new Error('Owner and repo are required');
   }
 
-  if (!versionRanges || !Array.isArray(versionRanges) || versionRanges.length === 0) {
+  if (
+    !versionRanges ||
+    !Array.isArray(versionRanges) ||
+    versionRanges.length === 0
+  ) {
     throw new Error('Version ranges are required');
   }
 
   const allReleases = await fetchAllReleases(owner, repo, options?.token);
 
-  const parsedRanges: Array<{ min: number[] | null; max: number[] | null; originalMin: string; originalMax: string }> =
-    [];
+  const parsedRanges: Array<{
+    min: number[] | null;
+    max: number[] | null;
+    originalMin: string;
+    originalMax: string;
+  }> = [];
   const invalidRanges: string[] = [];
 
   versionRanges.forEach((range: VersionRange) => {
@@ -522,7 +562,9 @@ export async function fetchReleaseNotes(
   }
 
   if (invalidRanges.length > 0) {
-    console.warn(`Skipping invalid version ranges: ${invalidRanges.join(', ')}`);
+    console.warn(
+      `Skipping invalid version ranges: ${invalidRanges.join(', ')}`
+    );
   }
 
   const filteredReleases = allReleases.filter((release) => {
@@ -536,7 +578,12 @@ export async function fetchReleaseNotes(
       return false;
     }
 
-    return parsedRanges.some((range) => range.min && range.max && isVersionInRange(tagVersion, range.min, range.max));
+    return parsedRanges.some(
+      (range) =>
+        range.min &&
+        range.max &&
+        isVersionInRange(tagVersion, range.min, range.max)
+    );
   });
 
   filteredReleases.sort((a, b) => {

@@ -6,7 +6,7 @@ import { ogUrls, siteConfig } from '@/lib/og-config';
 const ogImageUrl = ogUrls.tools({
   tool: 'Web Terminal',
   description: 'Browser-based terminal',
-  category: 'web-terminal',
+  category: 'web-terminal'
 });
 
 export const metadata = {
@@ -15,7 +15,8 @@ export const metadata = {
     'Browser-based terminal supporting Serial, WebSocket, SSH, and Telnet connections. Connect to Arduino, ESP32, Raspberry Pi and other devices.',
   openGraph: {
     title: 'Web Terminal',
-    description: 'Browser-based terminal for Serial, WebSocket, SSH, and Telnet',
+    description:
+      'Browser-based terminal for Serial, WebSocket, SSH, and Telnet',
     url: `${siteConfig.tools.baseUrl}/web-terminal`,
     siteName: siteConfig.tools.domain,
     type: 'website',
@@ -24,19 +25,20 @@ export const metadata = {
         url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: 'Web Terminal Tool',
-      },
-    ],
+        alt: 'Web Terminal Tool'
+      }
+    ]
   },
   twitter: {
     card: 'summary_large_image' as const,
     title: 'Web Terminal | Dipak Parmar',
-    description: 'Browser-based terminal for Serial, WebSocket, SSH, and Telnet',
-    images: [ogImageUrl],
+    description:
+      'Browser-based terminal for Serial, WebSocket, SSH, and Telnet',
+    images: [ogImageUrl]
   },
   alternates: {
-    canonical: `${siteConfig.tools.baseUrl}/web-terminal`,
-  },
+    canonical: `${siteConfig.tools.baseUrl}/web-terminal`
+  }
 };
 
 const BLUR_FADE_DELAY = 0.04;
@@ -65,8 +67,9 @@ export default function WebTerminalPage() {
                 Web Terminal
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Connect via Serial, WebSocket, SSH, or Telnet directly from your browser.
-                Full terminal emulation with ANSI support, search, and session logging.
+                Connect via Serial, WebSocket, SSH, or Telnet directly from your
+                browser. Full terminal emulation with ANSI support, search, and
+                session logging.
               </p>
               {/* Feature pills */}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">

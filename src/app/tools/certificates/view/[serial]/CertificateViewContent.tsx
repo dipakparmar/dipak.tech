@@ -1,70 +1,81 @@
-"use client"
+'use client';
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ArrowLeft, Shield, AlertCircle, ExternalLink } from "lucide-react"
-import { CertificateDetails, CertificateData, parseDN } from "@/components/cert-tools/certificate-details"
-import { detectValidationType } from "@/lib/certificate-utils"
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ArrowLeft, Shield, AlertCircle, ExternalLink } from 'lucide-react';
+import {
+  CertificateDetails,
+  CertificateData,
+  parseDN
+} from '@/components/cert-tools/certificate-details';
+import { detectValidationType } from '@/lib/certificate-utils';
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 interface CertificateResponse {
   certificate: {
-    sha256: string
-    commonName: string
-    subject: string
-    issuer: string
-    dnsNames: string[]
-    serialNumber: string
-    notBefore: string
-    notAfter: string
-    signatureAlgorithm: string
-    publicKeyAlgorithm: string
-    pem: string
-    isPrecert: boolean
-  }
+    sha256: string;
+    commonName: string;
+    subject: string;
+    issuer: string;
+    dnsNames: string[];
+    serialNumber: string;
+    notBefore: string;
+    notAfter: string;
+    signatureAlgorithm: string;
+    publicKeyAlgorithm: string;
+    pem: string;
+    isPrecert: boolean;
+  };
 }
 
 interface CertificateViewContentProps {
-  serial: string
+  serial: string;
 }
 
-export function CertificateViewContent({ serial }: CertificateViewContentProps) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [certData, setCertData] = useState<CertificateData | null>(null)
+export function CertificateViewContent({
+  serial
+}: CertificateViewContentProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [certData, setCertData] = useState<CertificateData | null>(null);
 
   useEffect(() => {
     async function fetchCertificate() {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       try {
-        const response = await fetch(`https://ct.certkit.io/certificate/serial/${serial}`, {
-          headers: {
-            Accept: "application/json",
-          },
-        })
+        const response = await fetch(
+          `https://ct.certkit.io/certificate/serial/${serial}`,
+          {
+            headers: {
+              Accept: 'application/json'
+            }
+          }
+        );
 
         if (!response.ok) {
           if (response.status === 404) {
-            throw new Error("Certificate not found")
+            throw new Error('Certificate not found');
           }
-          throw new Error("Failed to fetch certificate details")
+          throw new Error('Failed to fetch certificate details');
         }
 
-        const data: CertificateResponse = await response.json()
-        const cert = data.certificate
+        const data: CertificateResponse = await response.json();
+        const cert = data.certificate;
 
         // Parse subject and detect validation type from PEM
-        const subject = parseDN(cert.subject)
-        const validationType = cert.pem ? detectValidationType(cert.pem, subject) : undefined
+        const subject = parseDN(cert.subject);
+        const validationType = cert.pem
+          ? detectValidationType(cert.pem, subject)
+          : undefined;
 
         // Transform to normalized format
         const normalized: CertificateData = {
@@ -80,21 +91,23 @@ export function CertificateViewContent({ serial }: CertificateViewContentProps) 
           sha256: cert.sha256,
           pem: cert.pem,
           isPrecert: cert.isPrecert,
-          validationType,
-        }
+          validationType
+        };
 
-        setCertData(normalized)
+        setCertData(normalized);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch certificate")
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch certificate'
+        );
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
     if (serial) {
-      fetchCertificate()
+      fetchCertificate();
     }
-  }, [serial])
+  }, [serial]);
 
   return (
     <main className="min-h-screen bg-background">
@@ -183,5 +196,5 @@ export function CertificateViewContent({ serial }: CertificateViewContentProps) 
         )}
       </div>
     </main>
-  )
+  );
 }

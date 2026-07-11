@@ -1,25 +1,25 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { MapPin, Trash2 } from "lucide-react"
+import * as React from 'react';
+import { MapPin, Trash2 } from 'lucide-react';
 
-import { HapticButton } from "@/components/haptic-wrappers"
-import { Label } from "@/components/ui/label"
-import { CountryCombobox } from "./country-combobox"
-import type { Location } from "@/lib/timeoff-optimizer/types"
+import { HapticButton } from '@/components/haptic-wrappers';
+import { Label } from '@/components/ui/label';
+import { CountryCombobox } from './country-combobox';
+import type { Location } from '@/lib/timeoff-optimizer/types';
 
 interface LocationRowProps {
-  location: Location
-  index: number
-  countries: Array<{ countryCode: string; name: string }>
-  states: Array<{ code: string; name: string }> | undefined
-  regions: Array<{ code: string; name: string }> | undefined
-  isLoadingCountries: boolean
-  isLoadingStates: boolean
-  isLoadingRegions: boolean
-  canRemove: boolean
-  onChange: (patch: Partial<Omit<Location, "id">>) => void
-  onRemove: () => void
+  location: Location;
+  index: number;
+  countries: Array<{ countryCode: string; name: string }>;
+  states: Array<{ code: string; name: string }> | undefined;
+  regions: Array<{ code: string; name: string }> | undefined;
+  isLoadingCountries: boolean;
+  isLoadingStates: boolean;
+  isLoadingRegions: boolean;
+  canRemove: boolean;
+  onChange: (patch: Partial<Omit<Location, 'id'>>) => void;
+  onRemove: () => void;
 }
 
 export function LocationRow({
@@ -33,23 +33,23 @@ export function LocationRow({
   isLoadingRegions,
   canRemove,
   onChange,
-  onRemove,
+  onRemove
 }: LocationRowProps) {
   const countryItems = React.useMemo(
     () => countries.map((c) => ({ value: c.countryCode, label: c.name })),
     [countries]
-  )
+  );
   const stateItems = React.useMemo(
     () => (states ?? []).map((s) => ({ value: s.code, label: s.name })),
     [states]
-  )
+  );
   const regionItems = React.useMemo(
     () => (regions ?? []).map((r) => ({ value: r.code, label: r.name })),
     [regions]
-  )
+  );
 
-  const hasStates = !!location.country && (states?.length ?? 0) > 0
-  const hasRegions = !!location.state && (regions?.length ?? 0) > 0
+  const hasStates = !!location.country && (states?.length ?? 0) > 0;
+  const hasRegions = !!location.state && (regions?.length ?? 0) > 0;
 
   return (
     <div className="space-y-2 rounded-md border border-border bg-muted/30 p-2">
@@ -76,8 +76,12 @@ export function LocationRow({
         <CountryCombobox
           items={countryItems}
           value={location.country}
-          onValueChange={(v) => onChange({ country: v, state: null, region: null })}
-          placeholder={isLoadingCountries ? "Loading countries..." : "Pick a country"}
+          onValueChange={(v) =>
+            onChange({ country: v, state: null, region: null })
+          }
+          placeholder={
+            isLoadingCountries ? 'Loading countries...' : 'Pick a country'
+          }
           disabled={isLoadingCountries}
           emptyMessage="No countries match"
         />
@@ -86,34 +90,36 @@ export function LocationRow({
       {location.country && (isLoadingStates || hasStates) && (
         <div className="space-y-1">
           <Label className="text-[11px] text-muted-foreground">
-            State / Province {isLoadingStates ? "(loading...)" : "(optional)"}
+            State / Province {isLoadingStates ? '(loading...)' : '(optional)'}
           </Label>
           <CountryCombobox
             items={stateItems}
             value={location.state}
             onValueChange={(v) => onChange({ state: v, region: null })}
-            placeholder={isLoadingStates ? "Loading..." : "Pick a state"}
+            placeholder={isLoadingStates ? 'Loading...' : 'Pick a state'}
             disabled={isLoadingStates}
             emptyMessage="No states found"
           />
         </div>
       )}
 
-      {location.country && location.state && (isLoadingRegions || hasRegions) && (
-        <div className="space-y-1">
-          <Label className="text-[11px] text-muted-foreground">
-            Region {isLoadingRegions ? "(loading...)" : "(optional)"}
-          </Label>
-          <CountryCombobox
-            items={regionItems}
-            value={location.region}
-            onValueChange={(v) => onChange({ region: v })}
-            placeholder={isLoadingRegions ? "Loading..." : "Pick a region"}
-            disabled={isLoadingRegions}
-            emptyMessage="No regions found"
-          />
-        </div>
-      )}
+      {location.country &&
+        location.state &&
+        (isLoadingRegions || hasRegions) && (
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">
+              Region {isLoadingRegions ? '(loading...)' : '(optional)'}
+            </Label>
+            <CountryCombobox
+              items={regionItems}
+              value={location.region}
+              onValueChange={(v) => onChange({ region: v })}
+              placeholder={isLoadingRegions ? 'Loading...' : 'Pick a region'}
+              disabled={isLoadingRegions}
+              emptyMessage="No regions found"
+            />
+          </div>
+        )}
     </div>
-  )
+  );
 }

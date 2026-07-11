@@ -7,8 +7,8 @@ export const metadata: Metadata = {
   title: 'Tags | Blog | Dipak Parmar',
   description: 'Browse blog posts by tag.',
   alternates: {
-    canonical: 'https://dipak.tech/blog/tags',
-  },
+    canonical: 'https://dipak.tech/blog/tags'
+  }
 };
 
 export default function TagsPage() {

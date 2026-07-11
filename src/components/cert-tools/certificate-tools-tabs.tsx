@@ -1,85 +1,88 @@
-"use client"
+'use client';
 
-import { useCallback, Suspense, useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
-import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
-import { FileKey, FileText, Key, Search, Shield } from "lucide-react"
+import { useCallback, Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
+import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
+import { FileKey, FileText, Key, Search, Shield } from 'lucide-react';
 
-import { CTLogsViewer } from "@/components/cert-tools/ct-logs-viewer"
-import { CertDecoder } from "@/components/cert-tools/cert-decoder"
-import { CSRGenerator } from "@/components/cert-tools/csr-generator"
-import { KeyGenerator } from "@/components/cert-tools/key-generator"
+import { CTLogsViewer } from '@/components/cert-tools/ct-logs-viewer';
+import { CertDecoder } from '@/components/cert-tools/cert-decoder';
+import { CSRGenerator } from '@/components/cert-tools/csr-generator';
+import { KeyGenerator } from '@/components/cert-tools/key-generator';
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
-const VALID_TOOLS = ["ct-logs", "decoder", "csr", "keygen"] as const
-type ToolType = (typeof VALID_TOOLS)[number]
+const VALID_TOOLS = ['ct-logs', 'decoder', 'csr', 'keygen'] as const;
+type ToolType = (typeof VALID_TOOLS)[number];
 
 function getValidTool(value: string | null): ToolType {
-  return VALID_TOOLS.includes(value as ToolType) ? (value as ToolType) : "ct-logs"
+  return VALID_TOOLS.includes(value as ToolType)
+    ? (value as ToolType)
+    : 'ct-logs';
 }
 
 function CertificateToolsContent() {
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams();
 
-  const [activeTool, setActiveTool] = useState<ToolType>(() => getValidTool(searchParams.get("tool")))
+  const [activeTool, setActiveTool] = useState<ToolType>(() =>
+    getValidTool(searchParams.get('tool'))
+  );
 
   useEffect(() => {
-    setActiveTool(getValidTool(searchParams.get("tool")))
-  }, [searchParams])
+    setActiveTool(getValidTool(searchParams.get('tool')));
+  }, [searchParams]);
 
   useEffect(() => {
     const handlePopState = () => {
-      setActiveTool(getValidTool(new URLSearchParams(window.location.search).get("tool")))
-    }
+      setActiveTool(
+        getValidTool(new URLSearchParams(window.location.search).get('tool'))
+      );
+    };
 
-    window.addEventListener("popstate", handlePopState)
-    return () => window.removeEventListener("popstate", handlePopState)
-  }, [])
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Read tool-specific params
-  const domain = searchParams.get("domain") || ""
+  const domain = searchParams.get('domain') || '';
 
   // CSR params
   const csrParams = {
-    cn: searchParams.get("cn") || undefined,
-    o: searchParams.get("o") || undefined,
-    ou: searchParams.get("ou") || undefined,
-    l: searchParams.get("l") || undefined,
-    st: searchParams.get("st") || undefined,
-    c: searchParams.get("c") || undefined,
-    keyType: searchParams.get("keyType") || undefined,
-    keySize: searchParams.get("keySize") || undefined,
-    san: searchParams.get("san") || undefined,
-  }
+    cn: searchParams.get('cn') || undefined,
+    o: searchParams.get('o') || undefined,
+    ou: searchParams.get('ou') || undefined,
+    l: searchParams.get('l') || undefined,
+    st: searchParams.get('st') || undefined,
+    c: searchParams.get('c') || undefined,
+    keyType: searchParams.get('keyType') || undefined,
+    keySize: searchParams.get('keySize') || undefined,
+    san: searchParams.get('san') || undefined
+  };
 
   // Key generator params
   const keygenParams = {
-    algorithm: searchParams.get("algorithm") || undefined,
-    keySize: searchParams.get("keySize") || undefined,
-    usage: searchParams.get("usage") || undefined,
-  }
+    algorithm: searchParams.get('algorithm') || undefined,
+    keySize: searchParams.get('keySize') || undefined,
+    usage: searchParams.get('usage') || undefined
+  };
 
-  const handleTabChange = useCallback(
-    (value: string) => {
-      const nextTool = getValidTool(value)
-      setActiveTool(nextTool)
+  const handleTabChange = useCallback((value: string) => {
+    const nextTool = getValidTool(value);
+    setActiveTool(nextTool);
 
-      const params = new URLSearchParams(window.location.search)
-      if (value === "ct-logs") {
-        params.delete("tool")
-      } else {
-        params.set("tool", value)
-      }
+    const params = new URLSearchParams(window.location.search);
+    if (value === 'ct-logs') {
+      params.delete('tool');
+    } else {
+      params.set('tool', value);
+    }
 
-      const query = params.toString()
-      const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`
-      window.history.replaceState(window.history.state, "", nextUrl)
-    },
-    []
-  )
+    const query = params.toString();
+    const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
+    window.history.replaceState(window.history.state, '', nextUrl);
+  }, []);
 
   return (
     <>
@@ -94,15 +97,20 @@ function CertificateToolsContent() {
             SSL/TLS Certificate Utilities
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-            Generate keys, create CSRs, decode certificates, and search certificate transparency logs.
-            All cryptographic operations run client-side - your keys never leave your browser.
+            Generate keys, create CSRs, decode certificates, and search
+            certificate transparency logs. All cryptographic operations run
+            client-side - your keys never leave your browser.
           </p>
         </div>
       </BlurFade>
 
       {/* Tools Tabs */}
       <BlurFade delay={BLUR_FADE_DELAY * 3}>
-        <Tabs value={activeTool} onValueChange={handleTabChange} className="w-full">
+        <Tabs
+          value={activeTool}
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
           <TabsList className="mb-6 grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 md:grid-cols-4">
             <TabsTrigger
               value="ct-logs"
@@ -156,7 +164,7 @@ function CertificateToolsContent() {
         </Tabs>
       </BlurFade>
     </>
-  )
+  );
 }
 
 export function CertificateToolsTabs() {
@@ -180,5 +188,5 @@ export function CertificateToolsTabs() {
     >
       <CertificateToolsContent />
     </Suspense>
-  )
+  );
 }

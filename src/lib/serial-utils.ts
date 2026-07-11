@@ -5,7 +5,7 @@ export const LINE_ENDINGS = {
   none: new Uint8Array([]),
   cr: new Uint8Array([0x0d]),
   lf: new Uint8Array([0x0a]),
-  crlf: new Uint8Array([0x0d, 0x0a]),
+  crlf: new Uint8Array([0x0d, 0x0a])
 } as const;
 
 export type LineEnding = keyof typeof LINE_ENDINGS;
@@ -15,7 +15,7 @@ export type LineEnding = keyof typeof LINE_ENDINGS;
  */
 export const COMMON_BAUD_RATES = [
   300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 230400, 460800,
-  921600,
+  921600
 ] as const;
 
 /**
@@ -64,7 +64,7 @@ export function formatTimestamp(date: Date): string {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    fractionalSecondDigits: 3,
+    fractionalSecondDigits: 3
   });
 }
 

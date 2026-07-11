@@ -1,55 +1,55 @@
-import { Metadata } from "next"
-import { ogUrls, siteConfig } from "@/lib/og-config"
-import { CertificateViewContent } from "./CertificateViewContent"
+import { Metadata } from 'next';
+import { ogUrls, siteConfig } from '@/lib/og-config';
+import { CertificateViewContent } from './CertificateViewContent';
 
 interface CertificateViewPageProps {
-  params: Promise<{ serial: string }>
+  params: Promise<{ serial: string }>;
 }
 
 export async function generateMetadata({
-  params,
+  params
 }: CertificateViewPageProps): Promise<Metadata> {
-  const { serial } = await params
+  const { serial } = await params;
 
   // Fetch certificate data for metadata
-  let commonName = "Certificate"
+  let commonName = 'Certificate';
   try {
     const response = await fetch(
       `https://ct.certkit.io/certificate/serial/${serial}`,
       {
-        headers: { Accept: "application/json" },
-        next: { revalidate: 3600 },
+        headers: { Accept: 'application/json' },
+        next: { revalidate: 3600 }
       }
-    )
+    );
     if (response.ok) {
-      const data = await response.json()
-      commonName = data.certificate?.commonName || "Certificate"
+      const data = await response.json();
+      commonName = data.certificate?.commonName || 'Certificate';
 
       if (!data.certificate?.commonName) {
         console.warn(
           `Certificate data fetched for serial ${serial} but commonName is missing`,
           { serial }
-        )
+        );
       }
     } else {
       console.error(
         `Failed to fetch certificate metadata for serial ${serial}: HTTP ${response.status}`
-      )
+      );
     }
   } catch (error) {
     console.error(
       `Exception while fetching certificate metadata for serial ${serial}:`,
       error instanceof Error ? error.message : String(error)
-    )
+    );
   }
 
-  const description = `View SSL certificate details for ${commonName}`
+  const description = `View SSL certificate details for ${commonName}`;
 
   const ogImageUrl = ogUrls.tools({
     tool: commonName,
-    description: "SSL Certificate Details",
-    category: "certificates",
-  })
+    description: 'SSL Certificate Details',
+    category: 'certificates'
+  });
 
   return {
     title: `${commonName} - Certificate Details`,
@@ -59,31 +59,31 @@ export async function generateMetadata({
       description,
       url: `${siteConfig.tools.baseUrl}/certificates/view/${serial}`,
       siteName: siteConfig.tools.domain,
-      type: "website",
+      type: 'website',
       images: [
         {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `Certificate details for ${commonName}`,
-        },
-      ],
+          alt: `Certificate details for ${commonName}`
+        }
+      ]
     },
     twitter: {
-      card: "summary_large_image",
+      card: 'summary_large_image',
       title: `${commonName} - Certificate Details`,
       description,
-      images: [ogImageUrl],
+      images: [ogImageUrl]
     },
     alternates: {
-      canonical: `${siteConfig.tools.baseUrl}/certificates/view/${serial}`,
-    },
-  }
+      canonical: `${siteConfig.tools.baseUrl}/certificates/view/${serial}`
+    }
+  };
 }
 
 export default async function CertificateViewPage({
-  params,
+  params
 }: CertificateViewPageProps) {
-  const { serial } = await params
-  return <CertificateViewContent serial={serial} />
+  const { serial } = await params;
+  return <CertificateViewContent serial={serial} />;
 }

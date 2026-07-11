@@ -12,34 +12,34 @@ export const PROVIDER_LOGO_DOMAINS = {
   sfmc: 'salesforce.com',
   github: 'github.com',
   'zoho-mail': 'zoho.com'
-} as const
+} as const;
 
-export type ProviderLogoId = keyof typeof PROVIDER_LOGO_DOMAINS
-export type ProviderLogoTheme = 'light' | 'dark'
+export type ProviderLogoId = keyof typeof PROVIDER_LOGO_DOMAINS;
+export type ProviderLogoTheme = 'light' | 'dark';
 
 function getPublicLogoDevToken(): string | null {
-  const token = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim()
-  return token ? token : null
+  const token = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN?.trim();
+  return token ? token : null;
 }
 
 export function isProviderLogoId(value: string): value is ProviderLogoId {
-  return value in PROVIDER_LOGO_DOMAINS
+  return value in PROVIDER_LOGO_DOMAINS;
 }
 
 export function getProviderLogoDomain(providerId: ProviderLogoId): string {
-  return PROVIDER_LOGO_DOMAINS[providerId]
+  return PROVIDER_LOGO_DOMAINS[providerId];
 }
 
 export function getProviderLogoSrc(
   providerId: string,
   theme?: ProviderLogoTheme
 ): string | null {
-  if (!isProviderLogoId(providerId)) return null
+  if (!isProviderLogoId(providerId)) return null;
 
-  const token = getPublicLogoDevToken()
-  if (!token) return null
+  const token = getPublicLogoDevToken();
+  if (!token) return null;
 
-  return getProviderLogoUrl(providerId, token, theme)
+  return getProviderLogoUrl(providerId, token, theme);
 }
 
 function getProviderLogoUrl(
@@ -49,15 +49,15 @@ function getProviderLogoUrl(
 ): string {
   const params = new URLSearchParams({
     token,
-    size: "80",
-    format: "png",
-    retina: "true",
-    fallback: "404"
-  })
+    size: '80',
+    format: 'png',
+    retina: 'true',
+    fallback: '404'
+  });
 
   if (theme) {
-    params.set('theme', theme)
+    params.set('theme', theme);
   }
 
-  return `https://img.logo.dev/${getProviderLogoDomain(providerId)}?${params.toString()}`
+  return `https://img.logo.dev/${getProviderLogoDomain(providerId)}?${params.toString()}`;
 }

@@ -12,7 +12,7 @@ import {
   gradients,
   siteConfig,
   toolIcons,
-  verifyOGRequest,
+  verifyOGRequest
 } from '@/lib/og-utils';
 
 import { NextRequest } from 'next/server';
@@ -20,7 +20,7 @@ import { NextRequest } from 'next/server';
 function ToolsOG({
   tool,
   description,
-  icon,
+  icon
 }: {
   tool: string;
   description: string;
@@ -70,6 +70,8 @@ export async function GET(request: NextRequest) {
   try {
     return await createOGResponse(element, allText);
   } catch (e: unknown) {
-    return createErrorResponse(e instanceof Error ? e.message : 'Unknown error');
+    return createErrorResponse(
+      e instanceof Error ? e.message : 'Unknown error'
+    );
   }
 }

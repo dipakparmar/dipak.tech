@@ -235,10 +235,7 @@ const Item = ({
         {images && (
           <div className="flex space-x-2 mt-2 overflow-x-auto">
             {images.map((src, index) => (
-              <Card
-                key={index}
-                className="w-24 h-16 overflow-hidden shrink-0"
-              >
+              <Card key={index} className="w-24 h-16 overflow-hidden shrink-0">
                 <CardContent className="p-0">
                   <Image
                     src={src}

@@ -5,7 +5,8 @@ import { createHmac } from 'crypto';
 // =============================================================================
 
 // Secret key for signing OG URLs
-export const OG_SECRET = process.env.OG_SECRET || 'og-default-secret-change-in-production';
+export const OG_SECRET =
+  process.env.OG_SECRET || 'og-default-secret-change-in-production';
 
 // Image dimensions
 export const OG_WIDTH = 1200;
@@ -23,8 +24,8 @@ export const siteConfig = {
     defaults: {
       title: 'Dipak Parmar',
       subtitle: 'DevSecOps Engineer & Open Source Developer',
-      site: 'portfolio',
-    },
+      site: 'portfolio'
+    }
   },
   tools: {
     domain: 'tools.dipak.io',
@@ -33,8 +34,8 @@ export const siteConfig = {
     defaults: {
       tool: 'Developer Tools',
       description: 'Free online developer utilities',
-      category: 'default',
-    },
+      category: 'default'
+    }
   },
   ip: {
     domain: 'ip.dipak.io',
@@ -43,8 +44,8 @@ export const siteConfig = {
     defaults: {
       tool: 'IP Information',
       description: 'View detailed information about any IP address',
-      category: 'default',
-    },
+      category: 'default'
+    }
   },
   whois: {
     domain: 'whois.dipak.io',
@@ -53,8 +54,8 @@ export const siteConfig = {
     defaults: {
       tool: 'WHOIS Lookup',
       description: 'Domain, IP, and ASN registration lookup via RDAP',
-      category: 'whois',
-    },
+      category: 'whois'
+    }
   },
   goPkg: {
     domain: 'go.pkg.dipak.io',
@@ -62,8 +63,8 @@ export const siteConfig = {
     ogPath: '/api/og/go-pkg',
     defaults: {
       package: 'Go Packages',
-      description: 'Go module vanity imports',
-    },
+      description: 'Go module vanity imports'
+    }
   },
   containerRegistry: {
     domain: 'cr.dipak.io',
@@ -71,8 +72,8 @@ export const siteConfig = {
     ogPath: '/api/og/container-registry',
     defaults: {
       image: 'Container Registry',
-      description: 'Docker images with vanity domain',
-    },
+      description: 'Docker images with vanity domain'
+    }
   },
   links: {
     domain: 'dipak.bio',
@@ -81,8 +82,8 @@ export const siteConfig = {
     defaults: {
       name: 'Dipak Parmar',
       title: 'DevSecOps Engineer',
-      handle: '@iamdipakparmar',
-    },
+      handle: '@iamdipakparmar'
+    }
   },
   blog: {
     domain: 'dipak.tech',
@@ -90,9 +91,9 @@ export const siteConfig = {
     ogPath: '/api/og/blog',
     defaults: {
       title: 'Blog',
-      description: 'Writing about DevSecOps, Kubernetes, and developer tools.',
-    },
-  },
+      description: 'Writing about DevSecOps, Kubernetes, and developer tools.'
+    }
+  }
 } as const;
 
 export type SiteKey = keyof typeof siteConfig;
@@ -104,7 +105,7 @@ export const gradients = {
   'go-pkg': 'linear-gradient(145deg, #00ADD8 0%, #007d9c 100%)',
   'container-registry': 'linear-gradient(145deg, #003f5c 0%, #2496ED 100%)',
   links: 'linear-gradient(145deg, #ec4899 0%, #8b5cf6 50%, #6366f1 100%)',
-  blog: 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)',
+  blog: 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)'
 } as const;
 
 export type GradientKey = keyof typeof gradients;
@@ -121,11 +122,12 @@ export const toolIcons: Record<string, string> = {
   'timeoff-optimizer': '🏖️',
   music: '🎵',
   '8d-audio': '🎧',
-  default: '🛠️',
+  default: '🛠️'
 };
 
 // Avatar URL
-export const AVATAR_URL = 'https://avatars.githubusercontent.com/u/24366206?v=4';
+export const AVATAR_URL =
+  'https://avatars.githubusercontent.com/u/24366206?v=4';
 
 // Logo URL (used for og:logo meta tag)
 export const LOGO_URL = 'https://github.com/dipakparmar.png?size=512';
@@ -162,48 +164,58 @@ export function buildOGUrl(
 // =============================================================================
 
 export const ogUrls = {
-  portfolio: (params: { title?: string; subtitle?: string; site?: string } = {}) => {
+  portfolio: (
+    params: { title?: string; subtitle?: string; site?: string } = {}
+  ) => {
     const config = siteConfig.portfolio;
     return buildOGUrl(config.baseUrl, config.ogPath, {
       title: params.title || config.defaults.title,
       subtitle: params.subtitle || config.defaults.subtitle,
-      site: params.site || config.defaults.site,
+      site: params.site || config.defaults.site
     });
   },
 
-  tools: (params: { tool?: string; description?: string; category?: string } = {}) => {
+  tools: (
+    params: { tool?: string; description?: string; category?: string } = {}
+  ) => {
     const config = siteConfig.tools;
     return buildOGUrl(config.baseUrl, config.ogPath, {
       tool: params.tool || config.defaults.tool,
       description: params.description || config.defaults.description,
-      category: params.category || config.defaults.category,
+      category: params.category || config.defaults.category
     });
   },
 
-  whois: (params: { tool?: string; description?: string; category?: string } = {}) => {
+  whois: (
+    params: { tool?: string; description?: string; category?: string } = {}
+  ) => {
     const config = siteConfig.whois;
     return buildOGUrl(config.baseUrl, config.ogPath, {
       tool: params.tool || config.defaults.tool,
       description: params.description || config.defaults.description,
-      category: params.category || config.defaults.category,
+      category: params.category || config.defaults.category
     });
   },
 
-  goPkg: (params: { package?: string; description?: string; import?: string } = {}) => {
+  goPkg: (
+    params: { package?: string; description?: string; import?: string } = {}
+  ) => {
     const config = siteConfig.goPkg;
     return buildOGUrl(config.baseUrl, config.ogPath, {
       package: params.package || config.defaults.package,
       description: params.description || config.defaults.description,
-      ...(params.import && { import: params.import }),
+      ...(params.import && { import: params.import })
     });
   },
 
-  containerRegistry: (params: { image?: string; description?: string; registry?: string } = {}) => {
+  containerRegistry: (
+    params: { image?: string; description?: string; registry?: string } = {}
+  ) => {
     const config = siteConfig.containerRegistry;
     return buildOGUrl(config.baseUrl, config.ogPath, {
       image: params.image || config.defaults.image,
       description: params.description || config.defaults.description,
-      ...(params.registry && { registry: params.registry }),
+      ...(params.registry && { registry: params.registry })
     });
   },
 
@@ -212,27 +224,29 @@ export const ogUrls = {
     return buildOGUrl(config.baseUrl, config.ogPath, {
       name: params.name || config.defaults.name,
       title: params.title || config.defaults.title,
-      handle: params.handle || config.defaults.handle,
+      handle: params.handle || config.defaults.handle
     });
   },
 
-  blog: (params: {
-    title?: string;
-    description?: string;
-    tags?: string;
-    date?: string;
-    readingTime?: string;
-    baseUrl?: string;
-  } = {}) => {
+  blog: (
+    params: {
+      title?: string;
+      description?: string;
+      tags?: string;
+      date?: string;
+      readingTime?: string;
+      baseUrl?: string;
+    } = {}
+  ) => {
     const config = siteConfig.blog;
     const resolvedBaseUrl = params.baseUrl || config.baseUrl;
     const p: Record<string, string> = {
       title: params.title || config.defaults.title,
-      description: params.description || config.defaults.description,
+      description: params.description || config.defaults.description
     };
     if (params.tags) p.tags = params.tags;
     if (params.date) p.date = params.date;
     if (params.readingTime) p.readingTime = params.readingTime;
     return buildOGUrl(resolvedBaseUrl, config.ogPath, p);
-  },
+  }
 };

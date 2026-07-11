@@ -1,4 +1,9 @@
-import { ApolloClient, HttpLink, InMemoryCache, type NormalizedCacheObject } from '@apollo/client';
+import {
+  ApolloClient,
+  HttpLink,
+  InMemoryCache,
+  type NormalizedCacheObject
+} from '@apollo/client';
 import { clsx, type ClassValue } from 'clsx';
 import { unstable_noStore as noStore } from 'next/cache';
 import { twMerge } from 'tailwind-merge';

@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import {
   Combobox,
@@ -6,18 +6,18 @@ import {
   ComboboxEmpty,
   ComboboxInput,
   ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox"
+  ComboboxList
+} from '@/components/ui/combobox';
 
-type Item = { value: string; label: string }
+type Item = { value: string; label: string };
 
 export interface CountryComboboxProps {
-  items: Item[]
-  value: string | null
-  onValueChange: (value: string | null) => void
-  placeholder: string
-  disabled?: boolean
-  emptyMessage?: string
+  items: Item[];
+  value: string | null;
+  onValueChange: (value: string | null) => void;
+  placeholder: string;
+  disabled?: boolean;
+  emptyMessage?: string;
 }
 
 export function CountryCombobox({
@@ -26,23 +26,27 @@ export function CountryCombobox({
   onValueChange,
   placeholder,
   disabled,
-  emptyMessage = "No matches",
+  emptyMessage = 'No matches'
 }: CountryComboboxProps) {
-  const selected = items.find((item) => item.value === value) ?? null
+  const selected = items.find((item) => item.value === value) ?? null;
 
   return (
     <Combobox
       items={items}
       value={selected}
       onValueChange={(next) => {
-        const item = next as Item | null
-        onValueChange(item?.value ?? null)
+        const item = next as Item | null;
+        onValueChange(item?.value ?? null);
       }}
       itemToStringLabel={(item) => (item as Item).label}
       itemToStringValue={(item) => (item as Item).value}
       disabled={disabled}
     >
-      <ComboboxInput placeholder={placeholder} disabled={disabled} showClear={!!value} />
+      <ComboboxInput
+        placeholder={placeholder}
+        disabled={disabled}
+        showClear={!!value}
+      />
       <ComboboxContent>
         <ComboboxEmpty>{emptyMessage}</ComboboxEmpty>
         <ComboboxList>
@@ -54,5 +58,5 @@ export function CountryCombobox({
         </ComboboxList>
       </ComboboxContent>
     </Combobox>
-  )
+  );
 }

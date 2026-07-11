@@ -1,316 +1,418 @@
-"use client"
+'use client';
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, ArrowRight, Check, Globe, Hash, Network, Search, Share2 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertCircle,
+  ArrowRight,
+  Check,
+  Globe,
+  Hash,
+  Network,
+  Search,
+  Share2
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { Input } from "@/components/ui/input"
-import type React from "react"
-import { Spinner } from "@/components/ui/spinner"
-import { OsintResults } from "@/components/osint-results"
-import { useHaptics } from "@/hooks/use-haptics"
-import type { SecurityData, IdentityData, ThreatData } from "@/lib/osint-types"
-import type { WhoisFallbackResult } from "@/lib/whois"
+import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { Input } from '@/components/ui/input';
+import type React from 'react';
+import { Spinner } from '@/components/ui/spinner';
+import { OsintResults } from '@/components/osint-results';
+import { useHaptics } from '@/hooks/use-haptics';
+import type { SecurityData, IdentityData, ThreatData } from '@/lib/osint-types';
+import type { WhoisFallbackResult } from '@/lib/whois';
 
 const EXAMPLE_QUERIES = [
-  { label: "google.com", icon: Globe, type: "domain" },
-  { label: "8.8.8.8", icon: Network, type: "ip" },
-  { label: "AS15169", icon: Hash, type: "asn" },
-]
+  { label: 'google.com', icon: Globe, type: 'domain' },
+  { label: '8.8.8.8', icon: Network, type: 'ip' },
+  { label: 'AS15169', icon: Hash, type: 'asn' }
+];
 
-type QueryType = "domain" | "ipv4" | "ipv6" | "asn"
-type RdapLookupResponse = Record<string, unknown> | WhoisFallbackResult
+type QueryType = 'domain' | 'ipv4' | 'ipv6' | 'asn';
+type RdapLookupResponse = Record<string, unknown> | WhoisFallbackResult;
 type DNSLookupResponse = {
-  records?: Record<string, string[]>
-}
+  records?: Record<string, string[]>;
+};
 type HTTPLookupResponse = {
-  ok: boolean
-  status: number
-  redirected?: boolean
-  headers?: Record<string, string>
-  url: string
-  title?: string
-  securityHeaders?: Record<string, string>
-  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>
-}
+  ok: boolean;
+  status: number;
+  redirected?: boolean;
+  headers?: Record<string, string>;
+  url: string;
+  title?: string;
+  securityHeaders?: Record<string, string>;
+  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>;
+};
 type CertificateLookupResponse = {
-  uniqueEntries: number
-  latestExpiry?: string | null
-  issuers?: string[]
-  names?: string[]
-}
-type IPLookupResponse = Record<string, unknown>
+  uniqueEntries: number;
+  latestExpiry?: string | null;
+  issuers?: string[];
+  names?: string[];
+};
+type IPLookupResponse = Record<string, unknown>;
 type LookupTask = {
-  key: string
-  promise: Promise<unknown>
-}
+  key: string;
+  promise: Promise<unknown>;
+};
 
 function detectQueryType(query: string): QueryType {
   if (/^(AS)?(\\d+)$/i.test(query)) {
-    return "asn"
+    return 'asn';
   }
 
-  if (query.includes(":")) {
-    return "ipv6"
+  if (query.includes(':')) {
+    return 'ipv6';
   }
 
   if (/^(\\d{1,3}\\.){3}\\d{1,3}$/.test(query)) {
-    return "ipv4"
+    return 'ipv4';
   }
 
-  return "domain"
+  return 'domain';
 }
 
 export function WhoisLookup() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const { trigger: hapticTrigger } = useHaptics()
-  const initialQuery = searchParams.get("q") || ""
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { trigger: hapticTrigger } = useHaptics();
+  const initialQuery = searchParams.get('q') || '';
 
-  const [query, setQuery] = useState(initialQuery)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [rdapData, setRdapData] = useState<RdapLookupResponse | null>(null)
-  const [dnsData, setDnsData] = useState<DNSLookupResponse | null>(null)
-  const [httpData, setHttpData] = useState<HTTPLookupResponse | null>(null)
-  const [certData, setCertData] = useState<CertificateLookupResponse | null>(null)
-  const [ipData, setIpData] = useState<IPLookupResponse | null>(null)
-  const [osintErrors, setOsintErrors] = useState<Record<string, string>>({})
-  const [pending, setPending] = useState<Record<string, boolean>>({})
-  const [certDnsData, setCertDnsData] = useState<Record<string, DNSLookupResponse> | null>(null)
-  const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>({})
-  const [securityData, setSecurityData] = useState<SecurityData | null>(null)
-  const [identityData, setIdentityData] = useState<IdentityData | null>(null)
-  const [threatData, setThreatData] = useState<ThreatData | null>(null)
-  const [copied, setCopied] = useState(false)
-  const hasAutoSearched = useRef(false)
-  const prevUrlQuery = useRef(initialQuery)
+  const [query, setQuery] = useState(initialQuery);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rdapData, setRdapData] = useState<RdapLookupResponse | null>(null);
+  const [dnsData, setDnsData] = useState<DNSLookupResponse | null>(null);
+  const [httpData, setHttpData] = useState<HTTPLookupResponse | null>(null);
+  const [certData, setCertData] = useState<CertificateLookupResponse | null>(
+    null
+  );
+  const [ipData, setIpData] = useState<IPLookupResponse | null>(null);
+  const [osintErrors, setOsintErrors] = useState<Record<string, string>>({});
+  const [pending, setPending] = useState<Record<string, boolean>>({});
+  const [certDnsData, setCertDnsData] = useState<Record<
+    string,
+    DNSLookupResponse
+  > | null>(null);
+  const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [securityData, setSecurityData] = useState<SecurityData | null>(null);
+  const [identityData, setIdentityData] = useState<IdentityData | null>(null);
+  const [threatData, setThreatData] = useState<ThreatData | null>(null);
+  const [copied, setCopied] = useState(false);
+  const hasAutoSearched = useRef(false);
+  const prevUrlQuery = useRef(initialQuery);
 
   const handleShare = useCallback(async () => {
-    await navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [])
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
 
   const performLookup = useCallback(
     async (searchQuery: string, updateUrl = true) => {
       if (!searchQuery.trim()) {
-        setError("Please enter a domain, IP address, or ASN")
-        return
+        setError('Please enter a domain, IP address, or ASN');
+        return;
       }
 
-      setLoading(true)
-      setError(null)
-      setRdapData(null)
-      setDnsData(null)
-      setHttpData(null)
-      setCertData(null)
-      setIpData(null)
-      setOsintErrors({})
-      setPending({})
-      setCertDnsData(null)
-      setCertDnsPending({})
-      setSecurityData(null)
-      setIdentityData(null)
-      setThreatData(null)
+      setLoading(true);
+      setError(null);
+      setRdapData(null);
+      setDnsData(null);
+      setHttpData(null);
+      setCertData(null);
+      setIpData(null);
+      setOsintErrors({});
+      setPending({});
+      setCertDnsData(null);
+      setCertDnsPending({});
+      setSecurityData(null);
+      setIdentityData(null);
+      setThreatData(null);
 
       // Update URL with query parameter
       if (updateUrl) {
-        const trimmedQuery = searchQuery.trim()
-        const params = new URLSearchParams(searchParams.toString())
-        params.set("q", trimmedQuery)
-        prevUrlQuery.current = trimmedQuery // Prevent useEffect from re-triggering
-        router.push(`${pathname}?${params.toString()}`)
+        const trimmedQuery = searchQuery.trim();
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('q', trimmedQuery);
+        prevUrlQuery.current = trimmedQuery; // Prevent useEffect from re-triggering
+        router.push(`${pathname}?${params.toString()}`);
       }
 
       try {
-        const trimmed = searchQuery.trim()
+        const trimmed = searchQuery.trim();
         const fetchJson = async (url: string) => {
-          const response = await fetch(url)
-          const result = await response.json()
+          const response = await fetch(url);
+          const result = await response.json();
 
           if (!response.ok) {
-            throw new Error(result.error || "Failed to fetch information")
+            throw new Error(result.error || 'Failed to fetch information');
           }
 
-          return result
-        }
+          return result;
+        };
 
-        const queryType = detectQueryType(trimmed)
+        const queryType = detectQueryType(trimmed);
         const tasks: LookupTask[] = [
-          { key: "rdap", promise: fetchJson(`/api/whois?query=${encodeURIComponent(trimmed)}`) },
-        ]
+          {
+            key: 'rdap',
+            promise: fetchJson(
+              `/api/whois?query=${encodeURIComponent(trimmed)}`
+            )
+          }
+        ];
 
-        if (queryType === "domain") {
+        if (queryType === 'domain') {
           tasks.push(
-            { key: "dns", promise: fetchJson(`/api/osint/dns?target=${encodeURIComponent(trimmed)}`) },
-            { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
-            { key: "certs", promise: fetchJson(`/api/osint/certificates?target=${encodeURIComponent(trimmed)}`) },
-            { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
-            { key: "security", promise: fetchJson(`/api/osint/security?target=${encodeURIComponent(trimmed)}`) },
-            { key: "identity", promise: fetchJson(`/api/osint/identity?target=${encodeURIComponent(trimmed)}`) },
-            { key: "threat", promise: fetchJson(`/api/osint/threat?target=${encodeURIComponent(trimmed)}`) },
-          )
+            {
+              key: 'dns',
+              promise: fetchJson(
+                `/api/osint/dns?target=${encodeURIComponent(trimmed)}`
+              )
+            },
+            {
+              key: 'http',
+              promise: fetchJson(
+                `/api/osint/http?target=${encodeURIComponent(trimmed)}`
+              )
+            },
+            {
+              key: 'certs',
+              promise: fetchJson(
+                `/api/osint/certificates?target=${encodeURIComponent(trimmed)}`
+              )
+            },
+            {
+              key: 'ip',
+              promise: fetchJson(
+                `/api/ip?target=${encodeURIComponent(trimmed)}&details=true`
+              )
+            },
+            {
+              key: 'security',
+              promise: fetchJson(
+                `/api/osint/security?target=${encodeURIComponent(trimmed)}`
+              )
+            },
+            {
+              key: 'identity',
+              promise: fetchJson(
+                `/api/osint/identity?target=${encodeURIComponent(trimmed)}`
+              )
+            },
+            {
+              key: 'threat',
+              promise: fetchJson(
+                `/api/osint/threat?target=${encodeURIComponent(trimmed)}`
+              )
+            }
+          );
         }
 
-        if (queryType === "ipv4" || queryType === "ipv6") {
+        if (queryType === 'ipv4' || queryType === 'ipv6') {
           tasks.push(
-            { key: "http", promise: fetchJson(`/api/osint/http?target=${encodeURIComponent(trimmed)}`) },
-            { key: "ip", promise: fetchJson(`/api/ip?target=${encodeURIComponent(trimmed)}&details=true`) },
-            { key: "security", promise: fetchJson(`/api/osint/security?target=${encodeURIComponent(trimmed)}`) },
-            { key: "threat", promise: fetchJson(`/api/osint/threat?target=${encodeURIComponent(trimmed)}`) },
-          )
+            {
+              key: 'http',
+              promise: fetchJson(
+                `/api/osint/http?target=${encodeURIComponent(trimmed)}`
+              )
+            },
+            {
+              key: 'ip',
+              promise: fetchJson(
+                `/api/ip?target=${encodeURIComponent(trimmed)}&details=true`
+              )
+            },
+            {
+              key: 'security',
+              promise: fetchJson(
+                `/api/osint/security?target=${encodeURIComponent(trimmed)}`
+              )
+            },
+            {
+              key: 'threat',
+              promise: fetchJson(
+                `/api/osint/threat?target=${encodeURIComponent(trimmed)}`
+              )
+            }
+          );
         }
 
-        const requestedKeys = new Set(tasks.map((task) => task.key))
-        setPending(Object.fromEntries(tasks.map((task) => [task.key, true])))
+        const requestedKeys = new Set(tasks.map((task) => task.key));
+        setPending(Object.fromEntries(tasks.map((task) => [task.key, true])));
 
-        const baselineErrors: Record<string, string> = {}
-        if (!requestedKeys.has("dns")) baselineErrors.dns = "Not applicable for this query type"
-        if (!requestedKeys.has("http")) baselineErrors.http = "Not applicable for this query type"
-        if (!requestedKeys.has("certs")) baselineErrors.certs = "Not applicable for this query type"
-        if (!requestedKeys.has("ip")) baselineErrors.ip = "Not applicable for this query type"
-        if (!requestedKeys.has("security")) baselineErrors.security = "Not applicable for this query type"
-        if (!requestedKeys.has("identity")) baselineErrors.identity = "Not applicable for this query type"
-        if (!requestedKeys.has("threat")) baselineErrors.threat = "Not applicable for this query type"
-        setOsintErrors(baselineErrors)
+        const baselineErrors: Record<string, string> = {};
+        if (!requestedKeys.has('dns'))
+          baselineErrors.dns = 'Not applicable for this query type';
+        if (!requestedKeys.has('http'))
+          baselineErrors.http = 'Not applicable for this query type';
+        if (!requestedKeys.has('certs'))
+          baselineErrors.certs = 'Not applicable for this query type';
+        if (!requestedKeys.has('ip'))
+          baselineErrors.ip = 'Not applicable for this query type';
+        if (!requestedKeys.has('security'))
+          baselineErrors.security = 'Not applicable for this query type';
+        if (!requestedKeys.has('identity'))
+          baselineErrors.identity = 'Not applicable for this query type';
+        if (!requestedKeys.has('threat'))
+          baselineErrors.threat = 'Not applicable for this query type';
+        setOsintErrors(baselineErrors);
 
-        const taskPromises = tasks.map((task) => task.promise)
+        const taskPromises = tasks.map((task) => task.promise);
         tasks.forEach((task) => {
           task.promise
             .then((value) => {
-              if (task.key === "rdap") setRdapData(value as RdapLookupResponse)
-              if (task.key === "dns") setDnsData(value as DNSLookupResponse)
-              if (task.key === "http") setHttpData(value as HTTPLookupResponse)
-              if (task.key === "certs") setCertData(value as CertificateLookupResponse)
-              if (task.key === "ip") setIpData(value as IPLookupResponse)
-              if (task.key === "security") setSecurityData(value as SecurityData)
-              if (task.key === "identity") setIdentityData(value as IdentityData)
-              if (task.key === "threat") setThreatData(value as ThreatData)
+              if (task.key === 'rdap') setRdapData(value as RdapLookupResponse);
+              if (task.key === 'dns') setDnsData(value as DNSLookupResponse);
+              if (task.key === 'http') setHttpData(value as HTTPLookupResponse);
+              if (task.key === 'certs')
+                setCertData(value as CertificateLookupResponse);
+              if (task.key === 'ip') setIpData(value as IPLookupResponse);
+              if (task.key === 'security')
+                setSecurityData(value as SecurityData);
+              if (task.key === 'identity')
+                setIdentityData(value as IdentityData);
+              if (task.key === 'threat') setThreatData(value as ThreatData);
             })
             .catch((err) => {
               setOsintErrors((prev) => ({
                 ...prev,
-                [task.key]: err instanceof Error ? err.message : "Lookup failed",
-              }))
+                [task.key]: err instanceof Error ? err.message : 'Lookup failed'
+              }));
             })
             .finally(() => {
-              setPending((prev) => ({ ...prev, [task.key]: false }))
-            })
-        })
+              setPending((prev) => ({ ...prev, [task.key]: false }));
+            });
+        });
 
-        const settled = await Promise.allSettled(taskPromises)
-        if (settled.every((result) => result.status === "rejected")) {
-          setError("No intelligence data available for this query")
-          hapticTrigger("error")
+        const settled = await Promise.allSettled(taskPromises);
+        if (settled.every((result) => result.status === 'rejected')) {
+          setError('No intelligence data available for this query');
+          hapticTrigger('error');
         } else {
-          hapticTrigger("success")
+          hapticTrigger('success');
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred")
-        hapticTrigger("error")
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        hapticTrigger('error');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     },
     [pathname, router, searchParams, hapticTrigger]
-  )
+  );
 
   // Sync state with URL search params (only on URL changes, not local edits)
   useEffect(() => {
-    const urlQuery = searchParams.get("q") || ""
+    const urlQuery = searchParams.get('q') || '';
 
     if (urlQuery && !hasAutoSearched.current) {
       // Initial load with query param
-      hasAutoSearched.current = true
-      prevUrlQuery.current = urlQuery
-      setQuery(urlQuery)
-      performLookup(urlQuery, false)
+      hasAutoSearched.current = true;
+      prevUrlQuery.current = urlQuery;
+      setQuery(urlQuery);
+      performLookup(urlQuery, false);
     } else if (urlQuery !== prevUrlQuery.current) {
       // URL actually changed (back/forward navigation)
-      prevUrlQuery.current = urlQuery
-      setQuery(urlQuery)
+      prevUrlQuery.current = urlQuery;
+      setQuery(urlQuery);
       if (urlQuery) {
-        performLookup(urlQuery, false)
+        performLookup(urlQuery, false);
       } else {
-        setRdapData(null)
-        setDnsData(null)
-        setHttpData(null)
-        setCertData(null)
-        setIpData(null)
-        setOsintErrors({})
-        setPending({})
-        setCertDnsData(null)
-        setCertDnsPending({})
-        setSecurityData(null)
-        setIdentityData(null)
-        setThreatData(null)
-        setError(null)
+        setRdapData(null);
+        setDnsData(null);
+        setHttpData(null);
+        setCertData(null);
+        setIpData(null);
+        setOsintErrors({});
+        setPending({});
+        setCertDnsData(null);
+        setCertDnsPending({});
+        setSecurityData(null);
+        setIdentityData(null);
+        setThreatData(null);
+        setError(null);
       }
     }
-  }, [searchParams, performLookup])
+  }, [searchParams, performLookup]);
 
   // Fetch DNS for certificate domains when certs are loaded
   useEffect(() => {
-    if (!certData?.names || certData.names.length === 0) return
+    if (!certData?.names || certData.names.length === 0) return;
 
-    const mainDomain = query.toLowerCase().replace(/^www\./, "")
+    const mainDomain = query.toLowerCase().replace(/^www\./, '');
 
     // Get unique subdomains from cert names (excluding wildcards and main domain)
     const subdomains = certData.names
       .filter((name: string) => {
-        const normalized = name.toLowerCase().replace(/^\*\./, "").replace(/^www\./, "")
-        return normalized !== mainDomain && !name.startsWith("*")
+        const normalized = name
+          .toLowerCase()
+          .replace(/^\*\./, '')
+          .replace(/^www\./, '');
+        return normalized !== mainDomain && !name.startsWith('*');
       })
-      .slice(0, 10) // Limit to 10 subdomains to avoid too many requests
+      .slice(0, 10); // Limit to 10 subdomains to avoid too many requests
 
-    if (subdomains.length === 0) return
+    if (subdomains.length === 0) return;
 
     // Initialize pending state
-    setCertDnsPending(Object.fromEntries(subdomains.map((d: string) => [d, true])))
-    setCertDnsData({})
+    setCertDnsPending(
+      Object.fromEntries(subdomains.map((d: string) => [d, true]))
+    );
+    setCertDnsData({});
 
     // Fetch DNS for each subdomain
     const fetchDns = async (domain: string) => {
       try {
-        const response = await fetch(`/api/osint/dns?target=${encodeURIComponent(domain)}`)
-        const result = await response.json()
+        const response = await fetch(
+          `/api/osint/dns?target=${encodeURIComponent(domain)}`
+        );
+        const result = await response.json();
 
         if (!response.ok) {
-          return { error: result.error || "DNS lookup failed" }
+          return { error: result.error || 'DNS lookup failed' };
         }
-        return result
+        return result;
       } catch {
-        return { error: "DNS lookup failed" }
+        return { error: 'DNS lookup failed' };
       }
-    }
+    };
 
     subdomains.forEach((domain: string) => {
       fetchDns(domain).then((result) => {
-        setCertDnsData((prev) => ({ ...prev, [domain]: result }))
-        setCertDnsPending((prev) => ({ ...prev, [domain]: false }))
-      })
-    })
-  }, [certData, query])
+        setCertDnsData((prev) => ({ ...prev, [domain]: result }));
+        setCertDnsPending((prev) => ({ ...prev, [domain]: false }));
+      });
+    });
+  }, [certData, query]);
 
   const handleLookup = async (e?: React.FormEvent, queryOverride?: string) => {
-    e?.preventDefault()
-    const searchQuery = queryOverride || query
+    e?.preventDefault();
+    const searchQuery = queryOverride || query;
     if (queryOverride) {
-      setQuery(queryOverride)
+      setQuery(queryOverride);
     }
-    performLookup(searchQuery)
-  }
+    performLookup(searchQuery);
+  };
 
   const handleExampleClick = (example: string) => {
-    setQuery(example)
-    performLookup(example)
-  }
+    setQuery(example);
+    performLookup(example);
+  };
 
-  const hasResults = Boolean(rdapData || dnsData || httpData || certData || ipData || securityData || identityData || threatData)
+  const hasResults = Boolean(
+    rdapData ||
+    dnsData ||
+    httpData ||
+    certData ||
+    ipData ||
+    securityData ||
+    identityData ||
+    threatData
+  );
 
   return (
     <div className="space-y-8">
@@ -372,7 +474,10 @@ export function WhoisLookup() {
 
         {/* Error Display */}
         {error && (
-          <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-1">
+          <Alert
+            variant="destructive"
+            className="animate-in fade-in slide-in-from-top-1"
+          >
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -421,5 +526,5 @@ export function WhoisLookup() {
         </div>
       )}
     </div>
-  )
+  );
 }

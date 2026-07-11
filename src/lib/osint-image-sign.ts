@@ -1,29 +1,29 @@
-const SECRET = process.env.OG_SECRET ?? ""
+const SECRET = process.env.OG_SECRET ?? '';
 
 async function importKey(secret: string): Promise<CryptoKey> {
   return crypto.subtle.importKey(
-    "raw",
+    'raw',
     new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ["sign", "verify"],
-  )
+    ['sign', 'verify']
+  );
 }
 
 function hasSigningSecret(): boolean {
-  return SECRET.length > 0
+  return SECRET.length > 0;
 }
 
 export type ImageUrlSignatureInput = {
-  url: string
-  clientId: string
-  nonce: string
-  expiresAt: number
-}
+  url: string;
+  clientId: string;
+  nonce: string;
+  expiresAt: number;
+};
 
 export type ImageUrlSignature = ImageUrlSignatureInput & {
-  token: string
-}
+  token: string;
+};
 
 export function buildImageUrlSignaturePayload({
   url,
@@ -36,21 +36,25 @@ export function buildImageUrlSignaturePayload({
     `client=${clientId}`,
     `nonce=${nonce}`,
     `exp=${expiresAt}`
-  ].join("|")
+  ].join('|');
 }
 
 export async function signImageUrl(
   input: ImageUrlSignatureInput
 ): Promise<ImageUrlSignature | null> {
-  if (!hasSigningSecret()) return null
+  if (!hasSigningSecret()) return null;
 
-  const key = await importKey(SECRET)
-  const payload = buildImageUrlSignaturePayload(input)
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload))
+  const key = await importKey(SECRET);
+  const payload = buildImageUrlSignaturePayload(input);
+  const sig = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(payload)
+  );
   return {
     ...input,
-    token: Buffer.from(sig).toString("hex")
-  }
+    token: Buffer.from(sig).toString('hex')
+  };
 }
 
 export async function verifyImageUrl(
@@ -59,14 +63,19 @@ export async function verifyImageUrl(
 ): Promise<boolean> {
   try {
     if (!hasSigningSecret() || Date.now() > input.expiresAt) {
-      return false
+      return false;
     }
 
-    const key = await importKey(SECRET)
-    const expected = Buffer.from(token, "hex")
-    const payload = buildImageUrlSignaturePayload(input)
-    return crypto.subtle.verify("HMAC", key, expected, new TextEncoder().encode(payload))
+    const key = await importKey(SECRET);
+    const expected = Buffer.from(token, 'hex');
+    const payload = buildImageUrlSignaturePayload(input);
+    return crypto.subtle.verify(
+      'HMAC',
+      key,
+      expected,
+      new TextEncoder().encode(payload)
+    );
   } catch {
-    return false
+    return false;
   }
 }

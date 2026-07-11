@@ -138,7 +138,9 @@ export interface ParsedRegistryPath {
  *   /v2/docker/myimage/blobs/sha256:abc → docker.io/dipakparmar/myimage
  *   /v2/myimage/manifests/latest → docker.io/dipakparmar/myimage (default)
  */
-export function parseRegistryPath(pathSegments: string[]): ParsedRegistryPath | null {
+export function parseRegistryPath(
+  pathSegments: string[]
+): ParsedRegistryPath | null {
   if (pathSegments.length < 3) {
     return null;
   }
@@ -172,7 +174,10 @@ export function parseRegistryPath(pathSegments: string[]): ParsedRegistryPath | 
     imageNamePart = pathSegments.slice(0, endpointIndex).join('/');
   }
 
-  const endpoint = pathSegments[endpointIndex] as 'manifests' | 'blobs' | 'tags';
+  const endpoint = pathSegments[endpointIndex] as
+    | 'manifests'
+    | 'blobs'
+    | 'tags';
   const reference = pathSegments.slice(endpointIndex + 1).join('/');
 
   if (!reference || !imageNamePart) {
@@ -652,7 +657,11 @@ export async function listTags(
     });
   } catch (error) {
     console.error('Failed to list tags:', error);
-    return registryError('NAME_UNKNOWN', 'failed to list tags from upstream', 502);
+    return registryError(
+      'NAME_UNKNOWN',
+      'failed to list tags from upstream',
+      502
+    );
   }
 }
 
@@ -700,7 +709,9 @@ export interface DockerHubTagsResponse {
 /**
  * Fetch all Docker Hub repositories for the configured user.
  */
-export async function fetchDockerHubRepositories(): Promise<DockerHubRepository[]> {
+export async function fetchDockerHubRepositories(): Promise<
+  DockerHubRepository[]
+> {
   const cacheKey = `dockerhub-repos:${GITHUB_USERNAME}`;
   const cached = getCached<DockerHubRepository[]>(cacheKey);
 
@@ -745,7 +756,9 @@ export async function fetchDockerHubRepositories(): Promise<DockerHubRepository[
 /**
  * Fetch tags for a specific Docker Hub repository.
  */
-export async function fetchDockerHubTags(repoName: string): Promise<DockerHubTag[]> {
+export async function fetchDockerHubTags(
+  repoName: string
+): Promise<DockerHubTag[]> {
   const cacheKey = `dockerhub-tags:${GITHUB_USERNAME}/${repoName}`;
   const cached = getCached<DockerHubTag[]>(cacheKey);
 

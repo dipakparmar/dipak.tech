@@ -1,17 +1,30 @@
-"use client"
+'use client';
 
-import { Activity, AlertTriangle, Globe, Info, Network, ShieldCheck } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs"
-import { HapticTabsTrigger as TabsTrigger } from "@/components/haptic-wrappers"
+import {
+  Activity,
+  AlertTriangle,
+  Globe,
+  Info,
+  Network,
+  ShieldCheck
+} from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
+import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
 
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { WhoisResults } from "@/components/whois-results"
-import { SecurityPosture } from "@/components/osint/security-posture"
-import { SiteIdentity } from "@/components/osint/site-identity"
-import { ThreatHistory } from "@/components/osint/threat-history"
-import { RedirectChain } from "@/components/osint/redirect-chain"
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { WhoisResults } from '@/components/whois-results';
+import { SecurityPosture } from '@/components/osint/security-posture';
+import { SiteIdentity } from '@/components/osint/site-identity';
+import { ThreatHistory } from '@/components/osint/threat-history';
+import { RedirectChain } from '@/components/osint/redirect-chain';
 import type {
   CookieInfo,
   EmailSecurityResult,
@@ -20,100 +33,100 @@ import type {
   SocialTagsResult,
   TechStackResult,
   ThreatData,
-  WAFResult,
-} from "@/lib/osint-types"
-import type { WhoisFallbackResult } from "@/lib/whois"
+  WAFResult
+} from '@/lib/osint-types';
+import type { WhoisFallbackResult } from '@/lib/whois';
 
 // Known security headers to filter out from regular headers
 const SECURITY_HEADER_KEYS = new Set([
-  "content-security-policy",
-  "strict-transport-security",
-  "x-content-type-options",
-  "x-frame-options",
-  "x-xss-protection",
-  "referrer-policy",
-  "permissions-policy",
-  "cross-origin-opener-policy",
-  "cross-origin-embedder-policy",
-  "cross-origin-resource-policy",
-])
+  'content-security-policy',
+  'strict-transport-security',
+  'x-content-type-options',
+  'x-frame-options',
+  'x-xss-protection',
+  'referrer-policy',
+  'permissions-policy',
+  'cross-origin-opener-policy',
+  'cross-origin-embedder-policy',
+  'cross-origin-resource-policy'
+]);
 
 interface OsintResultsProps {
-  rdapData: (Record<string, unknown> | WhoisFallbackResult) | null
-  dnsData: DNSData | null
-  httpData: HTTPData | null
-  certData: CertificateData | null
-  ipData: IPIntelData | null
-  query: string
+  rdapData: (Record<string, unknown> | WhoisFallbackResult) | null;
+  dnsData: DNSData | null;
+  httpData: HTTPData | null;
+  certData: CertificateData | null;
+  ipData: IPIntelData | null;
+  query: string;
   errors: {
-    rdap?: string
-    dns?: string
-    http?: string
-    certs?: string
-    ip?: string
-    security?: string
-    identity?: string
-    threat?: string
-  }
-  pending: Record<string, boolean>
-  certDnsData?: Record<string, CertificateDNSData> | null
-  certDnsPending?: Record<string, boolean>
-  securityData?: SecurityData | null
-  identityData?: IdentityData | null
-  threatData?: ThreatData | null
+    rdap?: string;
+    dns?: string;
+    http?: string;
+    certs?: string;
+    ip?: string;
+    security?: string;
+    identity?: string;
+    threat?: string;
+  };
+  pending: Record<string, boolean>;
+  certDnsData?: Record<string, CertificateDNSData> | null;
+  certDnsPending?: Record<string, boolean>;
+  securityData?: SecurityData | null;
+  identityData?: IdentityData | null;
+  threatData?: ThreatData | null;
 }
 
 interface DNSData {
-  records?: Record<string, string[]>
-  emailSecurity?: EmailSecurityResult | null
+  records?: Record<string, string[]>;
+  emailSecurity?: EmailSecurityResult | null;
 }
 
 interface HTTPData {
-  ok: boolean
-  status: number
-  redirected?: boolean
-  headers?: Record<string, string>
-  url: string
-  title?: string
-  securityHeaders?: Record<string, string>
-  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>
-  waf?: WAFResult | null
-  techStack?: TechStackResult | null
-  socialTags?: SocialTagsResult | null
-  cookies?: CookieInfo[] | null
+  ok: boolean;
+  status: number;
+  redirected?: boolean;
+  headers?: Record<string, string>;
+  url: string;
+  title?: string;
+  securityHeaders?: Record<string, string>;
+  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>;
+  waf?: WAFResult | null;
+  techStack?: TechStackResult | null;
+  socialTags?: SocialTagsResult | null;
+  cookies?: CookieInfo[] | null;
 }
 
 interface CertificateData {
-  uniqueEntries: number
-  latestExpiry?: string | null
-  issuers?: string[]
-  names?: string[]
+  uniqueEntries: number;
+  latestExpiry?: string | null;
+  issuers?: string[];
+  names?: string[];
 }
 
 interface IPIntelData {
-  ip?: string
-  proxy?: boolean
-  tor?: boolean
-  hosting?: boolean
-  city?: string
-  region?: string
-  country?: string
-  continent?: string
-  reverse?: string
-  timezone?: string
+  ip?: string;
+  proxy?: boolean;
+  tor?: boolean;
+  hosting?: boolean;
+  city?: string;
+  region?: string;
+  country?: string;
+  continent?: string;
+  reverse?: string;
+  timezone?: string;
   connection?: {
-    asn?: string | number
-    org?: string
-    isp?: string
-  }
+    asn?: string | number;
+    org?: string;
+    isp?: string;
+  };
 }
 
 interface CertificateDNSData {
-  error?: string
+  error?: string;
   records?: {
-    A?: string[]
-    AAAA?: string[]
-  }
+    A?: string[];
+    AAAA?: string[];
+  };
 }
 
 export function OsintResults({
@@ -129,50 +142,56 @@ export function OsintResults({
   certDnsPending,
   securityData,
   identityData,
-  threatData,
+  threatData
 }: OsintResultsProps) {
   // Determine which cards have content to show
-  const hasHttp = httpData || pending.http
-  const hasDns = dnsData || pending.dns
-  const hasCerts = certData || pending.certs
-  const hasIp = ipData || pending.ip
-  const showNotApplicable = (key: string) => errors[key as keyof typeof errors] === "Not applicable for this query type"
+  const hasHttp = httpData || pending.http;
+  const hasDns = dnsData || pending.dns;
+  const hasCerts = certData || pending.certs;
+  const hasIp = ipData || pending.ip;
+  const showNotApplicable = (key: string) =>
+    errors[key as keyof typeof errors] === 'Not applicable for this query type';
 
   // Filter regular headers (exclude security headers to avoid duplication)
   const getRegularHeaders = (headers: Record<string, string> | undefined) => {
-    if (!headers) return {}
+    if (!headers) return {};
     return Object.fromEntries(
-      Object.entries(headers).filter(([key]) => !SECURITY_HEADER_KEYS.has(key.toLowerCase()))
-    )
-  }
+      Object.entries(headers).filter(
+        ([key]) => !SECURITY_HEADER_KEYS.has(key.toLowerCase())
+      )
+    );
+  };
 
   // Build DNS map data from certDnsData
   const buildDnsMap = () => {
-    if (!certDnsData || Object.keys(certDnsData).length === 0) return null
+    if (!certDnsData || Object.keys(certDnsData).length === 0) return null;
 
-    const ipToDomains: Record<string, string[]> = {}
-    const domainToIps: Record<string, string[]> = {}
-    const unresolved: string[] = []
+    const ipToDomains: Record<string, string[]> = {};
+    const domainToIps: Record<string, string[]> = {};
+    const unresolved: string[] = [];
 
     Object.entries(certDnsData).forEach(([domain, dns]) => {
-      if (dns?.error || (!dns?.records?.A?.length && !dns?.records?.AAAA?.length)) {
-        unresolved.push(domain)
-        return
+      if (
+        dns?.error ||
+        (!dns?.records?.A?.length && !dns?.records?.AAAA?.length)
+      ) {
+        unresolved.push(domain);
+        return;
       }
-      const ips = [...(dns?.records?.A || []), ...(dns?.records?.AAAA || [])]
-      domainToIps[domain] = ips
+      const ips = [...(dns?.records?.A || []), ...(dns?.records?.AAAA || [])];
+      domainToIps[domain] = ips;
       ips.forEach((ip: string) => {
-        if (!ipToDomains[ip]) ipToDomains[ip] = []
+        if (!ipToDomains[ip]) ipToDomains[ip] = [];
         if (!ipToDomains[ip].includes(domain)) {
-          ipToDomains[ip].push(domain)
+          ipToDomains[ip].push(domain);
         }
-      })
-    })
+      });
+    });
 
-    return { ipToDomains, domainToIps, unresolved }
-  }
+    return { ipToDomains, domainToIps, unresolved };
+  };
 
-  const dnsMap = buildDnsMap()
+  const dnsMap = buildDnsMap();
 
   return (
     <div className="space-y-8">
@@ -198,7 +217,9 @@ export function OsintResults({
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
                 RDAP Unavailable
               </CardTitle>
-              <CardDescription>{errors.rdap || "Unable to retrieve RDAP data for this target."}</CardDescription>
+              <CardDescription>
+                {errors.rdap || 'Unable to retrieve RDAP data for this target.'}
+              </CardDescription>
             </CardHeader>
           </Card>
         )}
@@ -207,48 +228,56 @@ export function OsintResults({
       {/* OSINT Grid - Bento layout */}
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {/* DNS Footprint - spans 2 cols on xl */}
-        {(hasDns || !showNotApplicable("dns")) && (
+        {(hasDns || !showNotApplicable('dns')) && (
           <Card className="md:col-span-2 xl:col-span-2">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Network className="h-4 w-4 text-blue-500" />
                 DNS Footprint
               </CardTitle>
-              <CardDescription>Core DNS records discovered via DoH</CardDescription>
+              <CardDescription>
+                Core DNS records discovered via DoH
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Main domain DNS */}
               {dnsData ? (
                 <Tabs defaultValue="A" className="w-full">
                   <TabsList className="mb-4 flex h-auto flex-wrap gap-1 bg-transparent p-0">
-                    {["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA"].map((type) => (
-                      <TabsTrigger
-                        key={type}
-                        value={type}
-                        className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-blue-500/50 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                      >
-                        {type}
-                      </TabsTrigger>
-                    ))}
+                    {['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA'].map(
+                      (type) => (
+                        <TabsTrigger
+                          key={type}
+                          value={type}
+                          className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-blue-500/50 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
+                        >
+                          {type}
+                        </TabsTrigger>
+                      )
+                    )}
                   </TabsList>
-                  {Object.entries(dnsData.records || {}).map(([type, values]) => (
-                    <TabsContent key={type} value={type} className="mt-0">
-                      {Array.isArray(values) && values.length > 0 ? (
-                        <div className="space-y-1.5">
-                          {values.map((value: string, idx: number) => (
-                            <div
-                              key={`${type}-${idx}`}
-                              className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs"
-                            >
-                              {value}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="py-4 text-center text-sm text-muted-foreground">No {type} records found</p>
-                      )}
-                    </TabsContent>
-                  ))}
+                  {Object.entries(dnsData.records || {}).map(
+                    ([type, values]) => (
+                      <TabsContent key={type} value={type} className="mt-0">
+                        {Array.isArray(values) && values.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {values.map((value: string, idx: number) => (
+                              <div
+                                key={`${type}-${idx}`}
+                                className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs"
+                              >
+                                {value}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="py-4 text-center text-sm text-muted-foreground">
+                            No {type} records found
+                          </p>
+                        )}
+                      </TabsContent>
+                    )
+                  )}
                 </Tabs>
               ) : pending.dns ? (
                 <div className="space-y-2">
@@ -258,7 +287,7 @@ export function OsintResults({
                 </div>
               ) : (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.dns || "DNS results not available"}
+                  {errors.dns || 'DNS results not available'}
                 </p>
               )}
 
@@ -274,13 +303,17 @@ export function OsintResults({
                     <div className="flex items-stretch justify-between gap-4">
                       {/* Domains Column */}
                       <div className="flex flex-1 flex-col gap-2">
-                        <div className="mb-2 text-center text-xs font-medium text-muted-foreground">DOMAINS</div>
+                        <div className="mb-2 text-center text-xs font-medium text-muted-foreground">
+                          DOMAINS
+                        </div>
                         {Object.keys(dnsMap.domainToIps).map((domain) => (
                           <div
                             key={domain}
                             className="group relative flex items-center justify-between rounded-md border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs transition-colors hover:border-blue-500/50 hover:bg-blue-500/10"
                           >
-                            <code className="font-mono text-blue-600 dark:text-blue-400">{domain}</code>
+                            <code className="font-mono text-blue-600 dark:text-blue-400">
+                              {domain}
+                            </code>
                             <div className="absolute -right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-blue-500" />
                           </div>
                         ))}
@@ -288,45 +321,59 @@ export function OsintResults({
 
                       {/* Connection Lines - SVG */}
                       <div className="relative w-16 md:w-24">
-                        <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+                        <svg
+                          className="absolute inset-0 h-full w-full"
+                          preserveAspectRatio="none"
+                        >
                           {(() => {
-                            const domains = Object.keys(dnsMap.domainToIps)
-                            const ips = Object.keys(dnsMap.ipToDomains)
-                            const lines: Array<{ d1: number; i1: number; ip: string }> = []
+                            const domains = Object.keys(dnsMap.domainToIps);
+                            const ips = Object.keys(dnsMap.ipToDomains);
+                            const lines: Array<{
+                              d1: number;
+                              i1: number;
+                              ip: string;
+                            }> = [];
 
                             // Color palette for different IPs - distinct, accessible colors
                             const ipColors = [
-                              { stroke: "rgb(16, 185, 129)", name: "emerald" },   // emerald-500
-                              { stroke: "rgb(59, 130, 246)", name: "blue" },      // blue-500
-                              { stroke: "rgb(168, 85, 247)", name: "purple" },    // purple-500
-                              { stroke: "rgb(249, 115, 22)", name: "orange" },    // orange-500
-                              { stroke: "rgb(236, 72, 153)", name: "pink" },      // pink-500
-                              { stroke: "rgb(234, 179, 8)", name: "yellow" },     // yellow-500
-                              { stroke: "rgb(20, 184, 166)", name: "teal" },      // teal-500
-                              { stroke: "rgb(239, 68, 68)", name: "red" },        // red-500
-                              { stroke: "rgb(99, 102, 241)", name: "indigo" },    // indigo-500
-                              { stroke: "rgb(34, 197, 94)", name: "green" },      // green-500
-                            ]
+                              { stroke: 'rgb(16, 185, 129)', name: 'emerald' }, // emerald-500
+                              { stroke: 'rgb(59, 130, 246)', name: 'blue' }, // blue-500
+                              { stroke: 'rgb(168, 85, 247)', name: 'purple' }, // purple-500
+                              { stroke: 'rgb(249, 115, 22)', name: 'orange' }, // orange-500
+                              { stroke: 'rgb(236, 72, 153)', name: 'pink' }, // pink-500
+                              { stroke: 'rgb(234, 179, 8)', name: 'yellow' }, // yellow-500
+                              { stroke: 'rgb(20, 184, 166)', name: 'teal' }, // teal-500
+                              { stroke: 'rgb(239, 68, 68)', name: 'red' }, // red-500
+                              { stroke: 'rgb(99, 102, 241)', name: 'indigo' }, // indigo-500
+                              { stroke: 'rgb(34, 197, 94)', name: 'green' } // green-500
+                            ];
 
                             // Map each IP to a color
-                            const ipColorMap: Record<string, string> = {}
+                            const ipColorMap: Record<string, string> = {};
                             ips.forEach((ip, idx) => {
-                              ipColorMap[ip] = ipColors[idx % ipColors.length].stroke
-                            })
+                              ipColorMap[ip] =
+                                ipColors[idx % ipColors.length].stroke;
+                            });
 
                             domains.forEach((domain, di) => {
                               dnsMap.domainToIps[domain].forEach((ip) => {
-                                const ii = ips.indexOf(ip)
+                                const ii = ips.indexOf(ip);
                                 if (ii !== -1) {
-                                  lines.push({ d1: di, i1: ii, ip })
+                                  lines.push({ d1: di, i1: ii, ip });
                                 }
-                              })
-                            })
+                              });
+                            });
 
                             return lines.map((line, idx) => {
-                              const y1Percent = domains.length === 1 ? 50 : (line.d1 / (domains.length - 1)) * 100
-                              const y2Percent = ips.length === 1 ? 50 : (line.i1 / (ips.length - 1)) * 100
-                              const color = ipColorMap[line.ip]
+                              const y1Percent =
+                                domains.length === 1
+                                  ? 50
+                                  : (line.d1 / (domains.length - 1)) * 100;
+                              const y2Percent =
+                                ips.length === 1
+                                  ? 50
+                                  : (line.i1 / (ips.length - 1)) * 100;
+                              const color = ipColorMap[line.ip];
                               return (
                                 <line
                                   key={idx}
@@ -339,36 +386,111 @@ export function OsintResults({
                                   strokeOpacity="0.7"
                                   className="transition-all hover:stroke-[3] hover:opacity-100"
                                 />
-                              )
-                            })
+                              );
+                            });
                           })()}
                         </svg>
                       </div>
 
                       {/* IPs Column */}
                       <div className="flex flex-1 flex-col gap-2">
-                        <div className="mb-2 text-center text-xs font-medium text-muted-foreground">IP ADDRESSES</div>
+                        <div className="mb-2 text-center text-xs font-medium text-muted-foreground">
+                          IP ADDRESSES
+                        </div>
                         {(() => {
-                          const sortedIps = Object.entries(dnsMap.ipToDomains).sort((a, b) => b[1].length - a[1].length)
-                          const allIps = Object.keys(dnsMap.ipToDomains)
+                          const sortedIps = Object.entries(
+                            dnsMap.ipToDomains
+                          ).sort((a, b) => b[1].length - a[1].length);
+                          const allIps = Object.keys(dnsMap.ipToDomains);
 
                           // Same color palette as lines
                           const ipColors = [
-                            { bg: "bg-emerald-500", border: "border-emerald-500/30", hoverBorder: "hover:border-emerald-500/50", hoverBg: "hover:bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", fill: "rgb(16, 185, 129)" },
-                            { bg: "bg-blue-500", border: "border-blue-500/30", hoverBorder: "hover:border-blue-500/50", hoverBg: "hover:bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", fill: "rgb(59, 130, 246)" },
-                            { bg: "bg-purple-500", border: "border-purple-500/30", hoverBorder: "hover:border-purple-500/50", hoverBg: "hover:bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", fill: "rgb(168, 85, 247)" },
-                            { bg: "bg-orange-500", border: "border-orange-500/30", hoverBorder: "hover:border-orange-500/50", hoverBg: "hover:bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", fill: "rgb(249, 115, 22)" },
-                            { bg: "bg-pink-500", border: "border-pink-500/30", hoverBorder: "hover:border-pink-500/50", hoverBg: "hover:bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", fill: "rgb(236, 72, 153)" },
-                            { bg: "bg-yellow-500", border: "border-yellow-500/30", hoverBorder: "hover:border-yellow-500/50", hoverBg: "hover:bg-yellow-500/10", text: "text-yellow-600 dark:text-yellow-400", fill: "rgb(234, 179, 8)" },
-                            { bg: "bg-teal-500", border: "border-teal-500/30", hoverBorder: "hover:border-teal-500/50", hoverBg: "hover:bg-teal-500/10", text: "text-teal-600 dark:text-teal-400", fill: "rgb(20, 184, 166)" },
-                            { bg: "bg-red-500", border: "border-red-500/30", hoverBorder: "hover:border-red-500/50", hoverBg: "hover:bg-red-500/10", text: "text-red-600 dark:text-red-400", fill: "rgb(239, 68, 68)" },
-                            { bg: "bg-indigo-500", border: "border-indigo-500/30", hoverBorder: "hover:border-indigo-500/50", hoverBg: "hover:bg-indigo-500/10", text: "text-indigo-600 dark:text-indigo-400", fill: "rgb(99, 102, 241)" },
-                            { bg: "bg-green-500", border: "border-green-500/30", hoverBorder: "hover:border-green-500/50", hoverBg: "hover:bg-green-500/10", text: "text-green-600 dark:text-green-400", fill: "rgb(34, 197, 94)" },
-                          ]
+                            {
+                              bg: 'bg-emerald-500',
+                              border: 'border-emerald-500/30',
+                              hoverBorder: 'hover:border-emerald-500/50',
+                              hoverBg: 'hover:bg-emerald-500/10',
+                              text: 'text-emerald-600 dark:text-emerald-400',
+                              fill: 'rgb(16, 185, 129)'
+                            },
+                            {
+                              bg: 'bg-blue-500',
+                              border: 'border-blue-500/30',
+                              hoverBorder: 'hover:border-blue-500/50',
+                              hoverBg: 'hover:bg-blue-500/10',
+                              text: 'text-blue-600 dark:text-blue-400',
+                              fill: 'rgb(59, 130, 246)'
+                            },
+                            {
+                              bg: 'bg-purple-500',
+                              border: 'border-purple-500/30',
+                              hoverBorder: 'hover:border-purple-500/50',
+                              hoverBg: 'hover:bg-purple-500/10',
+                              text: 'text-purple-600 dark:text-purple-400',
+                              fill: 'rgb(168, 85, 247)'
+                            },
+                            {
+                              bg: 'bg-orange-500',
+                              border: 'border-orange-500/30',
+                              hoverBorder: 'hover:border-orange-500/50',
+                              hoverBg: 'hover:bg-orange-500/10',
+                              text: 'text-orange-600 dark:text-orange-400',
+                              fill: 'rgb(249, 115, 22)'
+                            },
+                            {
+                              bg: 'bg-pink-500',
+                              border: 'border-pink-500/30',
+                              hoverBorder: 'hover:border-pink-500/50',
+                              hoverBg: 'hover:bg-pink-500/10',
+                              text: 'text-pink-600 dark:text-pink-400',
+                              fill: 'rgb(236, 72, 153)'
+                            },
+                            {
+                              bg: 'bg-yellow-500',
+                              border: 'border-yellow-500/30',
+                              hoverBorder: 'hover:border-yellow-500/50',
+                              hoverBg: 'hover:bg-yellow-500/10',
+                              text: 'text-yellow-600 dark:text-yellow-400',
+                              fill: 'rgb(234, 179, 8)'
+                            },
+                            {
+                              bg: 'bg-teal-500',
+                              border: 'border-teal-500/30',
+                              hoverBorder: 'hover:border-teal-500/50',
+                              hoverBg: 'hover:bg-teal-500/10',
+                              text: 'text-teal-600 dark:text-teal-400',
+                              fill: 'rgb(20, 184, 166)'
+                            },
+                            {
+                              bg: 'bg-red-500',
+                              border: 'border-red-500/30',
+                              hoverBorder: 'hover:border-red-500/50',
+                              hoverBg: 'hover:bg-red-500/10',
+                              text: 'text-red-600 dark:text-red-400',
+                              fill: 'rgb(239, 68, 68)'
+                            },
+                            {
+                              bg: 'bg-indigo-500',
+                              border: 'border-indigo-500/30',
+                              hoverBorder: 'hover:border-indigo-500/50',
+                              hoverBg: 'hover:bg-indigo-500/10',
+                              text: 'text-indigo-600 dark:text-indigo-400',
+                              fill: 'rgb(99, 102, 241)'
+                            },
+                            {
+                              bg: 'bg-green-500',
+                              border: 'border-green-500/30',
+                              hoverBorder: 'hover:border-green-500/50',
+                              hoverBg: 'hover:bg-green-500/10',
+                              text: 'text-green-600 dark:text-green-400',
+                              fill: 'rgb(34, 197, 94)'
+                            }
+                          ];
 
                           return sortedIps.map(([ip, domains]) => {
-                            const colorIdx = allIps.indexOf(ip) % ipColors.length
-                            const colors = ipColors[colorIdx]
+                            const colorIdx =
+                              allIps.indexOf(ip) % ipColors.length;
+                            const colors = ipColors[colorIdx];
                             return (
                               <div
                                 key={ip}
@@ -378,13 +500,18 @@ export function OsintResults({
                                 <div
                                   className={`absolute -left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${colors.bg}`}
                                 />
-                                <code className={`font-mono ${colors.text}`}>{ip}</code>
-                                <Badge variant="secondary" className="ml-2 text-xs">
+                                <code className={`font-mono ${colors.text}`}>
+                                  {ip}
+                                </code>
+                                <Badge
+                                  variant="secondary"
+                                  className="ml-2 text-xs"
+                                >
                                   {domains.length}
                                 </Badge>
                               </div>
-                            )
-                          })
+                            );
+                          });
                         })()}
                       </div>
                     </div>
@@ -392,7 +519,9 @@ export function OsintResults({
                     {/* Unresolved domains */}
                     {dnsMap.unresolved.length > 0 && (
                       <div className="mt-4 border-t border-dashed pt-4">
-                        <p className="mb-2 text-xs text-muted-foreground">Unresolved ({dnsMap.unresolved.length})</p>
+                        <p className="mb-2 text-xs text-muted-foreground">
+                          Unresolved ({dnsMap.unresolved.length})
+                        </p>
                         <div className="flex flex-wrap gap-1.5">
                           {dnsMap.unresolved.map((domain) => (
                             <code
@@ -409,9 +538,13 @@ export function OsintResults({
 
                   {/* Stats */}
                   <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    <span>{Object.keys(dnsMap.domainToIps).length} domains</span>
+                    <span>
+                      {Object.keys(dnsMap.domainToIps).length} domains
+                    </span>
                     <span>→</span>
-                    <span>{Object.keys(dnsMap.ipToDomains).length} unique IPs</span>
+                    <span>
+                      {Object.keys(dnsMap.ipToDomains).length} unique IPs
+                    </span>
                     {dnsMap.unresolved.length > 0 && (
                       <>
                         <span>·</span>
@@ -423,30 +556,33 @@ export function OsintResults({
               )}
 
               {/* Show pending cert DNS lookups */}
-              {certDnsPending && Object.values(certDnsPending).some(Boolean) && (
-                <div className="border-t pt-4">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Resolving Certificate Domains...
-                  </p>
-                  <div className="space-y-2">
-                    {Object.entries(certDnsPending)
-                      .filter(([, isPending]) => isPending)
-                      .slice(0, 3)
-                      .map(([domain]) => (
-                        <div key={domain} className="flex items-center gap-2">
-                          <Skeleton className="h-6 w-24" />
-                          <span className="font-mono text-xs text-muted-foreground">{domain}</span>
-                        </div>
-                      ))}
+              {certDnsPending &&
+                Object.values(certDnsPending).some(Boolean) && (
+                  <div className="border-t pt-4">
+                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Resolving Certificate Domains...
+                    </p>
+                    <div className="space-y-2">
+                      {Object.entries(certDnsPending)
+                        .filter(([, isPending]) => isPending)
+                        .slice(0, 3)
+                        .map(([domain]) => (
+                          <div key={domain} className="flex items-center gap-2">
+                            <Skeleton className="h-6 w-24" />
+                            <span className="font-mono text-xs text-muted-foreground">
+                              {domain}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </CardContent>
           </Card>
         )}
 
         {/* IP Intelligence */}
-        {(hasIp || !showNotApplicable("ip")) && (
+        {(hasIp || !showNotApplicable('ip')) && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -460,7 +596,9 @@ export function OsintResults({
                 <div className="space-y-4">
                   {/* IP with flags */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <code className="rounded-md border bg-muted/50 px-2 py-1 font-mono text-sm">{ipData.ip}</code>
+                    <code className="rounded-md border bg-muted/50 px-2 py-1 font-mono text-sm">
+                      {ipData.ip}
+                    </code>
                     {ipData.proxy && (
                       <Badge variant="destructive" className="text-xs">
                         Proxy
@@ -480,22 +618,34 @@ export function OsintResults({
 
                   {/* Location */}
                   <div className="space-y-1">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</p>
-                    <p className="text-sm font-medium">
-                      {[ipData.city, ipData.region, ipData.country].filter(Boolean).join(", ")}
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Location
                     </p>
-                    {ipData.continent && <p className="text-xs text-muted-foreground">{ipData.continent}</p>}
+                    <p className="text-sm font-medium">
+                      {[ipData.city, ipData.region, ipData.country]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
+                    {ipData.continent && (
+                      <p className="text-xs text-muted-foreground">
+                        {ipData.continent}
+                      </p>
+                    )}
                   </div>
 
                   {/* ASN */}
                   {ipData.connection && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Network</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Network
+                      </p>
                       <p className="text-sm font-medium">
                         {ipData.connection.asn} · {ipData.connection.org}
                       </p>
                       {ipData.connection.isp && (
-                        <p className="text-xs text-muted-foreground">{ipData.connection.isp}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {ipData.connection.isp}
+                        </p>
                       )}
                     </div>
                   )}
@@ -503,8 +653,12 @@ export function OsintResults({
                   {/* Reverse DNS */}
                   {ipData.reverse && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Reverse DNS</p>
-                      <p className="break-all font-mono text-xs">{ipData.reverse}</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Reverse DNS
+                      </p>
+                      <p className="break-all font-mono text-xs">
+                        {ipData.reverse}
+                      </p>
                     </div>
                   )}
 
@@ -524,7 +678,7 @@ export function OsintResults({
                 </div>
               ) : (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.ip || "IP intelligence not available"}
+                  {errors.ip || 'IP intelligence not available'}
                 </p>
               )}
             </CardContent>
@@ -532,14 +686,16 @@ export function OsintResults({
         )}
 
         {/* Web Fingerprint */}
-        {(hasHttp || !showNotApplicable("http")) && (
+        {(hasHttp || !showNotApplicable('http')) && (
           <Card className="md:col-span-2 xl:col-span-1">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Globe className="h-4 w-4 text-violet-500" />
                 Web Fingerprint
               </CardTitle>
-              <CardDescription>HTTP metadata & security headers</CardDescription>
+              <CardDescription>
+                HTTP metadata & security headers
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {httpData ? (
@@ -547,7 +703,10 @@ export function OsintResults({
                   {/* Status line */}
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={httpData.ok ? "default" : "secondary"} className="text-xs">
+                      <Badge
+                        variant={httpData.ok ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
                         {httpData.status}
                       </Badge>
                       {httpData.redirected && (
@@ -561,58 +720,96 @@ export function OsintResults({
                         </Badge>
                       )}
                     </div>
-                    <p className="break-all text-xs text-muted-foreground">{httpData.url}</p>
+                    <p className="break-all text-xs text-muted-foreground">
+                      {httpData.url}
+                    </p>
                   </div>
 
                   {/* Title */}
                   {httpData.title && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Page Title</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Page Title
+                      </p>
                       <p className="text-sm font-medium">{httpData.title}</p>
                     </div>
                   )}
 
                   <Tabs defaultValue="headers" className="w-full">
                     <TabsList className="mb-4 flex h-auto flex-wrap gap-1 bg-transparent p-0">
-                      <TabsTrigger value="headers" className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400">
+                      <TabsTrigger
+                        value="headers"
+                        className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400"
+                      >
                         Headers
                       </TabsTrigger>
-                      <TabsTrigger value="security-headers" className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400">
+                      <TabsTrigger
+                        value="security-headers"
+                        className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400"
+                      >
                         Security Headers
                       </TabsTrigger>
-                      <TabsTrigger value="redirect-chain" className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400">
+                      <TabsTrigger
+                        value="redirect-chain"
+                        className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400"
+                      >
                         Redirect Chain
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="headers" className="mt-0">
                       {(() => {
-                        const regularHeaders = getRegularHeaders(httpData.headers)
+                        const regularHeaders = getRegularHeaders(
+                          httpData.headers
+                        );
                         return Object.keys(regularHeaders).length > 0 ? (
                           <div className="space-y-1">
-                            {Object.entries(regularHeaders).map(([key, value]) => (
-                              <div key={key} className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs">
-                                <span className="text-muted-foreground">{key}:</span>{" "}
-                                <span className="break-all font-mono">{value as string}</span>
-                              </div>
-                            ))}
+                            {Object.entries(regularHeaders).map(
+                              ([key, value]) => (
+                                <div
+                                  key={key}
+                                  className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs"
+                                >
+                                  <span className="text-muted-foreground">
+                                    {key}:
+                                  </span>{' '}
+                                  <span className="break-all font-mono">
+                                    {value as string}
+                                  </span>
+                                </div>
+                              )
+                            )}
                           </div>
                         ) : (
-                          <p className="py-4 text-center text-sm text-muted-foreground">No headers found</p>
-                        )
+                          <p className="py-4 text-center text-sm text-muted-foreground">
+                            No headers found
+                          </p>
+                        );
                       })()}
                     </TabsContent>
                     <TabsContent value="security-headers" className="mt-0">
-                      {Object.keys(httpData.securityHeaders || {}).length > 0 ? (
+                      {Object.keys(httpData.securityHeaders || {}).length >
+                      0 ? (
                         <div className="space-y-1">
-                          {Object.entries(httpData.securityHeaders || {}).map(([key, value]) => (
-                            <div key={key} className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1.5 text-xs">
-                              <span className="text-emerald-600 dark:text-emerald-400">{key}:</span>{" "}
-                              <span className="break-all font-mono">{value as string}</span>
-                            </div>
-                          ))}
+                          {Object.entries(httpData.securityHeaders || {}).map(
+                            ([key, value]) => (
+                              <div
+                                key={key}
+                                className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1.5 text-xs"
+                              >
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  {key}:
+                                </span>{' '}
+                                <span className="break-all font-mono">
+                                  {value as string}
+                                </span>
+                              </div>
+                            )
+                          )}
                         </div>
                       ) : (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">No security headers detected</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          No security headers detected
+                        </p>
                       )}
                     </TabsContent>
                     <TabsContent value="redirect-chain" className="mt-4">
@@ -628,7 +825,7 @@ export function OsintResults({
                 </div>
               ) : (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.http || "HTTP metadata not available"}
+                  {errors.http || 'HTTP metadata not available'}
                 </p>
               )}
             </CardContent>
@@ -636,14 +833,16 @@ export function OsintResults({
         )}
 
         {/* TLS Certificates */}
-        {(hasCerts || !showNotApplicable("certs")) && (
+        {(hasCerts || !showNotApplicable('certs')) && (
           <Card className="md:col-span-2 xl:col-span-2">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <ShieldCheck className="h-4 w-4 text-cyan-500" />
                 TLS Certificates
               </CardTitle>
-              <CardDescription>Certificate transparency snapshot</CardDescription>
+              <CardDescription>
+                Certificate transparency snapshot
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {certData ? (
@@ -655,40 +854,53 @@ export function OsintResults({
                     </Badge>
                     {certData.latestExpiry && (
                       <Badge variant="secondary" className="text-xs">
-                        Expires {new Date(certData.latestExpiry).toLocaleDateString()}
+                        Expires{' '}
+                        {new Date(certData.latestExpiry).toLocaleDateString()}
                       </Badge>
                     )}
                   </div>
 
                   {/* Issuers */}
-                  {Array.isArray(certData.issuers) && certData.issuers.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Issuers</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {certData.issuers.map((issuer: string) => (
-                          <Badge key={issuer} variant="outline" className="text-xs">
-                            {issuer}
-                          </Badge>
-                        ))}
+                  {Array.isArray(certData.issuers) &&
+                    certData.issuers.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Issuers
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {certData.issuers.map((issuer: string) => (
+                            <Badge
+                              key={issuer}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {issuer}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* All Names - no limit */}
-                  {Array.isArray(certData.names) && certData.names.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Observed Names ({certData.names.length})
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {certData.names.map((name: string) => (
-                          <Badge key={name} variant="secondary" className="font-mono text-xs">
-                            {name}
-                          </Badge>
-                        ))}
+                  {Array.isArray(certData.names) &&
+                    certData.names.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Observed Names ({certData.names.length})
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {certData.names.map((name: string) => (
+                            <Badge
+                              key={name}
+                              variant="secondary"
+                              className="font-mono text-xs"
+                            >
+                              {name}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               ) : pending.certs ? (
                 <div className="space-y-3">
@@ -698,13 +910,12 @@ export function OsintResults({
                 </div>
               ) : (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.certs || "Certificate data not available"}
+                  {errors.certs || 'Certificate data not available'}
                 </p>
               )}
             </CardContent>
           </Card>
         )}
-
       </section>
 
       {/* Security Posture */}
@@ -715,7 +926,9 @@ export function OsintResults({
               <ShieldCheck className="h-4 w-4 text-primary" />
               Security Posture
             </CardTitle>
-            <CardDescription>WAF, DNSSEC, email authentication, and blocklist status</CardDescription>
+            <CardDescription>
+              WAF, DNSSEC, email authentication, and blocklist status
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <SecurityPosture
@@ -730,14 +943,19 @@ export function OsintResults({
       )}
 
       {/* Site Identity */}
-      {(identityData || httpData?.techStack || pending.identity || pending.http) && (
+      {(identityData ||
+        httpData?.techStack ||
+        pending.identity ||
+        pending.http) && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-semibold">
               <Globe className="h-4 w-4 text-primary" />
               Site Identity
             </CardTitle>
-            <CardDescription>Technology stack, social tags, cookies, and security disclosure</CardDescription>
+            <CardDescription>
+              Technology stack, social tags, cookies, and security disclosure
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <SiteIdentity
@@ -760,7 +978,9 @@ export function OsintResults({
               <Activity className="h-4 w-4 text-primary" />
               Threat & History
             </CardTitle>
-            <CardDescription>Open ports, CVEs, archive history, and crawl rules</CardDescription>
+            <CardDescription>
+              Open ports, CVEs, archive history, and crawl rules
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <ThreatHistory
@@ -772,5 +992,5 @@ export function OsintResults({
         </Card>
       )}
     </div>
-  )
+  );
 }

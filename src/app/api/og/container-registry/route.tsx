@@ -9,7 +9,7 @@ import {
   createOGResponse,
   gradients,
   siteConfig,
-  verifyOGRequest,
+  verifyOGRequest
 } from '@/lib/og-utils';
 
 import { NextRequest } from 'next/server';
@@ -26,7 +26,7 @@ function ContainerPattern() {
         bottom: 0,
         opacity: 0.08,
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='36' height='20' x='2' y='10' fill='white' rx='2'/%3E%3C/svg%3E")`,
-        backgroundSize: '60px 60px',
+        backgroundSize: '60px 60px'
       }}
     />
   );
@@ -42,7 +42,7 @@ function WhaleAccent() {
         right: 60,
         fontSize: 120,
         opacity: 0.2,
-        display: 'flex',
+        display: 'flex'
       }}
     >
       🐋
@@ -55,11 +55,12 @@ function RegistryBadge({ registry }: { registry: string }) {
   return (
     <div
       style={{
-        background: registry === 'ghcr' ? 'rgba(36,41,46,0.8)' : 'rgba(36,153,237,0.3)',
+        background:
+          registry === 'ghcr' ? 'rgba(36,41,46,0.8)' : 'rgba(36,153,237,0.3)',
         borderRadius: '8px',
         padding: '8px 16px',
         marginLeft: '12px',
-        display: 'flex',
+        display: 'flex'
       }}
     >
       <span style={{ color: 'white', fontSize: 16, fontWeight: 600 }}>
@@ -72,7 +73,7 @@ function RegistryBadge({ registry }: { registry: string }) {
 function ContainerRegistryOG({
   image,
   description,
-  registry,
+  registry
 }: {
   image: string;
   description: string;
@@ -124,12 +125,18 @@ export async function GET(request: NextRequest) {
   const allText = `${image}${description}Container Registrycr.dipak.iodipakparmar`;
 
   const element = (
-    <ContainerRegistryOG image={image} description={description} registry={registry} />
+    <ContainerRegistryOG
+      image={image}
+      description={description}
+      registry={registry}
+    />
   );
 
   try {
     return await createOGResponse(element, allText);
   } catch (e: unknown) {
-    return createErrorResponse(e instanceof Error ? e.message : 'Unknown error');
+    return createErrorResponse(
+      e instanceof Error ? e.message : 'Unknown error'
+    );
   }
 }

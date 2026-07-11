@@ -11,7 +11,7 @@ const DEFAULT_COLOR = '#FFE066';
 export function ScribbleCircle({
   color = DEFAULT_COLOR,
   className,
-  style,
+  style
 }: ScribbleProps) {
   return (
     <svg
@@ -50,9 +50,11 @@ export function ScribbleUnderline({
   color = DEFAULT_COLOR,
   className,
   style,
-  drawOnGroupHover = false,
+  drawOnGroupHover = false
 }: ScribbleUnderlineProps) {
-  const strokeClass = drawOnGroupHover ? 'scribble-stroke--draw' : 'scribble-stroke';
+  const strokeClass = drawOnGroupHover
+    ? 'scribble-stroke--draw'
+    : 'scribble-stroke';
   return (
     <svg
       aria-hidden
@@ -87,7 +89,7 @@ export function ScribbleUnderline({
 export function ScribbleArrow({
   color = DEFAULT_COLOR,
   className,
-  style,
+  style
 }: ScribbleProps) {
   return (
     <svg
@@ -121,7 +123,7 @@ export function ScribbleArrow({
 export function ScribbleHighlight({
   color = DEFAULT_COLOR,
   className,
-  style,
+  style
 }: ScribbleProps) {
   return (
     <svg

@@ -35,7 +35,7 @@ export function References({ items }: ReferencesProps) {
               transition={{
                 duration: 0.3,
                 delay: reduced ? 0 : index * 0.055,
-                ease: 'easeOut',
+                ease: 'easeOut'
               }}
             >
               <a
@@ -63,8 +63,16 @@ export function References({ items }: ReferencesProps) {
                   strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <path className="mdx-references-backref-hook" d="M11 20H14.5A5.5 5.5 0 0 0 14.5 9H4" pathLength="1" />
-                  <path className="mdx-references-backref-head" d="M9 14 4 9l5-5" pathLength="1" />
+                  <path
+                    className="mdx-references-backref-hook"
+                    d="M11 20H14.5A5.5 5.5 0 0 0 14.5 9H4"
+                    pathLength="1"
+                  />
+                  <path
+                    className="mdx-references-backref-head"
+                    d="M9 14 4 9l5-5"
+                    pathLength="1"
+                  />
                 </svg>
               </a>
             </motion.li>

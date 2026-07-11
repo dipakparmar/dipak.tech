@@ -7,7 +7,7 @@ import {
   LOGO_URL,
   gradients,
   toolIcons,
-  siteConfig,
+  siteConfig
 } from './og-config';
 
 // Re-export config for convenience
@@ -18,7 +18,7 @@ export {
   LOGO_URL,
   gradients,
   toolIcons,
-  siteConfig,
+  siteConfig
 };
 
 export type SiteType = keyof typeof gradients;
@@ -30,7 +30,7 @@ export const domains: Record<SiteType, string> = {
   'go-pkg': siteConfig.goPkg.domain,
   'container-registry': siteConfig.containerRegistry.domain,
   links: siteConfig.links.domain,
-  blog: siteConfig.blog.domain,
+  blog: siteConfig.blog.domain
 };
 
 // =============================================================================
@@ -45,7 +45,9 @@ function toHex(buffer: ArrayBuffer): string {
 }
 
 // Generate HMAC signature for OG parameters (async for Edge runtime)
-export async function generateOGToken(params: Record<string, string>): Promise<string> {
+export async function generateOGToken(
+  params: Record<string, string>
+): Promise<string> {
   const sortedParams = Object.keys(params)
     .sort()
     .map((key) => `${key}=${params[key]}`)
@@ -60,7 +62,11 @@ export async function generateOGToken(params: Record<string, string>): Promise<s
     ['sign']
   );
 
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(sortedParams));
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    encoder.encode(sortedParams)
+  );
   return toHex(signature);
 }
 
@@ -80,7 +86,9 @@ export async function verifyOGToken(
 }
 
 // Extract params from URL (excluding token) for verification
-export function extractOGParams(searchParams: URLSearchParams): Record<string, string> {
+export function extractOGParams(
+  searchParams: URLSearchParams
+): Record<string, string> {
   const params: Record<string, string> = {};
   searchParams.forEach((value, key) => {
     if (key !== 'token') {
@@ -91,7 +99,9 @@ export function extractOGParams(searchParams: URLSearchParams): Record<string, s
 }
 
 // Middleware to verify OG request
-export async function verifyOGRequest(request: Request): Promise<{ valid: boolean; error?: string }> {
+export async function verifyOGRequest(
+  request: Request
+): Promise<{ valid: boolean; error?: string }> {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
 
@@ -150,7 +160,7 @@ export function Avatar({ size = 80 }: { size?: number }) {
       height={size}
       style={{
         borderRadius: '50%',
-        border: `${Math.max(2, size / 20)}px solid rgba(255,255,255,0.3)`,
+        border: `${Math.max(2, size / 20)}px solid rgba(255,255,255,0.3)`
       }}
     />
   );
@@ -163,14 +173,14 @@ export function Footer({ name = 'Dipak Parmar' }: { name?: string }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '20px',
+        gap: '20px'
       }}
     >
       <Avatar size={48} />
       <span
         style={{
           color: 'rgba(255,255,255,0.7)',
-          fontSize: 22,
+          fontSize: 22
         }}
       >
         by {name}
@@ -190,7 +200,7 @@ export function GridPattern({ opacity = 0.03 }: { opacity?: number }) {
         right: 0,
         bottom: 0,
         backgroundImage: `linear-gradient(rgba(255,255,255,${opacity}) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,${opacity}) 1px, transparent 1px)`,
-        backgroundSize: '50px 50px',
+        backgroundSize: '50px 50px'
       }}
     />
   );
@@ -201,7 +211,7 @@ export function GradientAccent({
   color = 'rgba(14,165,233,0.3)',
   size = 400,
   top = -100,
-  right = -100,
+  right = -100
 }: {
   color?: string;
   size?: number;
@@ -217,7 +227,7 @@ export function GradientAccent({
         width: size,
         height: size,
         borderRadius: '50%',
-        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`
       }}
     />
   );
@@ -230,7 +240,11 @@ interface OGWrapperProps {
   showGrid?: boolean;
 }
 
-export function OGWrapper({ children, gradient, showGrid = false }: OGWrapperProps) {
+export function OGWrapper({
+  children,
+  gradient,
+  showGrid = false
+}: OGWrapperProps) {
   return (
     <div
       style={{
@@ -241,7 +255,7 @@ export function OGWrapper({ children, gradient, showGrid = false }: OGWrapperPro
         background: gradient,
         fontFamily: 'Inter',
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'hidden'
       }}
     >
       {showGrid && <GridPattern />}
@@ -261,7 +275,7 @@ export function ContentContainer({ children }: { children: React.ReactNode }) {
         height: '100%',
         padding: '60px 80px',
         position: 'relative',
-        zIndex: 1,
+        zIndex: 1
       }}
     >
       {children}
@@ -281,14 +295,14 @@ export function Header({ badge, domain }: HeaderProps) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'space-between'
       }}
     >
       {badge}
       <span
         style={{
           color: 'rgba(255,255,255,0.6)',
-          fontSize: 20,
+          fontSize: 20
         }}
       >
         {domain}
@@ -305,20 +319,21 @@ interface TitleSectionProps {
   command?: { prefix: string; value: string };
 }
 
-export function TitleSection({ icon, title, description, command }: TitleSectionProps) {
+export function TitleSection({
+  icon,
+  title,
+  description,
+  command
+}: TitleSectionProps) {
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
+        gap: '20px'
       }}
     >
-      {icon && (
-        <div style={{ fontSize: 80, display: 'flex' }}>
-          {icon}
-        </div>
-      )}
+      {icon && <div style={{ fontSize: 80, display: 'flex' }}>{icon}</div>}
       <h1
         style={{
           fontSize: 64,
@@ -326,7 +341,7 @@ export function TitleSection({ icon, title, description, command }: TitleSection
           color: 'white',
           lineHeight: 1.1,
           margin: 0,
-          textShadow: '0 2px 10px rgba(0,0,0,0.2)',
+          textShadow: '0 2px 10px rgba(0,0,0,0.2)'
         }}
       >
         {title}
@@ -336,7 +351,7 @@ export function TitleSection({ icon, title, description, command }: TitleSection
           fontSize: 28,
           color: 'rgba(255,255,255,0.8)',
           margin: 0,
-          maxWidth: '800px',
+          maxWidth: '800px'
         }}
       >
         {description}
@@ -347,7 +362,7 @@ export function TitleSection({ icon, title, description, command }: TitleSection
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            marginTop: '8px',
+            marginTop: '8px'
           }}
         >
           <div
@@ -356,7 +371,7 @@ export function TitleSection({ icon, title, description, command }: TitleSection
               borderRadius: '8px',
               padding: '12px 20px',
               fontFamily: 'monospace',
-              display: 'flex',
+              display: 'flex'
             }}
           >
             <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 22 }}>
@@ -386,7 +401,7 @@ export function Badge({ icon, text, subtext, gradient }: BadgeProps) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '16px',
+        gap: '16px'
       }}
     >
       <div
@@ -396,7 +411,7 @@ export function Badge({ icon, text, subtext, gradient }: BadgeProps) {
           padding: '12px 20px',
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
+          gap: '10px'
         }}
       >
         {icon && <span style={{ fontSize: 24 }}>{icon}</span>}
@@ -404,7 +419,7 @@ export function Badge({ icon, text, subtext, gradient }: BadgeProps) {
           style={{
             color: 'white',
             fontSize: 22,
-            fontWeight: 600,
+            fontWeight: 600
           }}
         >
           {text}
@@ -413,7 +428,7 @@ export function Badge({ icon, text, subtext, gradient }: BadgeProps) {
           <span
             style={{
               color: 'rgba(255,255,255,0.8)',
-              fontSize: 20,
+              fontSize: 20
             }}
           >
             {subtext}
@@ -441,9 +456,9 @@ export async function createOGResponse(
       {
         name: 'Inter',
         data: await loadGoogleFont('Inter', textForFont),
-        style: 'normal',
-      },
-    ],
+        style: 'normal'
+      }
+    ]
   });
 }
 

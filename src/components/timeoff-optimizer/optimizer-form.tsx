@@ -1,54 +1,63 @@
-"use client"
+'use client';
 
-import * as React from "react"
+import * as React from 'react';
 
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import { CalendarPlus, Clock3, Info, MapPin, Navigation, Trash2, Type, Wand2 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+  AccordionTrigger
+} from '@/components/ui/accordion';
+import {
+  CalendarPlus,
+  Clock3,
+  Info,
+  MapPin,
+  Navigation,
+  Trash2,
+  Type,
+  Wand2
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type {
   CustomDayOff,
   Location,
   OffBlock,
   PlanStrategy,
-  TakenDayOff,
-} from "@/lib/timeoff-optimizer/types"
+  TakenDayOff
+} from '@/lib/timeoff-optimizer/types';
 import {
   HapticButton,
   HapticSelectItem as SelectItem,
-  HapticSlider as Slider,
-} from "@/components/haptic-wrappers"
+  HapticSlider as Slider
+} from '@/components/haptic-wrappers';
 import {
   Select,
   SelectContent,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  SelectValue
+} from '@/components/ui/select';
 import {
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 
-import { DatePicker } from "@/components/ui/date-picker"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { LocationRow } from "./location-row"
-import { STRATEGIES } from "@/lib/timeoff-optimizer/strategies"
-import { STRATEGY_NOTICE_DEFAULTS } from "@/lib/timeoff-optimizer/optimizer"
-import { renderEventText } from "@/lib/timeoff-optimizer/ics"
-import { Spinner } from "@/components/ui/spinner"
-import { Textarea } from "@/components/ui/textarea"
+import { DatePicker } from '@/components/ui/date-picker';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { LocationRow } from './location-row';
+import { STRATEGIES } from '@/lib/timeoff-optimizer/strategies';
+import { STRATEGY_NOTICE_DEFAULTS } from '@/lib/timeoff-optimizer/optimizer';
+import { renderEventText } from '@/lib/timeoff-optimizer/ics';
+import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
 
 // Representative break used to preview custom event title/notes templates,
 // independent of whether the user has computed a real plan yet.
 const SAMPLE_BREAK: OffBlock = {
-  startDate: "2026-07-13",
-  endDate: "2026-07-19",
+  startDate: '2026-07-13',
+  endDate: '2026-07-19',
   totalDays: 7,
   dayOffCount: 3,
   holidayCount: 1,
@@ -57,69 +66,74 @@ const SAMPLE_BREAK: OffBlock = {
   alreadyTakenCount: 0,
   days: [
     {
-      date: "2026-07-17",
+      date: '2026-07-17',
       isWeekend: false,
       isDayOff: false,
       inOffBlock: true,
       isPublicHoliday: true,
-      holidayName: "Independence Day",
+      holidayName: 'Independence Day',
       isCustomDayOff: false,
-      isAlreadyTaken: false,
-    },
-  ],
-}
+      isAlreadyTaken: false
+    }
+  ]
+};
 
 const WEEKDAYS = [
-  { value: 0, label: "Sunday" },
-  { value: 1, label: "Monday" },
-  { value: 2, label: "Tuesday" },
-  { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" },
-  { value: 5, label: "Friday" },
-  { value: 6, label: "Saturday" },
-]
+  { value: 0, label: 'Sunday' },
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' }
+];
 
 export interface OptimizerFormProps {
-  dayOffBudget: number
-  onDayOffBudgetChange: (value: number) => void
-  year: number
-  onYearChange: (year: number) => void
-  strategy: PlanStrategy
-  onStrategyChange: (strategy: PlanStrategy) => void
+  dayOffBudget: number;
+  onDayOffBudgetChange: (value: number) => void;
+  year: number;
+  onYearChange: (year: number) => void;
+  strategy: PlanStrategy;
+  onStrategyChange: (strategy: PlanStrategy) => void;
 
-  locations: Location[]
-  onLocationsChange: (locations: Location[]) => void
-  countries: Array<{ countryCode: string; name: string }>
-  countryStates: Record<string, Array<{ code: string; name: string }>>
-  stateRegions: Record<string, Array<{ code: string; name: string }>>
-  isLoadingCountries: boolean
-  loadingStateCountries: Set<string>
-  loadingRegionKeys: Set<string>
-  detectedLocation?: string | null
+  locations: Location[];
+  onLocationsChange: (locations: Location[]) => void;
+  countries: Array<{ countryCode: string; name: string }>;
+  countryStates: Record<string, Array<{ code: string; name: string }>>;
+  stateRegions: Record<string, Array<{ code: string; name: string }>>;
+  isLoadingCountries: boolean;
+  loadingStateCountries: Set<string>;
+  loadingRegionKeys: Set<string>;
+  detectedLocation?: string | null;
 
-  customDays: CustomDayOff[]
-  onCustomDaysChange: (days: CustomDayOff[]) => void
+  customDays: CustomDayOff[];
+  onCustomDaysChange: (days: CustomDayOff[]) => void;
 
-  takenDays: TakenDayOff[]
-  onTakenDaysChange: (days: TakenDayOff[]) => void
+  takenDays: TakenDayOff[];
+  onTakenDaysChange: (days: TakenDayOff[]) => void;
 
-  eventTitleTemplate: string
-  onEventTitleTemplateChange: (value: string) => void
-  eventNotesTemplate: string
-  onEventNotesTemplateChange: (value: string) => void
+  eventTitleTemplate: string;
+  onEventTitleTemplateChange: (value: string) => void;
+  eventNotesTemplate: string;
+  onEventNotesTemplateChange: (value: string) => void;
 
-  noticeByStrategy: Partial<Record<PlanStrategy, number>>
-  onNoticeByStrategyChange: (value: Partial<Record<PlanStrategy, number>>) => void
+  noticeByStrategy: Partial<Record<PlanStrategy, number>>;
+  onNoticeByStrategyChange: (
+    value: Partial<Record<PlanStrategy, number>>
+  ) => void;
 
-  isOptimizing: boolean
-  onSubmit: () => void
+  isOptimizing: boolean;
+  onSubmit: () => void;
 }
 
 function makeLocationId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID()
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
+    return crypto.randomUUID();
   }
-  return Math.random().toString(36).slice(2)
+  return Math.random().toString(36).slice(2);
 }
 
 export function OptimizerForm(props: OptimizerFormProps) {
@@ -150,105 +164,112 @@ export function OptimizerForm(props: OptimizerFormProps) {
     onNoticeByStrategyChange,
     detectedLocation,
     isOptimizing,
-    onSubmit,
-  } = props
+    onSubmit
+  } = props;
 
-  const currentYear = new Date().getFullYear()
-  const yearOptions = [currentYear, currentYear + 1]
-  const strategyDetail = STRATEGIES.find((s) => s.id === strategy)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [currentYear, currentYear + 1];
+  const strategyDetail = STRATEGIES.find((s) => s.id === strategy);
 
-  const handleSliderChange = (vals: number[]) => onDayOffBudgetChange(vals[0])
+  const handleSliderChange = (vals: number[]) => onDayOffBudgetChange(vals[0]);
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const n = parseInt(e.target.value, 10)
-    if (Number.isFinite(n)) onDayOffBudgetChange(Math.max(1, Math.min(60, n)))
-  }
+    const n = parseInt(e.target.value, 10);
+    if (Number.isFinite(n)) onDayOffBudgetChange(Math.max(1, Math.min(60, n)));
+  };
 
-  const updateLocation = (id: string, patch: Partial<Omit<Location, "id">>) => {
-    onLocationsChange(locations.map((l) => (l.id === id ? { ...l, ...patch } : l)))
-  }
+  const updateLocation = (id: string, patch: Partial<Omit<Location, 'id'>>) => {
+    onLocationsChange(
+      locations.map((l) => (l.id === id ? { ...l, ...patch } : l))
+    );
+  };
   const removeLocation = (id: string) => {
-    onLocationsChange(locations.filter((l) => l.id !== id))
-  }
+    onLocationsChange(locations.filter((l) => l.id !== id));
+  };
   const addLocation = () => {
     onLocationsChange([
       ...locations,
-      { id: makeLocationId(), country: null, state: null, region: null },
-    ])
-  }
+      { id: makeLocationId(), country: null, state: null, region: null }
+    ]);
+  };
 
   const addCustomDate = () =>
-    onCustomDaysChange([...customDays, { name: "Company day off", date: "" }])
+    onCustomDaysChange([...customDays, { name: 'Company day off', date: '' }]);
   const addCustomRecurring = () =>
     onCustomDaysChange([
       ...customDays,
       {
-        name: "Recurring day off",
+        name: 'Recurring day off',
         isRecurring: true,
         weekday: 5,
         startDate: `${year}-01-01`,
-        endDate: `${year}-12-31`,
-      },
-    ])
+        endDate: `${year}-12-31`
+      }
+    ]);
   const updateCustomDay = (idx: number, patch: Partial<CustomDayOff>) => {
     onCustomDaysChange(
       customDays.map((d, i) => (i === idx ? { ...d, ...patch } : d))
-    )
-  }
+    );
+  };
   const removeCustomDay = (idx: number) =>
-    onCustomDaysChange(customDays.filter((_, i) => i !== idx))
+    onCustomDaysChange(customDays.filter((_, i) => i !== idx));
 
   const addTakenDate = () =>
-    onTakenDaysChange([...takenDays, { name: "Time off", date: "" }])
+    onTakenDaysChange([...takenDays, { name: 'Time off', date: '' }]);
   const addTakenRange = () =>
     onTakenDaysChange([
       ...takenDays,
-      { name: "Vacation", startDate: "", endDate: "" },
-    ])
+      { name: 'Vacation', startDate: '', endDate: '' }
+    ]);
   const updateTakenDay = (idx: number, patch: Partial<TakenDayOff>) =>
-    onTakenDaysChange(takenDays.map((d, i) => (i === idx ? { ...d, ...patch } : d)))
+    onTakenDaysChange(
+      takenDays.map((d, i) => (i === idx ? { ...d, ...patch } : d))
+    );
   const removeTakenDay = (idx: number) =>
-    onTakenDaysChange(takenDays.filter((_, i) => i !== idx))
+    onTakenDaysChange(takenDays.filter((_, i) => i !== idx));
 
   const takenPtoCost = React.useMemo(() => {
-    let total = 0
+    let total = 0;
     for (const d of takenDays) {
       if (d.startDate && d.endDate) {
         // Count calendar days in range as full days (weekends still counted here - just an estimate)
-        const start = new Date(d.startDate)
-        const end = new Date(d.endDate)
-        const days = Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000) + 1)
-        total += days
+        const start = new Date(d.startDate);
+        const end = new Date(d.endDate);
+        const days = Math.max(
+          0,
+          Math.round((end.getTime() - start.getTime()) / 86400000) + 1
+        );
+        total += days;
       } else if (d.date) {
         if (!d.startTime || !d.endTime) {
-          total += 1
+          total += 1;
         } else {
-          const [sh, sm] = d.startTime.split(":").map(Number)
-          const [eh, em] = d.endTime.split(":").map(Number)
-          const mins = Math.max(0, eh * 60 + em - (sh * 60 + sm))
-          total += Math.min(1, Math.round((mins / 480) * 100) / 100)
+          const [sh, sm] = d.startTime.split(':').map(Number);
+          const [eh, em] = d.endTime.split(':').map(Number);
+          const mins = Math.max(0, eh * 60 + em - (sh * 60 + sm));
+          total += Math.min(1, Math.round((mins / 480) * 100) / 100);
         }
       }
     }
-    return Math.round(total * 100) / 100
-  }, [takenDays])
+    return Math.round(total * 100) / 100;
+  }, [takenDays]);
 
-  const remainingBudget = Math.max(0, dayOffBudget - takenPtoCost)
+  const remainingBudget = Math.max(0, dayOffBudget - takenPtoCost);
 
-  const hasAnyCountry = locations.some((l) => !!l.country)
-  const canOptimize = hasAnyCountry && !isOptimizing
+  const hasAnyCountry = locations.some((l) => !!l.country);
+  const canOptimize = hasAnyCountry && !isOptimizing;
 
   const eventPreview = React.useMemo(
     () => renderEventText(SAMPLE_BREAK, eventTitleTemplate, eventNotesTemplate),
     [eventTitleTemplate, eventNotesTemplate]
-  )
+  );
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Plan your time off</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Pick your PTO budget, locations, and how you like to vacation. We&rsquo;ll figure out the
-          best dates.
+          Pick your PTO budget, locations, and how you like to vacation.
+          We&rsquo;ll figure out the best dates.
         </p>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -261,7 +282,8 @@ export function OptimizerForm(props: OptimizerFormProps) {
                   <Info className="size-3 cursor-help text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-52 text-center text-[11px]">
-                  Enter your total annual PTO balance. Days already taken are deducted automatically to find how many are left to plan.
+                  Enter your total annual PTO balance. Days already taken are
+                  deducted automatically to find how many are left to plan.
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -283,21 +305,27 @@ export function OptimizerForm(props: OptimizerFormProps) {
           />
           {takenPtoCost > 0 ? (
             <p className="text-[11px] text-muted-foreground">
-              {dayOffBudget} total -{" "}
+              {dayOffBudget} total -{' '}
               <span className="text-amber-500">{takenPtoCost} taken</span>
-              {" = "}
-              <span className="font-medium text-foreground">{remainingBudget} days left to plan</span>
+              {' = '}
+              <span className="font-medium text-foreground">
+                {remainingBudget} days left to plan
+              </span>
             </p>
           ) : (
             <p className="text-[11px] text-muted-foreground">
-              {dayOffBudget === 1 ? "1 PTO day" : `${dayOffBudget} PTO days`} to allocate
+              {dayOffBudget === 1 ? '1 PTO day' : `${dayOffBudget} PTO days`} to
+              allocate
             </p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label className="text-xs font-medium">Year</Label>
-          <Select value={String(year)} onValueChange={(v) => onYearChange(parseInt(v, 10))}>
+          <Select
+            value={String(year)}
+            onValueChange={(v) => onYearChange(parseInt(v, 10))}
+          >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -305,7 +333,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
               {yearOptions.map((y) => (
                 <SelectItem key={y} value={String(y)}>
                   {y}
-                  {y === currentYear ? " (remaining)" : ""}
+                  {y === currentYear ? ' (remaining)' : ''}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -321,16 +349,21 @@ export function OptimizerForm(props: OptimizerFormProps) {
           <div className="flex items-center justify-between">
             <Label className="text-xs font-medium">Locations</Label>
             <span className="text-[11px] text-muted-foreground">
-              {locations.length} {locations.length === 1 ? "location" : "locations"}
+              {locations.length}{' '}
+              {locations.length === 1 ? 'location' : 'locations'}
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Add multiple if you split time between places. Holidays from every location are merged.
+            Add multiple if you split time between places. Holidays from every
+            location are merged.
           </p>
           {detectedLocation && (
             <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <Navigation className="size-3 shrink-0 text-primary" />
-              Detected: <span className="font-medium text-foreground">{detectedLocation}</span>
+              Detected:{' '}
+              <span className="font-medium text-foreground">
+                {detectedLocation}
+              </span>
             </p>
           )}
           <div className="space-y-2">
@@ -340,7 +373,9 @@ export function OptimizerForm(props: OptimizerFormProps) {
                 location={location}
                 index={idx}
                 countries={countries}
-                states={location.country ? countryStates[location.country] : undefined}
+                states={
+                  location.country ? countryStates[location.country] : undefined
+                }
                 regions={
                   location.country && location.state
                     ? stateRegions[`${location.country}|${location.state}`]
@@ -348,7 +383,8 @@ export function OptimizerForm(props: OptimizerFormProps) {
                 }
                 isLoadingCountries={isLoadingCountries}
                 isLoadingStates={
-                  !!location.country && loadingStateCountries.has(location.country)
+                  !!location.country &&
+                  loadingStateCountries.has(location.country)
                 }
                 isLoadingRegions={
                   !!location.country &&
@@ -392,8 +428,10 @@ export function OptimizerForm(props: OptimizerFormProps) {
           </Select>
           {strategyDetail && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {strategyDetail.description}{" "}
-              <span className="text-foreground/80">{strategyDetail.recommendedFor}</span>
+              {strategyDetail.description}{' '}
+              <span className="text-foreground/80">
+                {strategyDetail.recommendedFor}
+              </span>
             </p>
           )}
         </div>
@@ -415,26 +453,39 @@ export function OptimizerForm(props: OptimizerFormProps) {
               <div className="space-y-3">
                 {takenDays.length === 0 && (
                   <p className="text-[11px] text-muted-foreground">
-                    Optional. Add days you&rsquo;ve already used so they&rsquo;re deducted from your
-                    remaining PTO budget.
+                    Optional. Add days you&rsquo;ve already used so
+                    they&rsquo;re deducted from your remaining PTO budget.
                   </p>
                 )}
 
                 {takenDays.map((day, idx) => {
-                  const isRange = day.startDate !== undefined || day.endDate !== undefined
+                  const isRange =
+                    day.startDate !== undefined || day.endDate !== undefined;
                   const preset =
                     !day.startTime && !day.endTime
-                      ? "full"
-                      : day.startTime === "09:00" && day.endTime === "13:00"
-                        ? "morning"
-                        : day.startTime === "13:00" && day.endTime === "17:00"
-                          ? "afternoon"
-                          : "custom"
-                  const applyPreset = (p: "full" | "morning" | "afternoon") => {
-                    if (p === "full") updateTakenDay(idx, { startTime: undefined, endTime: undefined })
-                    else if (p === "morning") updateTakenDay(idx, { startTime: "09:00", endTime: "13:00" })
-                    else updateTakenDay(idx, { startTime: "13:00", endTime: "17:00" })
-                  }
+                      ? 'full'
+                      : day.startTime === '09:00' && day.endTime === '13:00'
+                        ? 'morning'
+                        : day.startTime === '13:00' && day.endTime === '17:00'
+                          ? 'afternoon'
+                          : 'custom';
+                  const applyPreset = (p: 'full' | 'morning' | 'afternoon') => {
+                    if (p === 'full')
+                      updateTakenDay(idx, {
+                        startTime: undefined,
+                        endTime: undefined
+                      });
+                    else if (p === 'morning')
+                      updateTakenDay(idx, {
+                        startTime: '09:00',
+                        endTime: '13:00'
+                      });
+                    else
+                      updateTakenDay(idx, {
+                        startTime: '13:00',
+                        endTime: '17:00'
+                      });
+                  };
                   return (
                     <div
                       key={idx}
@@ -443,7 +494,9 @@ export function OptimizerForm(props: OptimizerFormProps) {
                       <div className="flex items-center gap-2">
                         <Input
                           value={day.name}
-                          onChange={(e) => updateTakenDay(idx, { name: e.target.value })}
+                          onChange={(e) =>
+                            updateTakenDay(idx, { name: e.target.value })
+                          }
                           placeholder="Label (e.g. Spring trip)"
                         />
                         <HapticButton
@@ -460,19 +513,27 @@ export function OptimizerForm(props: OptimizerFormProps) {
                       {isRange ? (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <Label className="text-[11px] text-muted-foreground">From</Label>
+                            <Label className="text-[11px] text-muted-foreground">
+                              From
+                            </Label>
                             <DatePicker
-                              value={day.startDate ?? ""}
-                              onChange={(v) => updateTakenDay(idx, { startDate: v })}
+                              value={day.startDate ?? ''}
+                              onChange={(v) =>
+                                updateTakenDay(idx, { startDate: v })
+                              }
                               placeholder="Start"
                               defaultMonth={new Date()}
                             />
                           </div>
                           <div>
-                            <Label className="text-[11px] text-muted-foreground">To</Label>
+                            <Label className="text-[11px] text-muted-foreground">
+                              To
+                            </Label>
                             <DatePicker
-                              value={day.endDate ?? ""}
-                              onChange={(v) => updateTakenDay(idx, { endDate: v })}
+                              value={day.endDate ?? ''}
+                              onChange={(v) =>
+                                updateTakenDay(idx, { endDate: v })
+                              }
                               placeholder="End"
                               defaultMonth={new Date()}
                             />
@@ -481,9 +542,11 @@ export function OptimizerForm(props: OptimizerFormProps) {
                       ) : (
                         <>
                           <div>
-                            <Label className="text-[11px] text-muted-foreground">Date</Label>
+                            <Label className="text-[11px] text-muted-foreground">
+                              Date
+                            </Label>
                             <DatePicker
-                              value={day.date ?? ""}
+                              value={day.date ?? ''}
                               onChange={(v) => updateTakenDay(idx, { date: v })}
                               placeholder="Pick a date"
                               defaultMonth={new Date()}
@@ -491,51 +554,79 @@ export function OptimizerForm(props: OptimizerFormProps) {
                           </div>
 
                           <div className="space-y-1.5">
-                            <Label className="text-[11px] text-muted-foreground">Duration</Label>
+                            <Label className="text-[11px] text-muted-foreground">
+                              Duration
+                            </Label>
                             <div className="flex gap-1">
-                              {(["full", "morning", "afternoon"] as const).map((p) => (
-                                <HapticButton
-                                  key={p}
-                                  type="button"
-                                  variant={preset === p ? "default" : "outline"}
-                                  size="sm"
-                                  className="h-7 flex-1 text-[11px]"
-                                  onClick={() => applyPreset(p)}
-                                >
-                                  {p === "full" ? "Full day" : p === "morning" ? "Morning" : "Afternoon"}
-                                </HapticButton>
-                              ))}
+                              {(['full', 'morning', 'afternoon'] as const).map(
+                                (p) => (
+                                  <HapticButton
+                                    key={p}
+                                    type="button"
+                                    variant={
+                                      preset === p ? 'default' : 'outline'
+                                    }
+                                    size="sm"
+                                    className="h-7 flex-1 text-[11px]"
+                                    onClick={() => applyPreset(p)}
+                                  >
+                                    {p === 'full'
+                                      ? 'Full day'
+                                      : p === 'morning'
+                                        ? 'Morning'
+                                        : 'Afternoon'}
+                                  </HapticButton>
+                                )
+                              )}
                               <HapticButton
                                 type="button"
-                                variant={preset === "custom" ? "default" : "outline"}
+                                variant={
+                                  preset === 'custom' ? 'default' : 'outline'
+                                }
                                 size="sm"
                                 className="h-7 flex-1 text-[11px]"
                                 onClick={() => {
-                                  if (preset !== "custom") {
-                                    updateTakenDay(idx, { startTime: "09:00", endTime: "17:00" })
+                                  if (preset !== 'custom') {
+                                    updateTakenDay(idx, {
+                                      startTime: '09:00',
+                                      endTime: '17:00'
+                                    });
                                   }
                                 }}
                               >
                                 Custom
                               </HapticButton>
                             </div>
-                            {(preset === "custom" || (day.startTime && day.endTime)) && (
+                            {(preset === 'custom' ||
+                              (day.startTime && day.endTime)) && (
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <Label className="text-[11px] text-muted-foreground">Start</Label>
+                                  <Label className="text-[11px] text-muted-foreground">
+                                    Start
+                                  </Label>
                                   <Input
                                     type="time"
-                                    value={day.startTime ?? "09:00"}
-                                    onChange={(e) => updateTakenDay(idx, { startTime: e.target.value })}
+                                    value={day.startTime ?? '09:00'}
+                                    onChange={(e) =>
+                                      updateTakenDay(idx, {
+                                        startTime: e.target.value
+                                      })
+                                    }
                                     className="h-8 appearance-none bg-background text-xs [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                                   />
                                 </div>
                                 <div>
-                                  <Label className="text-[11px] text-muted-foreground">End</Label>
+                                  <Label className="text-[11px] text-muted-foreground">
+                                    End
+                                  </Label>
                                   <Input
                                     type="time"
-                                    value={day.endTime ?? "17:00"}
-                                    onChange={(e) => updateTakenDay(idx, { endTime: e.target.value })}
+                                    value={day.endTime ?? '17:00'}
+                                    onChange={(e) =>
+                                      updateTakenDay(idx, {
+                                        endTime: e.target.value
+                                      })
+                                    }
                                     className="h-8 appearance-none bg-background text-xs [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                                   />
                                 </div>
@@ -545,7 +636,7 @@ export function OptimizerForm(props: OptimizerFormProps) {
                         </>
                       )}
                     </div>
-                  )
+                  );
                 })}
 
                 <div className="flex gap-2">
@@ -588,8 +679,8 @@ export function OptimizerForm(props: OptimizerFormProps) {
               <div className="space-y-3">
                 {customDays.length === 0 && (
                   <p className="text-[11px] text-muted-foreground">
-                    Optional. Add ad-hoc or recurring company days off (e.g. summer Fridays) so they
-                    count toward your breaks.
+                    Optional. Add ad-hoc or recurring company days off (e.g.
+                    summer Fridays) so they count toward your breaks.
                   </p>
                 )}
 
@@ -601,7 +692,9 @@ export function OptimizerForm(props: OptimizerFormProps) {
                     <div className="flex items-center gap-2">
                       <Input
                         value={day.name}
-                        onChange={(e) => updateCustomDay(idx, { name: e.target.value })}
+                        onChange={(e) =>
+                          updateCustomDay(idx, { name: e.target.value })
+                        }
                         placeholder="Label (e.g. Summer Friday)"
                       />
                       <HapticButton
@@ -618,7 +711,9 @@ export function OptimizerForm(props: OptimizerFormProps) {
                     {day.isRecurring ? (
                       <div className="grid grid-cols-2 gap-2">
                         <div className="col-span-2">
-                          <Label className="text-[11px] text-muted-foreground">Weekday</Label>
+                          <Label className="text-[11px] text-muted-foreground">
+                            Weekday
+                          </Label>
                           <Select
                             value={String(day.weekday ?? 5)}
                             onValueChange={(v) =>
@@ -630,7 +725,10 @@ export function OptimizerForm(props: OptimizerFormProps) {
                             </SelectTrigger>
                             <SelectContent>
                               {WEEKDAYS.map((w) => (
-                                <SelectItem key={w.value} value={String(w.value)}>
+                                <SelectItem
+                                  key={w.value}
+                                  value={String(w.value)}
+                                >
                                   {w.label}
                                 </SelectItem>
                               ))}
@@ -638,19 +736,27 @@ export function OptimizerForm(props: OptimizerFormProps) {
                           </Select>
                         </div>
                         <div>
-                          <Label className="text-[11px] text-muted-foreground">From</Label>
+                          <Label className="text-[11px] text-muted-foreground">
+                            From
+                          </Label>
                           <DatePicker
-                            value={day.startDate ?? ""}
-                            onChange={(v) => updateCustomDay(idx, { startDate: v })}
+                            value={day.startDate ?? ''}
+                            onChange={(v) =>
+                              updateCustomDay(idx, { startDate: v })
+                            }
                             placeholder="Start"
                             defaultMonth={new Date()}
                           />
                         </div>
                         <div>
-                          <Label className="text-[11px] text-muted-foreground">To</Label>
+                          <Label className="text-[11px] text-muted-foreground">
+                            To
+                          </Label>
                           <DatePicker
-                            value={day.endDate ?? ""}
-                            onChange={(v) => updateCustomDay(idx, { endDate: v })}
+                            value={day.endDate ?? ''}
+                            onChange={(v) =>
+                              updateCustomDay(idx, { endDate: v })
+                            }
                             placeholder="End"
                             defaultMonth={new Date()}
                           />
@@ -658,9 +764,11 @@ export function OptimizerForm(props: OptimizerFormProps) {
                       </div>
                     ) : (
                       <div>
-                        <Label className="text-[11px] text-muted-foreground">Date</Label>
+                        <Label className="text-[11px] text-muted-foreground">
+                          Date
+                        </Label>
                         <DatePicker
-                          value={day.date ?? ""}
+                          value={day.date ?? ''}
                           onChange={(v) => updateCustomDay(idx, { date: v })}
                           placeholder="Pick a date"
                           defaultMonth={new Date()}
@@ -703,25 +811,35 @@ export function OptimizerForm(props: OptimizerFormProps) {
             </AccordionTrigger>
             <AccordionContent className="space-y-3">
               <p className="text-[11px] text-muted-foreground">
-                A long trip booked for next week probably won&rsquo;t get approved. We bias each
-                strategy toward starting after its usual notice window &mdash; but will still use
-                an earlier date if that&rsquo;s the only way to fit your budget.
+                A long trip booked for next week probably won&rsquo;t get
+                approved. We bias each strategy toward starting after its usual
+                notice window &mdash; but will still use an earlier date if
+                that&rsquo;s the only way to fit your budget.
               </p>
               {STRATEGIES.map((s) => (
-                <div key={s.id} className="flex items-center justify-between gap-2">
-                  <Label className="text-[11px] text-muted-foreground">{s.label}</Label>
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <Label className="text-[11px] text-muted-foreground">
+                    {s.label}
+                  </Label>
                   <Input
                     type="number"
                     min={0}
                     max={120}
                     className="w-20"
-                    value={noticeByStrategy[s.id] ?? STRATEGY_NOTICE_DEFAULTS[s.id]}
+                    value={
+                      noticeByStrategy[s.id] ?? STRATEGY_NOTICE_DEFAULTS[s.id]
+                    }
                     onChange={(e) => {
-                      const n = parseInt(e.target.value, 10)
+                      const n = parseInt(e.target.value, 10);
                       onNoticeByStrategyChange({
                         ...noticeByStrategy,
-                        [s.id]: Number.isFinite(n) ? Math.max(0, Math.min(120, n)) : 0,
-                      })
+                        [s.id]: Number.isFinite(n)
+                          ? Math.max(0, Math.min(120, n))
+                          : 0
+                      });
                     }}
                   />
                 </div>
@@ -738,7 +856,9 @@ export function OptimizerForm(props: OptimizerFormProps) {
             </AccordionTrigger>
             <AccordionContent className="space-y-3">
               <div>
-                <Label className="text-[11px] text-muted-foreground">Event title</Label>
+                <Label className="text-[11px] text-muted-foreground">
+                  Event title
+                </Label>
                 <Input
                   value={eventTitleTemplate}
                   onChange={(e) => onEventTitleTemplateChange(e.target.value)}
@@ -746,7 +866,9 @@ export function OptimizerForm(props: OptimizerFormProps) {
                 />
               </div>
               <div>
-                <Label className="text-[11px] text-muted-foreground">Event notes</Label>
+                <Label className="text-[11px] text-muted-foreground">
+                  Event notes
+                </Label>
                 <Textarea
                   value={eventNotesTemplate}
                   onChange={(e) => onEventNotesTemplateChange(e.target.value)}
@@ -755,10 +877,16 @@ export function OptimizerForm(props: OptimizerFormProps) {
                 />
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Leave blank for the default text. <br/>Variables: {"{days} {pto} {holidays} {weekends} {company} {start} {end} {year} {names}"}
+                Leave blank for the default text. <br />
+                Variables:{' '}
+                {
+                  '{days} {pto} {holidays} {weekends} {company} {start} {end} {year} {names}'
+                }
               </p>
               <div>
-                <Label className="text-[11px] text-muted-foreground">Preview</Label>
+                <Label className="text-[11px] text-muted-foreground">
+                  Preview
+                </Label>
                 <div className="rounded-md border border-border/70 bg-muted/30 p-2.5">
                   <p className="text-xs font-medium">{eventPreview.summary}</p>
                   <p className="mt-1 whitespace-pre-wrap text-[11px] text-muted-foreground">
@@ -793,5 +921,5 @@ export function OptimizerForm(props: OptimizerFormProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

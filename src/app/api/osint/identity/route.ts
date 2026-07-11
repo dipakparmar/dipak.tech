@@ -1,58 +1,66 @@
-import { NextResponse } from "next/server"
-import { buildRateLimitHeaders, checkRateLimit, getCached, getClientId, setCached } from "@/lib/osint-cache"
-import { captureAPIError } from "@/lib/sentry-utils"
-import { isSsrfTarget } from "@/lib/ssrf-guard"
-import type { IdentityData } from "@/lib/osint-types"
+import { NextResponse } from 'next/server';
+import {
+  buildRateLimitHeaders,
+  checkRateLimit,
+  getCached,
+  getClientId,
+  setCached
+} from '@/lib/osint-cache';
+import { captureAPIError } from '@/lib/sentry-utils';
+import { isSsrfTarget } from '@/lib/ssrf-guard';
+import type { IdentityData } from '@/lib/osint-types';
 
-const RESPONSE_CACHE_TTL = 10 * 60 * 1000
-const RATE_LIMIT = 30
-const RATE_WINDOW_MS = 60 * 1000
+const RESPONSE_CACHE_TTL = 10 * 60 * 1000;
+const RATE_LIMIT = 30;
+const RATE_WINDOW_MS = 60 * 1000;
 
-function parseSecurityTxt(text: string): IdentityData["securityTxt"] {
+function parseSecurityTxt(text: string): IdentityData['securityTxt'] {
   const field = (key: string) => {
-    const match = text.match(new RegExp(`^${key}:\\s*(.+)$`, "mi"))
-    return match?.[1]?.trim() ?? null
-  }
+    const match = text.match(new RegExp(`^${key}:\\s*(.+)$`, 'mi'));
+    return match?.[1]?.trim() ?? null;
+  };
 
-  const contact = field("Contact")
-  const policy = field("Policy")
-  const hiring = field("Hiring")
+  const contact = field('Contact');
+  const policy = field('Policy');
+  const hiring = field('Hiring');
 
   return {
     found: true,
     contact,
-    expires: field("Expires"),
+    expires: field('Expires'),
     policy,
-    encryption: field("Encryption"),
-    acknowledgments: field("Acknowledgments"),
+    encryption: field('Encryption'),
+    acknowledgments: field('Acknowledgments'),
     hiring,
-    bugBounty: Boolean(policy || hiring),
-  }
+    bugBounty: Boolean(policy || hiring)
+  };
 }
 
-async function fetchSecurityTxt(domain: string): Promise<IdentityData["securityTxt"]> {
+async function fetchSecurityTxt(
+  domain: string
+): Promise<IdentityData['securityTxt']> {
   const paths = [
     `https://${domain}/.well-known/security.txt`,
-    `https://${domain}/security.txt`,
-  ]
+    `https://${domain}/security.txt`
+  ];
 
   for (const url of paths) {
     try {
-      if (isSsrfTarget(url)) continue
-      const controller = new AbortController()
-      setTimeout(() => controller.abort(), 6000)
+      if (isSsrfTarget(url)) continue;
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 6000);
       // lgtm[js/request-forgery] - guarded by isSsrfTarget above
       const res = await fetch(url, {
-        redirect: "follow",
+        redirect: 'follow',
         signal: controller.signal,
-        headers: { "User-Agent": "dipak.tech-osint/1.0" },
-      })
+        headers: { 'User-Agent': 'dipak.tech-osint/1.0' }
+      });
       if (res.ok) {
-        const text = await res.text()
-        if (/^contact:/im.test(text)) return parseSecurityTxt(text)
+        const text = await res.text();
+        if (/^contact:/im.test(text)) return parseSecurityTxt(text);
       }
     } catch {
-      continue
+      continue;
     }
   }
 
@@ -64,38 +72,54 @@ async function fetchSecurityTxt(domain: string): Promise<IdentityData["securityT
     encryption: null,
     acknowledgments: null,
     hiring: null,
-    bugBounty: false,
-  }
+    bugBounty: false
+  };
 }
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const target = searchParams.get("target")
-    if (!target) return NextResponse.json({ error: "Target parameter is required" }, { status: 400 })
+    const { searchParams } = new URL(request.url);
+    const target = searchParams.get('target');
+    if (!target)
+      return NextResponse.json(
+        { error: 'Target parameter is required' },
+        { status: 400 }
+      );
 
-    const normalized = target.trim().toLowerCase()
-    const cacheKey = `identity:${normalized}`
-    const cached = getCached<IdentityData>(cacheKey)
-    if (cached) return NextResponse.json(cached, { headers: { "X-Cache": "HIT" } })
+    const normalized = target.trim().toLowerCase();
+    const cacheKey = `identity:${normalized}`;
+    const cached = getCached<IdentityData>(cacheKey);
+    if (cached)
+      return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } });
 
-    const clientId = getClientId(request.headers)
-    const rateInfo = checkRateLimit(clientId, RATE_LIMIT, RATE_WINDOW_MS)
+    const clientId = getClientId(request.headers);
+    const rateInfo = checkRateLimit(clientId, RATE_LIMIT, RATE_WINDOW_MS);
     if (!rateInfo.allowed) {
-      return NextResponse.json({ error: "Rate limit exceeded" }, {
-        status: 429,
-        headers: { ...buildRateLimitHeaders(RATE_LIMIT, rateInfo), "Retry-After": String(Math.ceil(rateInfo.resetAt / 1000)) },
-      })
+      return NextResponse.json(
+        { error: 'Rate limit exceeded' },
+        {
+          status: 429,
+          headers: {
+            ...buildRateLimitHeaders(RATE_LIMIT, rateInfo),
+            'Retry-After': String(Math.ceil(rateInfo.resetAt / 1000))
+          }
+        }
+      );
     }
 
-    const securityTxt = await fetchSecurityTxt(normalized)
-    const payload: IdentityData = { securityTxt }
+    const securityTxt = await fetchSecurityTxt(normalized);
+    const payload: IdentityData = { securityTxt };
 
-    setCached(cacheKey, payload, RESPONSE_CACHE_TTL)
+    setCached(cacheKey, payload, RESPONSE_CACHE_TTL);
     return NextResponse.json(payload, {
-      headers: { "X-Cache": "MISS", ...buildRateLimitHeaders(RATE_LIMIT, rateInfo) },
-    })
+      headers: {
+        'X-Cache': 'MISS',
+        ...buildRateLimitHeaders(RATE_LIMIT, rateInfo)
+      }
+    });
   } catch (error) {
-    return captureAPIError(error, request, 500, { operation: "identity_check" })
+    return captureAPIError(error, request, 500, {
+      operation: 'identity_check'
+    });
   }
 }

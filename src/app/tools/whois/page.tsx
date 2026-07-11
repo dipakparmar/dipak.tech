@@ -1,46 +1,47 @@
-import { Globe, Hash, Network } from "lucide-react"
+import { Globe, Hash, Network } from 'lucide-react';
 
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { Suspense } from "react"
-import { WhoisTool } from "@/components/whois-tool"
-import { ogUrls, siteConfig } from "@/lib/og-config"
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { Suspense } from 'react';
+import { WhoisTool } from '@/components/whois-tool';
+import { ogUrls, siteConfig } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.whois({
-  tool: "WHOIS Lookup",
-  description: "Domain, IP, and ASN registration lookup via RDAP",
-  category: "whois",
-})
+  tool: 'WHOIS Lookup',
+  description: 'Domain, IP, and ASN registration lookup via RDAP',
+  category: 'whois'
+});
 
 export const metadata = {
-  title: "WHOIS Lookup | Dipak Parmar",
-  description: "Look up domain registration, IP network, and ASN information using RDAP protocol",
+  title: 'WHOIS Lookup | Dipak Parmar',
+  description:
+    'Look up domain registration, IP network, and ASN information using RDAP protocol',
   openGraph: {
-    title: "WHOIS Lookup",
-    description: "Domain, IP, and ASN registration lookup via RDAP protocol",
+    title: 'WHOIS Lookup',
+    description: 'Domain, IP, and ASN registration lookup via RDAP protocol',
     url: siteConfig.whois.baseUrl,
     siteName: siteConfig.whois.domain,
-    type: "website",
+    type: 'website',
     images: [
       {
         url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: "WHOIS Lookup",
-      },
-    ],
+        alt: 'WHOIS Lookup'
+      }
+    ]
   },
   twitter: {
-    card: "summary_large_image",
-    title: "WHOIS Lookup | Dipak Parmar",
-    description: "Domain, IP, and ASN registration lookup via RDAP protocol",
-    images: [ogImageUrl],
+    card: 'summary_large_image',
+    title: 'WHOIS Lookup | Dipak Parmar',
+    description: 'Domain, IP, and ASN registration lookup via RDAP protocol',
+    images: [ogImageUrl]
   },
   alternates: {
-    canonical: siteConfig.whois.baseUrl,
-  },
-}
+    canonical: siteConfig.whois.baseUrl
+  }
+};
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 export default function Page() {
   return (
@@ -65,8 +66,8 @@ export default function Page() {
                 Domain & IP Registration
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Look up registration details for domains, IP addresses, and autonomous systems
-                using the RDAP protocol.
+                Look up registration details for domains, IP addresses, and
+                autonomous systems using the RDAP protocol.
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
@@ -87,12 +88,16 @@ export default function Page() {
 
           {/* Search Component */}
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <Suspense fallback={<div className="h-14 animate-pulse rounded-xl bg-muted" />}>
+            <Suspense
+              fallback={
+                <div className="h-14 animate-pulse rounded-xl bg-muted" />
+              }
+            >
               <WhoisTool />
             </Suspense>
           </BlurFade>
         </div>
       </div>
     </main>
-  )
+  );
 }

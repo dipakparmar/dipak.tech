@@ -2,7 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { compile, run } from '@mdx-js/mdx';
-import type { Element, ElementContent, Properties, Root, RootContent } from 'hast';
+import type {
+  Element,
+  ElementContent,
+  Properties,
+  Root,
+  RootContent
+} from 'hast';
 import * as runtime from 'react/jsx-runtime';
 import remarkGfm from 'remark-gfm';
 import { createHighlighter } from 'shiki';
@@ -41,7 +47,9 @@ export interface Post {
 
 type HastElementWithChildren = Element & { children: ElementContent[] };
 
-function isElement(node: RootContent | undefined): node is HastElementWithChildren {
+function isElement(
+  node: RootContent | undefined
+): node is HastElementWithChildren {
   return Boolean(node && node.type === 'element');
 }
 
@@ -106,7 +114,7 @@ function extractToc(content: string): TocEntry[] {
     entries.push({
       id: getUniqueSlug(match[2]),
       text: match[2],
-      level: match[1].length,
+      level: match[1].length
     });
   }
   return entries;
@@ -119,9 +127,22 @@ function getHighlighter() {
     highlighterPromise = createHighlighter({
       themes: ['github-dark', 'github-light'],
       langs: [
-        'typescript', 'javascript', 'bash', 'go', 'python', 'yaml', 'json',
-        'tsx', 'jsx', 'css', 'html', 'dockerfile', 'sql', 'rust', 'markdown',
-      ],
+        'typescript',
+        'javascript',
+        'bash',
+        'go',
+        'python',
+        'yaml',
+        'json',
+        'tsx',
+        'jsx',
+        'css',
+        'html',
+        'dockerfile',
+        'sql',
+        'rust',
+        'markdown'
+      ]
     });
   }
   return highlighterPromise;
@@ -148,7 +169,7 @@ function rehypeShiki() {
 
       const hast = highlighter.codeToHast(code, {
         lang,
-        themes: { light: 'github-light', dark: 'github-dark' },
+        themes: { light: 'github-light', dark: 'github-dark' }
       });
 
       // codeToHast returns a root with a single <pre> child
@@ -173,7 +194,9 @@ function rehypeShiki() {
               .join('')
               .trimStart();
             const isCommand = text.length > 0 && !text.startsWith('#');
-            line.properties['data-line-type'] = isCommand ? 'command' : 'comment';
+            line.properties['data-line-type'] = isCommand
+              ? 'command'
+              : 'comment';
           }
         }
       }
@@ -187,27 +210,39 @@ function rehypeShiki() {
         headerChildren.push({
           type: 'element',
           tagName: 'img',
-          properties: { src: iconPath, alt: lang, className: ['shiki-lang-icon'], width: '12', height: '12' },
-          children: [],
+          properties: {
+            src: iconPath,
+            alt: lang,
+            className: ['shiki-lang-icon'],
+            width: '12',
+            height: '12'
+          },
+          children: []
         });
         headerChildren.push({
           type: 'element',
           tagName: 'span',
           properties: { className: ['shiki-lang-dots'] },
-          children: [{ type: 'text', value: '● ● ●' }],
+          children: [{ type: 'text', value: '● ● ●' }]
         });
       } else {
         headerChildren.push({
           type: 'element',
           tagName: 'img',
-          properties: { src: iconPath, alt: lang, className: ['shiki-lang-icon'], width: '12', height: '12' },
-          children: [],
+          properties: {
+            src: iconPath,
+            alt: lang,
+            className: ['shiki-lang-icon'],
+            width: '12',
+            height: '12'
+          },
+          children: []
         });
         headerChildren.push({
           type: 'element',
           tagName: 'span',
           properties: {},
-          children: [{ type: 'text', value: lang }],
+          children: [{ type: 'text', value: lang }]
         });
       }
 
@@ -215,7 +250,7 @@ function rehypeShiki() {
         type: 'element',
         tagName: 'div',
         properties: { className: ['shiki-header'] },
-        children: headerChildren,
+        children: headerChildren
       } satisfies Element;
 
       // Wrap in a div with lang label
@@ -234,9 +269,7 @@ function rehypeSlug() {
     const getUniqueSlug = createUniqueSlugger();
     visit(tree, 'element', (node) => {
       if (!['h2', 'h3', 'h4'].includes(node.tagName)) return;
-      const text = node.children
-        .map(getTextValue)
-        .join('');
+      const text = node.children.map(getTextValue).join('');
       if (text) {
         node.properties = node.properties || {};
         node.properties.id = getUniqueSlug(text);
@@ -269,7 +302,7 @@ export function getAllPosts(): PostMeta[] {
       return {
         ...frontmatter,
         slug,
-        readingTime: computeReadingTime(content),
+        readingTime: computeReadingTime(content)
       };
     })
     .filter((post): post is PostMeta => post !== null);
@@ -309,21 +342,21 @@ export async function getPostBySlug(slug: string): Promise<Post> {
   const compiled = await compile(content, {
     outputFormat: 'function-body',
     remarkPlugins: [remarkGfm],
-    rehypePlugins: [rehypeSlug, rehypeShiki],
+    rehypePlugins: [rehypeSlug, rehypeShiki]
   });
 
   const { default: Content } = await run(String(compiled), {
     ...runtime,
-    baseUrl: import.meta.url,
+    baseUrl: import.meta.url
   });
 
   return {
     meta: {
       ...frontmatter,
       slug,
-      readingTime: computeReadingTime(content),
+      readingTime: computeReadingTime(content)
     },
     content: Content,
-    toc,
+    toc
   };
 }

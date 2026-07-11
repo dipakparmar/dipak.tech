@@ -1,19 +1,19 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
-import { useHaptics } from "@/hooks/use-haptics"
-import { EmptyStateScene } from "./empty-state-scene"
-import { OptimizerForm } from "./optimizer-form"
-import { ResultsDisplay } from "./results-display"
+import * as React from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
+import { useHaptics } from '@/hooks/use-haptics';
+import { EmptyStateScene } from './empty-state-scene';
+import { OptimizerForm } from './optimizer-form';
+import { ResultsDisplay } from './results-display';
 import {
   fetchPublicHolidays,
   listCountries,
   listRegions,
-  listStates,
-} from "@/lib/timeoff-optimizer/holidays"
-import { optimizeDaysAsync } from "@/lib/timeoff-optimizer/optimizer"
+  listStates
+} from '@/lib/timeoff-optimizer/holidays';
+import { optimizeDaysAsync } from '@/lib/timeoff-optimizer/optimizer';
 import {
   base64DecodeJSON,
   base64EncodeJSON,
@@ -22,40 +22,43 @@ import {
   decodeTakenDays,
   encodeLocations,
   isStrategy,
-  makeLocationId,
-} from "@/lib/timeoff-optimizer/share-params"
-import type { DetectedGeo } from "@/lib/geo"
+  makeLocationId
+} from '@/lib/timeoff-optimizer/share-params';
+import type { DetectedGeo } from '@/lib/geo';
 import type {
   CustomDayOff,
   Location,
   PlanResult,
   PlanStrategy,
-  TakenDayOff,
-} from "@/lib/timeoff-optimizer/types"
+  TakenDayOff
+} from '@/lib/timeoff-optimizer/types';
 
 function locationsEqual(a: Location[], b: Location[]): boolean {
-  if (a.length !== b.length) return false
+  if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
-    if (a[i].country !== b[i].country) return false
-    if (a[i].state !== b[i].state) return false
-    if (a[i].region !== b[i].region) return false
+    if (a[i].country !== b[i].country) return false;
+    if (a[i].state !== b[i].state) return false;
+    if (a[i].region !== b[i].region) return false;
   }
-  return true
+  return true;
 }
 
-function initialLocations(searchParams: URLSearchParams, detectedGeo?: DetectedGeo | null): Location[] {
-  const fromLoc = decodeLocations(searchParams.get("loc"))
-  if (fromLoc.length > 0) return fromLoc
-  const legacyCountry = searchParams.get("country")
+function initialLocations(
+  searchParams: URLSearchParams,
+  detectedGeo?: DetectedGeo | null
+): Location[] {
+  const fromLoc = decodeLocations(searchParams.get('loc'));
+  if (fromLoc.length > 0) return fromLoc;
+  const legacyCountry = searchParams.get('country');
   if (legacyCountry) {
     return [
       {
         id: makeLocationId(),
         country: legacyCountry,
-        state: searchParams.get("state"),
-        region: searchParams.get("region"),
-      },
-    ]
+        state: searchParams.get('state'),
+        region: searchParams.get('region')
+      }
+    ];
   }
   if (detectedGeo?.country) {
     return [
@@ -63,224 +66,234 @@ function initialLocations(searchParams: URLSearchParams, detectedGeo?: DetectedG
         id: makeLocationId(),
         country: detectedGeo.country,
         state: detectedGeo.region,
-        region: null,
-      },
-    ]
+        region: null
+      }
+    ];
   }
-  return [{ id: makeLocationId(), country: null, state: null, region: null }]
+  return [{ id: makeLocationId(), country: null, state: null, region: null }];
 }
 
 interface TimeoffOptimizerToolProps {
-  detectedGeo?: DetectedGeo | null
+  detectedGeo?: DetectedGeo | null;
   /** Whether the owner has configured TIMEOFF_OPTIMIZER_ICS_TOKEN at all; gates the Subscribe UI's existence, not access to it. */
-  icsSubscribeEnabled?: boolean
+  icsSubscribeEnabled?: boolean;
 }
 
-export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: TimeoffOptimizerToolProps) {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-  const { trigger: hapticTrigger } = useHaptics()
-  const currentYear = new Date().getFullYear()
+export function TimeoffOptimizerTool({
+  detectedGeo,
+  icsSubscribeEnabled
+}: TimeoffOptimizerToolProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { trigger: hapticTrigger } = useHaptics();
+  const currentYear = new Date().getFullYear();
 
   const initialYear = (() => {
-    const y = parseInt(searchParams.get("year") ?? "", 10)
-    return y === currentYear || y === currentYear + 1 ? y : currentYear
-  })()
+    const y = parseInt(searchParams.get('year') ?? '', 10);
+    return y === currentYear || y === currentYear + 1 ? y : currentYear;
+  })();
   const initialDays = (() => {
-    const d = parseInt(searchParams.get("days") ?? "", 10)
-    return Number.isFinite(d) ? Math.max(1, Math.min(60, d)) : 15
-  })()
-  const initialStrategyRaw = searchParams.get("strategy")
+    const d = parseInt(searchParams.get('days') ?? '', 10);
+    return Number.isFinite(d) ? Math.max(1, Math.min(60, d)) : 15;
+  })();
+  const initialStrategyRaw = searchParams.get('strategy');
   const initialStrategy: PlanStrategy = isStrategy(initialStrategyRaw)
     ? initialStrategyRaw
-    : "balanced"
+    : 'balanced';
 
-  const [dayOffBudget, setDayOffBudget] = React.useState<number>(initialDays)
-  const [year, setYear] = React.useState<number>(initialYear)
-  const [strategy, setStrategy] = React.useState<PlanStrategy>(initialStrategy)
+  const [dayOffBudget, setDayOffBudget] = React.useState<number>(initialDays);
+  const [year, setYear] = React.useState<number>(initialYear);
+  const [strategy, setStrategy] = React.useState<PlanStrategy>(initialStrategy);
   const [locations, setLocations] = React.useState<Location[]>(() =>
     initialLocations(new URLSearchParams(searchParams.toString()), detectedGeo)
-  )
+  );
   const [customDays, setCustomDays] = React.useState<CustomDayOff[]>(() =>
-    decodeCustomDays(searchParams.get("cd"))
-  )
+    decodeCustomDays(searchParams.get('cd'))
+  );
   const [takenDays, setTakenDays] = React.useState<TakenDayOff[]>(() =>
-    decodeTakenDays(searchParams.get("taken"))
-  )
+    decodeTakenDays(searchParams.get('taken'))
+  );
   const [eventTitleTemplate, setEventTitleTemplate] = React.useState(
-    () => searchParams.get("etitle") ?? ""
-  )
+    () => searchParams.get('etitle') ?? ''
+  );
   const [eventNotesTemplate, setEventNotesTemplate] = React.useState(
-    () => searchParams.get("enotes") ?? ""
-  )
+    () => searchParams.get('enotes') ?? ''
+  );
   const [noticeByStrategy, setNoticeByStrategy] = React.useState<
     Partial<Record<PlanStrategy, number>>
-  >(() => base64DecodeJSON(searchParams.get("notice")) ?? {})
+  >(() => base64DecodeJSON(searchParams.get('notice')) ?? {});
 
   const [countries, setCountries] = React.useState<
     Array<{ countryCode: string; name: string }>
-  >([])
+  >([]);
   const [countryStates, setCountryStates] = React.useState<
     Record<string, Array<{ code: string; name: string }>>
-  >({})
+  >({});
   const [stateRegions, setStateRegions] = React.useState<
     Record<string, Array<{ code: string; name: string }>>
-  >({})
-  const [isLoadingCountries, setIsLoadingCountries] = React.useState(true)
-  const [loadingStateCountries, setLoadingStateCountries] = React.useState<Set<string>>(
+  >({});
+  const [isLoadingCountries, setIsLoadingCountries] = React.useState(true);
+  const [loadingStateCountries, setLoadingStateCountries] = React.useState<
+    Set<string>
+  >(new Set());
+  const [loadingRegionKeys, setLoadingRegionKeys] = React.useState<Set<string>>(
     new Set()
-  )
-  const [loadingRegionKeys, setLoadingRegionKeys] = React.useState<Set<string>>(new Set())
+  );
 
-  const [isOptimizing, setIsOptimizing] = React.useState(false)
-  const [result, setResult] = React.useState<PlanResult | null>(null)
-  const [resultYear, setResultYear] = React.useState<number | null>(null)
-  const [resultBudget, setResultBudget] = React.useState<number | null>(null)
-  const [resultLocations, setResultLocations] = React.useState<Location[] | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
+  const [isOptimizing, setIsOptimizing] = React.useState(false);
+  const [result, setResult] = React.useState<PlanResult | null>(null);
+  const [resultYear, setResultYear] = React.useState<number | null>(null);
+  const [resultBudget, setResultBudget] = React.useState<number | null>(null);
+  const [resultLocations, setResultLocations] = React.useState<
+    Location[] | null
+  >(null);
+  const [error, setError] = React.useState<string | null>(null);
 
   const isStale =
     result !== null &&
     (resultYear !== year ||
       resultBudget !== dayOffBudget ||
-      (resultLocations !== null && !locationsEqual(resultLocations, locations)))
+      (resultLocations !== null &&
+        !locationsEqual(resultLocations, locations)));
 
   React.useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
     listCountries()
       .then((list) => {
-        if (cancelled) return
-        list.sort((a, b) => a.name.localeCompare(b.name))
-        setCountries(list)
+        if (cancelled) return;
+        list.sort((a, b) => a.name.localeCompare(b.name));
+        setCountries(list);
       })
       .catch(() => {})
       .finally(() => {
-        if (!cancelled) setIsLoadingCountries(false)
-      })
+        if (!cancelled) setIsLoadingCountries(false);
+      });
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
   React.useEffect(() => {
     const wanted = new Set(
       locations.map((l) => l.country).filter((c): c is string => !!c)
-    )
+    );
     wanted.forEach((country) => {
-      if (country in countryStates) return
-      if (loadingStateCountries.has(country)) return
+      if (country in countryStates) return;
+      if (loadingStateCountries.has(country)) return;
       setLoadingStateCountries((prev) => {
-        const next = new Set(prev)
-        next.add(country)
-        return next
-      })
+        const next = new Set(prev);
+        next.add(country);
+        return next;
+      });
       listStates(country)
         .then((list) => {
-          list.sort((a, b) => a.name.localeCompare(b.name))
-          setCountryStates((prev) => ({ ...prev, [country]: list }))
+          list.sort((a, b) => a.name.localeCompare(b.name));
+          setCountryStates((prev) => ({ ...prev, [country]: list }));
         })
         .catch(() => {
-          setCountryStates((prev) => ({ ...prev, [country]: [] }))
+          setCountryStates((prev) => ({ ...prev, [country]: [] }));
         })
         .finally(() => {
           setLoadingStateCountries((prev) => {
-            const next = new Set(prev)
-            next.delete(country)
-            return next
-          })
-        })
-    })
-  }, [locations, countryStates, loadingStateCountries])
+            const next = new Set(prev);
+            next.delete(country);
+            return next;
+          });
+        });
+    });
+  }, [locations, countryStates, loadingStateCountries]);
 
   React.useEffect(() => {
     const wanted = new Set(
       locations
         .filter((l) => l.country && l.state)
         .map((l) => `${l.country}|${l.state}`)
-    )
+    );
     wanted.forEach((key) => {
-      if (key in stateRegions) return
-      if (loadingRegionKeys.has(key)) return
-      const [country, state] = key.split("|")
+      if (key in stateRegions) return;
+      if (loadingRegionKeys.has(key)) return;
+      const [country, state] = key.split('|');
       setLoadingRegionKeys((prev) => {
-        const next = new Set(prev)
-        next.add(key)
-        return next
-      })
+        const next = new Set(prev);
+        next.add(key);
+        return next;
+      });
       listRegions(country, state)
         .then((list) => {
-          list.sort((a, b) => a.name.localeCompare(b.name))
-          setStateRegions((prev) => ({ ...prev, [key]: list }))
+          list.sort((a, b) => a.name.localeCompare(b.name));
+          setStateRegions((prev) => ({ ...prev, [key]: list }));
         })
         .catch(() => {
-          setStateRegions((prev) => ({ ...prev, [key]: [] }))
+          setStateRegions((prev) => ({ ...prev, [key]: [] }));
         })
         .finally(() => {
           setLoadingRegionKeys((prev) => {
-            const next = new Set(prev)
-            next.delete(key)
-            return next
-          })
-        })
-    })
-  }, [locations, stateRegions, loadingRegionKeys])
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        });
+    });
+  }, [locations, stateRegions, loadingRegionKeys]);
 
   // Builds the shareable URL for the current inputs. Only called on submit,
   // not on every keystroke/state change, since this page is server-rendered
   // and router.replace is a real request.
   const buildParams = () => {
-    const params = new URLSearchParams()
-    params.set("days", String(dayOffBudget))
-    params.set("year", String(year))
-    params.set("strategy", strategy)
-    const locEncoded = encodeLocations(locations)
-    if (locEncoded) params.set("loc", locEncoded)
+    const params = new URLSearchParams();
+    params.set('days', String(dayOffBudget));
+    params.set('year', String(year));
+    params.set('strategy', strategy);
+    const locEncoded = encodeLocations(locations);
+    if (locEncoded) params.set('loc', locEncoded);
     const customEncoded =
-      customDays.length > 0 ? base64EncodeJSON(customDays) : null
-    if (customEncoded) params.set("cd", customEncoded)
+      customDays.length > 0 ? base64EncodeJSON(customDays) : null;
+    if (customEncoded) params.set('cd', customEncoded);
     const takenEncoded =
-      takenDays.length > 0 ? base64EncodeJSON(takenDays) : null
-    if (takenEncoded) params.set("taken", takenEncoded)
-    if (eventTitleTemplate.trim()) params.set("etitle", eventTitleTemplate)
-    if (eventNotesTemplate.trim()) params.set("enotes", eventNotesTemplate)
+      takenDays.length > 0 ? base64EncodeJSON(takenDays) : null;
+    if (takenEncoded) params.set('taken', takenEncoded);
+    if (eventTitleTemplate.trim()) params.set('etitle', eventTitleTemplate);
+    if (eventNotesTemplate.trim()) params.set('enotes', eventNotesTemplate);
     const noticeEncoded =
-      Object.keys(noticeByStrategy).length > 0 ? base64EncodeJSON(noticeByStrategy) : null
-    if (noticeEncoded) params.set("notice", noticeEncoded)
-    return params
-  }
+      Object.keys(noticeByStrategy).length > 0
+        ? base64EncodeJSON(noticeByStrategy)
+        : null;
+    if (noticeEncoded) params.set('notice', noticeEncoded);
+    return params;
+  };
 
   const handleSubmit = async () => {
-    const validLocations = locations.filter((l) => l.country)
-    if (validLocations.length === 0) return
-    setIsOptimizing(true)
-    setError(null)
+    const validLocations = locations.filter((l) => l.country);
+    if (validLocations.length === 0) return;
+    setIsOptimizing(true);
+    setError(null);
     try {
       const holidayLists = await Promise.all(
         validLocations.map((l) =>
           fetchPublicHolidays(year, {
             country: l.country!,
             state: l.state ?? undefined,
-            region: l.region ?? undefined,
+            region: l.region ?? undefined
           })
         )
-      )
-      const seen = new Set<string>()
-      const holidays: Array<{ date: string; name: string }> = []
+      );
+      const seen = new Set<string>();
+      const holidays: Array<{ date: string; name: string }> = [];
       for (const list of holidayLists) {
         for (const h of list) {
-          const key = `${h.date}|${h.name}`
-          if (seen.has(key)) continue
-          seen.add(key)
-          holidays.push(h)
+          const key = `${h.date}|${h.name}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          holidays.push(h);
         }
       }
       const filteredCustomDays = customDays.filter((d) =>
         d.isRecurring ? d.startDate && d.endDate : d.date
-      )
+      );
       const filteredTakenDays = takenDays.filter((d) =>
         d.startDate && d.endDate ? true : !!d.date
-      )
+      );
       const optimized = await optimizeDaysAsync({
         dayOffBudget,
         strategy,
@@ -288,27 +301,29 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
         holidays,
         customDaysOff: filteredCustomDays,
         takenDaysOff: filteredTakenDays,
-        minNoticeDays: noticeByStrategy[strategy],
-      })
-      setResult(optimized)
-      setResultYear(year)
-      setResultBudget(dayOffBudget)
-      setResultLocations(locations.map((l) => ({ ...l })))
-      router.replace(`${pathname}?${buildParams().toString()}`, { scroll: false })
-      hapticTrigger("success")
+        minNoticeDays: noticeByStrategy[strategy]
+      });
+      setResult(optimized);
+      setResultYear(year);
+      setResultBudget(dayOffBudget);
+      setResultLocations(locations.map((l) => ({ ...l })));
+      router.replace(`${pathname}?${buildParams().toString()}`, {
+        scroll: false
+      });
+      hapticTrigger('success');
     } catch (err) {
-      console.error(err)
-      setError("Something went wrong while optimizing. Please try again.")
-      hapticTrigger("error")
+      console.error(err);
+      setError('Something went wrong while optimizing. Please try again.');
+      hapticTrigger('error');
     } finally {
-      setIsOptimizing(false)
+      setIsOptimizing(false);
     }
-  }
+  };
 
   const shareUrl =
-    typeof window === "undefined"
-      ? ""
-      : `${window.location.origin}${pathname}?${searchParams.toString()}`
+    typeof window === 'undefined'
+      ? ''
+      : `${window.location.origin}${pathname}?${searchParams.toString()}`;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
@@ -339,7 +354,9 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
         onNoticeByStrategyChange={setNoticeByStrategy}
         detectedLocation={
           detectedGeo?.country
-            ? [detectedGeo.country, detectedGeo.region].filter(Boolean).join(" / ")
+            ? [detectedGeo.country, detectedGeo.region]
+                .filter(Boolean)
+                .join(' / ')
             : null
         }
         isOptimizing={isOptimizing}
@@ -349,7 +366,9 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
       <div className="space-y-4">
         {error && (
           <Card>
-            <CardContent className="px-4 text-xs text-destructive">{error}</CardContent>
+            <CardContent className="px-4 text-xs text-destructive">
+              {error}
+            </CardContent>
           </Card>
         )}
 
@@ -370,13 +389,14 @@ export function TimeoffOptimizerTool({ detectedGeo, icsSubscribeEnabled }: Timeo
               <EmptyStateScene />
               <h2 className="text-sm font-semibold">Plan your perfect year</h2>
               <p className="max-w-sm text-xs text-muted-foreground">
-                Pick how many days you have, where you live, and a strategy. We&rsquo;ll line up your
-                PTO with weekends and holidays to maximize your time off.
+                Pick how many days you have, where you live, and a strategy.
+                We&rsquo;ll line up your PTO with weekends and holidays to
+                maximize your time off.
               </p>
             </CardContent>
           </Card>
         )}
       </div>
     </div>
-  )
+  );
 }

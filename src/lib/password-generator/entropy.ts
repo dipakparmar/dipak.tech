@@ -26,18 +26,31 @@ export function calculatePasswordEntropy(
   }
 ): EntropyResult {
   let poolSize = 0;
-  if (options.lowercase) poolSize += options.excludeAmbiguous ? LOWERCASE - 2 : LOWERCASE;
-  if (options.uppercase) poolSize += options.excludeAmbiguous ? UPPERCASE - 2 : UPPERCASE;
-  if (options.numbers) poolSize += options.excludeAmbiguous ? DIGITS - 2 : DIGITS;
+  if (options.lowercase)
+    poolSize += options.excludeAmbiguous ? LOWERCASE - 2 : LOWERCASE;
+  if (options.uppercase)
+    poolSize += options.excludeAmbiguous ? UPPERCASE - 2 : UPPERCASE;
+  if (options.numbers)
+    poolSize += options.excludeAmbiguous ? DIGITS - 2 : DIGITS;
   if (options.symbols) poolSize += options.safeSymbols ? SAFE_SYMBOLS : SYMBOLS;
 
-  if (poolSize === 0) return { bits: 0, crackTime: 'Instant', strength: 'very-weak', color: 'bg-red-500', percentage: 0 };
+  if (poolSize === 0)
+    return {
+      bits: 0,
+      crackTime: 'Instant',
+      strength: 'very-weak',
+      color: 'bg-red-500',
+      percentage: 0
+    };
 
   const bits = Math.floor(length * Math.log2(poolSize));
   return entropyToResult(bits);
 }
 
-export function calculatePassphraseEntropy(wordCount: number, listSize: number = 7776): EntropyResult {
+export function calculatePassphraseEntropy(
+  wordCount: number,
+  listSize: number = 7776
+): EntropyResult {
   const bits = Math.floor(wordCount * Math.log2(listSize));
   return entropyToResult(bits);
 }
@@ -47,8 +60,18 @@ export function calculatePinEntropy(length: number): EntropyResult {
   return entropyToResult(bits);
 }
 
-export function calculateGenericEntropy(length: number, poolSize: number): EntropyResult {
-  if (poolSize === 0 || length === 0) return { bits: 0, crackTime: 'Instant', strength: 'very-weak', color: 'bg-red-500', percentage: 0 };
+export function calculateGenericEntropy(
+  length: number,
+  poolSize: number
+): EntropyResult {
+  if (poolSize === 0 || length === 0)
+    return {
+      bits: 0,
+      crackTime: 'Instant',
+      strength: 'very-weak',
+      color: 'bg-red-500',
+      percentage: 0
+    };
   const bits = Math.floor(length * Math.log2(poolSize));
   return entropyToResult(bits);
 }
@@ -70,16 +93,27 @@ function estimateCrackTime(bits: number): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours`;
   if (seconds < 31536000) return `${Math.floor(seconds / 86400)} days`;
-  if (seconds < 31536000 * 1000) return `${Math.floor(seconds / 31536000)} years`;
-  if (seconds < 31536000 * 1e6) return `${Math.floor(seconds / 31536000 / 1000)}k years`;
-  if (seconds < 31536000 * 1e9) return `${Math.floor(seconds / 31536000 / 1e6)}M years`;
+  if (seconds < 31536000 * 1000)
+    return `${Math.floor(seconds / 31536000)} years`;
+  if (seconds < 31536000 * 1e6)
+    return `${Math.floor(seconds / 31536000 / 1000)}k years`;
+  if (seconds < 31536000 * 1e9)
+    return `${Math.floor(seconds / 31536000 / 1e6)}M years`;
   return 'Centuries+';
 }
 
-function getStrengthFromBits(bits: number): { strength: EntropyResult['strength']; color: string; percentage: number } {
-  if (bits < 28) return { strength: 'very-weak', color: 'bg-red-500', percentage: 10 };
-  if (bits < 36) return { strength: 'weak', color: 'bg-orange-500', percentage: 25 };
-  if (bits < 60) return { strength: 'fair', color: 'bg-yellow-500', percentage: 50 };
-  if (bits < 100) return { strength: 'strong', color: 'bg-green-500', percentage: 75 };
+function getStrengthFromBits(bits: number): {
+  strength: EntropyResult['strength'];
+  color: string;
+  percentage: number;
+} {
+  if (bits < 28)
+    return { strength: 'very-weak', color: 'bg-red-500', percentage: 10 };
+  if (bits < 36)
+    return { strength: 'weak', color: 'bg-orange-500', percentage: 25 };
+  if (bits < 60)
+    return { strength: 'fair', color: 'bg-yellow-500', percentage: 50 };
+  if (bits < 100)
+    return { strength: 'strong', color: 'bg-green-500', percentage: 75 };
   return { strength: 'very-strong', color: 'bg-emerald-500', percentage: 100 };
 }

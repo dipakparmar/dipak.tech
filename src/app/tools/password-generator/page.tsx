@@ -1,38 +1,43 @@
-import { Lock, ShieldCheck, Share2 } from "lucide-react"
+import { Lock, ShieldCheck, Share2 } from 'lucide-react';
 
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { Suspense } from "react"
-import { PasswordGenerator } from "@/components/password-generator/password-generator"
-import { ogUrls } from "@/lib/og-config"
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { Suspense } from 'react';
+import { PasswordGenerator } from '@/components/password-generator/password-generator';
+import { ogUrls } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
-  tool: "Password Generator",
-  description: "Generate secure passwords, passphrases, PINs, salts, and API keys",
-  category: "password-generator",
-})
+  tool: 'Password Generator',
+  description:
+    'Generate secure passwords, passphrases, PINs, salts, and API keys',
+  category: 'password-generator'
+});
 
 export const metadata = {
-  title: "Password Generator | Dipak Parmar",
+  title: 'Password Generator | Dipak Parmar',
   description:
-    "Generate cryptographically secure passwords, passphrases, PINs, salts, API keys, and UUIDs. All generation happens client-side.",
+    'Generate cryptographically secure passwords, passphrases, PINs, salts, API keys, and UUIDs. All generation happens client-side.',
   openGraph: {
-    title: "Password Generator",
-    description: "Generate secure passwords, passphrases, PINs, salts, and API keys",
-    url: "https://tools.dipak.io/password-generator",
-    siteName: "tools.dipak.io",
-    type: "website",
-    images: [{ url: ogImageUrl, width: 1200, height: 630, alt: "Password Generator" }],
+    title: 'Password Generator',
+    description:
+      'Generate secure passwords, passphrases, PINs, salts, and API keys',
+    url: 'https://tools.dipak.io/password-generator',
+    siteName: 'tools.dipak.io',
+    type: 'website',
+    images: [
+      { url: ogImageUrl, width: 1200, height: 630, alt: 'Password Generator' }
+    ]
   },
   twitter: {
-    card: "summary_large_image" as const,
-    title: "Password Generator | Dipak Parmar",
-    description: "Generate secure passwords, passphrases, PINs, salts, and API keys",
-    images: [ogImageUrl],
+    card: 'summary_large_image' as const,
+    title: 'Password Generator | Dipak Parmar',
+    description:
+      'Generate secure passwords, passphrases, PINs, salts, and API keys',
+    images: [ogImageUrl]
   },
-  alternates: { canonical: "https://tools.dipak.io/password-generator" },
-}
+  alternates: { canonical: 'https://tools.dipak.io/password-generator' }
+};
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 export default function PasswordGeneratorPage() {
   return (
@@ -56,8 +61,9 @@ export default function PasswordGeneratorPage() {
                 Secure Password Generator
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Generate cryptographically secure passwords, passphrases, PINs, salts, API keys, and
-                UUIDs. Everything runs client-side in your browser.
+                Generate cryptographically secure passwords, passphrases, PINs,
+                salts, API keys, and UUIDs. Everything runs client-side in your
+                browser.
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
@@ -77,12 +83,16 @@ export default function PasswordGeneratorPage() {
           </BlurFade>
 
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
+            <Suspense
+              fallback={
+                <div className="h-96 animate-pulse rounded-xl bg-muted" />
+              }
+            >
               <PasswordGenerator />
             </Suspense>
           </BlurFade>
         </div>
       </div>
     </main>
-  )
+  );
 }

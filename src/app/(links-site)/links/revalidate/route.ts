@@ -44,7 +44,9 @@ async function handleRevalidation(request: NextRequest) {
       } catch (err) {
         // If there was an error, Next.js will continue
         // to show the last successfully generated page
-        return captureAPIError(err, request, 500, { operation: 'revalidate_links' });
+        return captureAPIError(err, request, 500, {
+          operation: 'revalidate_links'
+        });
       }
     }
   }

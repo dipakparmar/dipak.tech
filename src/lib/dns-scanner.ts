@@ -1,25 +1,29 @@
 // Core DNS reconnaissance engine with modular architecture
 
-import * as Sentry from '@sentry/nextjs'
-import type { CertificateEntry, ScanResult, SubdomainResult } from "@/types/network-ossint"
+import * as Sentry from '@sentry/nextjs';
+import type {
+  CertificateEntry,
+  ScanResult,
+  SubdomainResult
+} from '@/types/network-ossint';
 
 export class DNSScanner {
-  private baseUrl = "https://crt.sh"
+  private baseUrl = 'https://crt.sh';
 
   /**
    * Discover subdomains using Certificate Transparency logs
    */
   async discoverSubdomains(domain: string): Promise<ScanResult> {
-    const startTime = Date.now()
+    const startTime = Date.now();
 
     try {
       // Query CRT.sh API for certificate transparency logs
-      const certificates = await this.queryCertificateTransparency(domain)
+      const certificates = await this.queryCertificateTransparency(domain);
 
       // Process and deduplicate subdomains
-      const subdomains = this.processSubdomains(certificates)
+      const subdomains = this.processSubdomains(certificates);
 
-      const scanDuration = Date.now() - startTime
+      const scanDuration = Date.now() - startTime;
 
       return {
         domain,
@@ -27,67 +31,77 @@ export class DNSScanner {
         totalSubdomains: certificates.length,
         uniqueSubdomains: subdomains.length,
         subdomains,
-        scanDuration,
-      }
+        scanDuration
+      };
     } catch (error) {
-      console.error("DNS scan error:", error)
+      console.error('DNS scan error:', error);
       Sentry.captureMessage(`DNS scan failed for domain: ${domain}`, {
         level: 'warning',
         extra: { error: error instanceof Error ? error.message : String(error) }
-      })
-      throw new Error(`Failed to scan domain: ${error instanceof Error ? error.message : "Unknown error"}`)
+      });
+      throw new Error(
+        `Failed to scan domain: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Query Certificate Transparency logs via CRT.sh API
    */
-  private async queryCertificateTransparency(domain: string): Promise<CertificateEntry[]> {
-    const url = `${this.baseUrl}/json?q=${encodeURIComponent(domain)}`
+  private async queryCertificateTransparency(
+    domain: string
+  ): Promise<CertificateEntry[]> {
+    const url = `${this.baseUrl}/json?q=${encodeURIComponent(domain)}`;
 
     const response = await fetch(url, {
       headers: {
-        Accept: "application/json",
-      },
-    })
+        Accept: 'application/json'
+      }
+    });
 
     if (!response.ok) {
-      throw new Error(`CRT.sh API error: ${response.status} ${response.statusText}`)
+      throw new Error(
+        `CRT.sh API error: ${response.status} ${response.statusText}`
+      );
     }
 
-    const data = await response.json()
-    return Array.isArray(data) ? data : []
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   }
 
   /**
    * Process and deduplicate subdomains from certificate entries
    */
-  private processSubdomains(certificates: CertificateEntry[]): SubdomainResult[] {
-    const subdomainMap = new Map<string, SubdomainResult>()
+  private processSubdomains(
+    certificates: CertificateEntry[]
+  ): SubdomainResult[] {
+    const subdomainMap = new Map<string, SubdomainResult>();
 
     for (const cert of certificates) {
-      const domains = cert.name_value.split("\n").map((d) => d.trim().toLowerCase())
+      const domains = cert.name_value
+        .split('\n')
+        .map((d) => d.trim().toLowerCase());
 
       for (const domain of domains) {
-        let subdomain = domain
-        let hasWildcard = false
+        let subdomain = domain;
+        let hasWildcard = false;
 
-        if (domain.startsWith("*.")) {
-          subdomain = domain.substring(2) // Remove "*." prefix
-          hasWildcard = true
+        if (domain.startsWith('*.')) {
+          subdomain = domain.substring(2); // Remove "*." prefix
+          hasWildcard = true;
         }
 
         // Skip invalid entries
-        if (!subdomain.includes(".") || subdomain.length === 0) {
-          continue
+        if (!subdomain.includes('.') || subdomain.length === 0) {
+          continue;
         }
 
-        const existing = subdomainMap.get(subdomain)
-        const expiryDate = new Date(cert.not_after)
-        const now = new Date()
+        const existing = subdomainMap.get(subdomain);
+        const expiryDate = new Date(cert.not_after);
+        const now = new Date();
 
         // Determine certificate status
-        const status = expiryDate < now ? "expired" : "active"
+        const status = expiryDate < now ? 'expired' : 'active';
 
         if (!existing) {
           subdomainMap.set(subdomain, {
@@ -97,44 +111,46 @@ export class DNSScanner {
             certificateCount: 1,
             issuer: this.extractIssuerName(cert.issuer_name),
             status,
-            hasWildcard,
-          })
+            hasWildcard
+          });
         } else {
           // Update with latest information
-          const existingFirst = new Date(existing.firstSeen)
-          const existingLast = new Date(existing.lastSeen)
-          const currentDate = new Date(cert.entry_timestamp)
+          const existingFirst = new Date(existing.firstSeen);
+          const existingLast = new Date(existing.lastSeen);
+          const currentDate = new Date(cert.entry_timestamp);
 
-          existing.certificateCount++
+          existing.certificateCount++;
 
           if (hasWildcard) {
-            existing.hasWildcard = true
+            existing.hasWildcard = true;
           }
 
           if (currentDate < existingFirst) {
-            existing.firstSeen = cert.entry_timestamp
+            existing.firstSeen = cert.entry_timestamp;
           }
           if (currentDate > existingLast) {
-            existing.lastSeen = cert.entry_timestamp
-            existing.issuer = this.extractIssuerName(cert.issuer_name)
-            existing.status = status
+            existing.lastSeen = cert.entry_timestamp;
+            existing.issuer = this.extractIssuerName(cert.issuer_name);
+            existing.status = status;
           }
         }
       }
     }
 
     // Convert to array and sort by subdomain name
-    return Array.from(subdomainMap.values()).sort((a, b) => a.subdomain.localeCompare(b.subdomain))
+    return Array.from(subdomainMap.values()).sort((a, b) =>
+      a.subdomain.localeCompare(b.subdomain)
+    );
   }
 
   /**
    * Extract readable issuer name from certificate issuer string
    */
   private extractIssuerName(issuerString: string): string {
-    const cnMatch = issuerString.match(/CN=([^,]+)/)
-    return cnMatch ? cnMatch[1] : issuerString
+    const cnMatch = issuerString.match(/CN=([^,]+)/);
+    return cnMatch ? cnMatch[1] : issuerString;
   }
 }
 
 // Singleton instance for reuse
-export const dnsScanner = new DNSScanner()
+export const dnsScanner = new DNSScanner();

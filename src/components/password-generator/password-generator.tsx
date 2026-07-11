@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useHaptics } from "@/hooks/use-haptics";
+import { useHaptics } from '@/hooks/use-haptics';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   generatePassword,
@@ -10,28 +10,21 @@ import {
   generatePin,
   generateSalt,
   generateSecret,
-  generateUUID,
+  generateUUID
 } from '@/lib/password-generator/generators';
 import {
   calculatePasswordEntropy,
   calculatePassphraseEntropy,
   calculatePinEntropy,
   calculateGenericEntropy,
-  type EntropyResult,
+  type EntropyResult
 } from '@/lib/password-generator/entropy';
 import { PRESETS, type Preset } from '@/lib/password-generator/presets';
 import { ScenePanda } from './password-strength-scene';
 import { useSceneEntropy } from '@/lib/password-generator/scene-context';
-import {
-  Tabs,
-  TabsList,
-  TabsContent,
-} from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsContent } from '@/components/ui/tabs';
 import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Input } from '@/components/ui/input';
 import { HapticSlider as Slider } from '@/components/haptic-wrappers';
@@ -40,7 +33,7 @@ import {
   Select,
   SelectContent,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select';
 import { HapticSelectItem as SelectItem } from '@/components/haptic-wrappers';
 import { HapticCheckbox as Checkbox } from '@/components/haptic-wrappers';
@@ -55,19 +48,26 @@ import {
   KeyRound,
   Database,
   Hash,
-  Fingerprint,
+  Fingerprint
 } from 'lucide-react';
 
-type Mode = 'password' | 'passphrase' | 'memorable' | 'pin' | 'salt' | 'secret' | 'uuid';
+type Mode =
+  | 'password'
+  | 'passphrase'
+  | 'memorable'
+  | 'pin'
+  | 'salt'
+  | 'secret'
+  | 'uuid';
 
 const PRESET_ICONS: Record<string, React.ReactNode> = {
   'shield-check': <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />,
-  'wifi': <Wifi className="mr-1.5 h-3.5 w-3.5" />,
+  wifi: <Wifi className="mr-1.5 h-3.5 w-3.5" />,
   'text-cursor-input': <TextCursorInput className="mr-1.5 h-3.5 w-3.5" />,
   'key-round': <KeyRound className="mr-1.5 h-3.5 w-3.5" />,
-  'database': <Database className="mr-1.5 h-3.5 w-3.5" />,
-  'hash': <Hash className="mr-1.5 h-3.5 w-3.5" />,
-  'fingerprint': <Fingerprint className="mr-1.5 h-3.5 w-3.5" />,
+  database: <Database className="mr-1.5 h-3.5 w-3.5" />,
+  hash: <Hash className="mr-1.5 h-3.5 w-3.5" />,
+  fingerprint: <Fingerprint className="mr-1.5 h-3.5 w-3.5" />
 };
 
 const DEFAULT_ENTROPY: EntropyResult = {
@@ -75,7 +75,7 @@ const DEFAULT_ENTROPY: EntropyResult = {
   crackTime: 'Instant',
   strength: 'very-weak',
   color: 'bg-red-500',
-  percentage: 0,
+  percentage: 0
 };
 
 function buildUrlKey(params: URLSearchParams): string {
@@ -96,45 +96,82 @@ export function PasswordGenerator() {
   );
 
   // Password options
-  const [pwLength, setPwLength] = useState(() => parseInt(searchParams.get('len') || '16', 10));
-  const [pwUpper, setPwUpper] = useState(() => searchParams.get('upper') !== '0');
-  const [pwLower, setPwLower] = useState(() => searchParams.get('lower') !== '0');
+  const [pwLength, setPwLength] = useState(() =>
+    parseInt(searchParams.get('len') || '16', 10)
+  );
+  const [pwUpper, setPwUpper] = useState(
+    () => searchParams.get('upper') !== '0'
+  );
+  const [pwLower, setPwLower] = useState(
+    () => searchParams.get('lower') !== '0'
+  );
   const [pwNum, setPwNum] = useState(() => searchParams.get('num') !== '0');
   const [pwSym, setPwSym] = useState(() => searchParams.get('sym') !== '0');
   const [pwSafe, setPwSafe] = useState(() => searchParams.get('safe') === '1');
-  const [pwNoAmbig, setPwNoAmbig] = useState(() => searchParams.get('noambig') === '1');
-  const [pwExclude, setPwExclude] = useState(() => searchParams.get('exclude') || '');
+  const [pwNoAmbig, setPwNoAmbig] = useState(
+    () => searchParams.get('noambig') === '1'
+  );
+  const [pwExclude, setPwExclude] = useState(
+    () => searchParams.get('exclude') || ''
+  );
 
   // Passphrase options
-  const [ppWords, setPpWords] = useState(() => parseInt(searchParams.get('words') || '4', 10));
+  const [ppWords, setPpWords] = useState(() =>
+    parseInt(searchParams.get('words') || '4', 10)
+  );
   const [ppSep, setPpSep] = useState(() => searchParams.get('sep') || '-');
   const [ppCustomSep, setPpCustomSep] = useState('');
   const [ppCap, setPpCap] = useState(() => searchParams.get('cap') !== '0');
-  const [ppAddNum, setPpAddNum] = useState(() => searchParams.get('addnum') === '1');
+  const [ppAddNum, setPpAddNum] = useState(
+    () => searchParams.get('addnum') === '1'
+  );
 
   // Memorable options
-  const [memLength, setMemLength] = useState(() => parseInt(searchParams.get('len') || '12', 10));
-  const [memDigits, setMemDigits] = useState(() => searchParams.get('digits') !== '0');
-  const [memSymbols, setMemSymbols] = useState(() => searchParams.get('symbols') === '1');
+  const [memLength, setMemLength] = useState(() =>
+    parseInt(searchParams.get('len') || '12', 10)
+  );
+  const [memDigits, setMemDigits] = useState(
+    () => searchParams.get('digits') !== '0'
+  );
+  const [memSymbols, setMemSymbols] = useState(
+    () => searchParams.get('symbols') === '1'
+  );
 
   // PIN options
-  const [pinLength, setPinLength] = useState(() => parseInt(searchParams.get('len') || '6', 10));
+  const [pinLength, setPinLength] = useState(() =>
+    parseInt(searchParams.get('len') || '6', 10)
+  );
 
   // Salt options
-  const [saltLength, setSaltLength] = useState(() => parseInt(searchParams.get('len') || '32', 10));
-  const [saltEnc, setSaltEnc] = useState<'hex' | 'base64'>(() => (searchParams.get('enc') as 'hex' | 'base64') || 'hex');
+  const [saltLength, setSaltLength] = useState(() =>
+    parseInt(searchParams.get('len') || '32', 10)
+  );
+  const [saltEnc, setSaltEnc] = useState<'hex' | 'base64'>(
+    () => (searchParams.get('enc') as 'hex' | 'base64') || 'hex'
+  );
 
   // Secret options
-  const [secLength, setSecLength] = useState(() => parseInt(searchParams.get('len') || '40', 10));
-  const [secPrefix, setSecPrefix] = useState(() => searchParams.get('prefix') || 'sk_');
+  const [secLength, setSecLength] = useState(() =>
+    parseInt(searchParams.get('len') || '40', 10)
+  );
+  const [secPrefix, setSecPrefix] = useState(
+    () => searchParams.get('prefix') || 'sk_'
+  );
   const [secCustomPrefix, setSecCustomPrefix] = useState('');
-  const [secEnc, setSecEnc] = useState<'hex' | 'base64' | 'alphanumeric'>(() => (searchParams.get('enc') as 'hex' | 'base64' | 'alphanumeric') || 'base64');
+  const [secEnc, setSecEnc] = useState<'hex' | 'base64' | 'alphanumeric'>(
+    () =>
+      (searchParams.get('enc') as 'hex' | 'base64' | 'alphanumeric') || 'base64'
+  );
 
   // UUID options
-  const [uuidVer, setUuidVer] = useState<4 | 7>(() => (parseInt(searchParams.get('ver') || '4', 10) as 4 | 7));
+  const [uuidVer, setUuidVer] = useState<4 | 7>(
+    () => parseInt(searchParams.get('ver') || '4', 10) as 4 | 7
+  );
 
   // Shared
-  const [count, setCount] = useState(() => Math.min(50, Math.max(1, parseInt(searchParams.get('count') || '1', 10))));
+  const [count, setCount] = useState(() =>
+    Math.min(50, Math.max(1, parseInt(searchParams.get('count') || '1', 10)))
+  );
   const [regenKey, setRegenKey] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -157,44 +194,54 @@ export function PasswordGenerator() {
     for (let i = 0; i < count; i++) {
       switch (mode) {
         case 'password':
-          generated.push(generatePassword({
-            length: pwLength,
-            uppercase: pwUpper,
-            lowercase: pwLower,
-            numbers: pwNum,
-            symbols: pwSym,
-            safeSymbols: pwSafe,
-            excludeAmbiguous: pwNoAmbig,
-            customExclude: pwExclude,
-          }));
+          generated.push(
+            generatePassword({
+              length: pwLength,
+              uppercase: pwUpper,
+              lowercase: pwLower,
+              numbers: pwNum,
+              symbols: pwSym,
+              safeSymbols: pwSafe,
+              excludeAmbiguous: pwNoAmbig,
+              customExclude: pwExclude
+            })
+          );
           break;
         case 'passphrase':
-          generated.push(generatePassphrase({
-            wordCount: ppWords,
-            separator: getActiveSeparator(),
-            capitalize: ppCap,
-            includeNumber: ppAddNum,
-          }));
+          generated.push(
+            generatePassphrase({
+              wordCount: ppWords,
+              separator: getActiveSeparator(),
+              capitalize: ppCap,
+              includeNumber: ppAddNum
+            })
+          );
           break;
         case 'memorable':
-          generated.push(generateMemorable({
-            length: memLength,
-            includeDigits: memDigits,
-            includeSymbols: memSymbols,
-          }));
+          generated.push(
+            generateMemorable({
+              length: memLength,
+              includeDigits: memDigits,
+              includeSymbols: memSymbols
+            })
+          );
           break;
         case 'pin':
           generated.push(generatePin(pinLength));
           break;
         case 'salt':
-          generated.push(generateSalt({ length: saltLength, encoding: saltEnc }));
+          generated.push(
+            generateSalt({ length: saltLength, encoding: saltEnc })
+          );
           break;
         case 'secret':
-          generated.push(generateSecret({
-            length: secLength,
-            prefix: getActivePrefix(),
-            encoding: secEnc,
-          }));
+          generated.push(
+            generateSecret({
+              length: secLength,
+              prefix: getActivePrefix(),
+              encoding: secEnc
+            })
+          );
           break;
         case 'uuid':
           generated.push(generateUUID(uuidVer));
@@ -203,14 +250,31 @@ export function PasswordGenerator() {
     }
     return generated;
   }, [
-    mode, count, regenKey,
-    pwLength, pwUpper, pwLower, pwNum, pwSym, pwSafe, pwNoAmbig, pwExclude,
-    ppWords, ppCap, ppAddNum, getActiveSeparator,
-    memLength, memDigits, memSymbols,
+    mode,
+    count,
+    regenKey,
+    pwLength,
+    pwUpper,
+    pwLower,
+    pwNum,
+    pwSym,
+    pwSafe,
+    pwNoAmbig,
+    pwExclude,
+    ppWords,
+    ppCap,
+    ppAddNum,
+    getActiveSeparator,
+    memLength,
+    memDigits,
+    memSymbols,
     pinLength,
-    saltLength, saltEnc,
-    secLength, secEnc, getActivePrefix,
-    uuidVer,
+    saltLength,
+    saltEnc,
+    secLength,
+    secEnc,
+    getActivePrefix,
+    uuidVer
   ]);
 
   const entropy = useMemo((): EntropyResult => {
@@ -222,7 +286,7 @@ export function PasswordGenerator() {
           numbers: pwNum,
           symbols: pwSym,
           safeSymbols: pwSafe,
-          excludeAmbiguous: pwNoAmbig,
+          excludeAmbiguous: pwNoAmbig
         });
       case 'passphrase':
         return calculatePassphraseEntropy(ppWords);
@@ -241,7 +305,10 @@ export function PasswordGenerator() {
         if (secEnc === 'hex') pool = 16;
         else if (secEnc === 'base64') pool = 62;
         else pool = 62;
-        return calculateGenericEntropy(secLength - getActivePrefix().length, pool);
+        return calculateGenericEntropy(
+          secLength - getActivePrefix().length,
+          pool
+        );
       }
       case 'uuid':
         return calculateGenericEntropy(uuidVer === 4 ? 122 : 62, 2);
@@ -250,17 +317,27 @@ export function PasswordGenerator() {
     }
   }, [
     mode,
-    pwLength, pwUpper, pwLower, pwNum, pwSym, pwSafe, pwNoAmbig,
+    pwLength,
+    pwUpper,
+    pwLower,
+    pwNum,
+    pwSym,
+    pwSafe,
+    pwNoAmbig,
     ppWords,
-    memLength, memDigits, memSymbols,
+    memLength,
+    memDigits,
+    memSymbols,
     pinLength,
     saltLength,
-    secLength, secEnc, getActivePrefix,
-    uuidVer,
+    secLength,
+    secEnc,
+    getActivePrefix,
+    uuidVer
   ]);
 
   const regenerate = useCallback(() => {
-    setRegenKey(k => k + 1);
+    setRegenKey((k) => k + 1);
   }, []);
 
   // Push entropy to layout-level scene context
@@ -310,7 +387,10 @@ export function PasswordGenerator() {
         break;
       case 'secret':
         params.set('len', secLength.toString());
-        params.set('prefix', secPrefix === 'custom' ? secCustomPrefix : secPrefix);
+        params.set(
+          'prefix',
+          secPrefix === 'custom' ? secCustomPrefix : secPrefix
+        );
         params.set('enc', secEnc);
         break;
       case 'uuid':
@@ -325,14 +405,34 @@ export function PasswordGenerator() {
     prevUrlKey.current = newKey;
     router.push(pathname + '?' + params.toString(), { scroll: false });
   }, [
-    router, pathname, mode, count,
-    pwLength, pwUpper, pwLower, pwNum, pwSym, pwSafe, pwNoAmbig, pwExclude,
-    ppWords, ppSep, ppCustomSep, ppCap, ppAddNum,
-    memLength, memDigits, memSymbols,
+    router,
+    pathname,
+    mode,
+    count,
+    pwLength,
+    pwUpper,
+    pwLower,
+    pwNum,
+    pwSym,
+    pwSafe,
+    pwNoAmbig,
+    pwExclude,
+    ppWords,
+    ppSep,
+    ppCustomSep,
+    ppCap,
+    ppAddNum,
+    memLength,
+    memDigits,
+    memSymbols,
     pinLength,
-    saltLength, saltEnc,
-    secLength, secPrefix, secCustomPrefix, secEnc,
-    uuidVer,
+    saltLength,
+    saltEnc,
+    secLength,
+    secPrefix,
+    secCustomPrefix,
+    secEnc,
+    uuidVer
   ]);
 
   const applyPreset = useCallback((preset: Preset) => {
@@ -381,28 +481,31 @@ export function PasswordGenerator() {
 
   const copyToClipboard = useCallback(async () => {
     await navigator.clipboard.writeText(results[0] || '');
-    hapticTrigger("success");
+    hapticTrigger('success');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [results, hapticTrigger]);
 
-  const copySingle = useCallback(async (index: number) => {
-    await navigator.clipboard.writeText(results[index] || '');
-    hapticTrigger("success");
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  }, [results, hapticTrigger]);
+  const copySingle = useCallback(
+    async (index: number) => {
+      await navigator.clipboard.writeText(results[index] || '');
+      hapticTrigger('success');
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    },
+    [results, hapticTrigger]
+  );
 
   const copyAll = useCallback(async () => {
     await navigator.clipboard.writeText(results.join('\n'));
-    hapticTrigger("success");
+    hapticTrigger('success');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [results, hapticTrigger]);
 
   const shareConfig = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
-    hapticTrigger("success");
+    hapticTrigger('success');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [hapticTrigger]);
@@ -444,14 +547,22 @@ export function PasswordGenerator() {
                 {results[0] || ''}
               </code>
               <Button variant="ghost" size="icon" onClick={copyToClipboard}>
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
           ) : (
             <div className="space-y-2">
               <div className="flex justify-end">
                 <Button variant="outline" size="sm" onClick={copyAll}>
-                  {copied ? <Check className="mr-2 h-3 w-3" /> : <Copy className="mr-2 h-3 w-3" />}
+                  {copied ? (
+                    <Check className="mr-2 h-3 w-3" />
+                  ) : (
+                    <Copy className="mr-2 h-3 w-3" />
+                  )}
                   Copy All
                 </Button>
               </div>
@@ -494,7 +605,9 @@ export function PasswordGenerator() {
               />
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span className="capitalize">{entropy.strength.replace('-', ' ')}</span>
+              <span className="capitalize">
+                {entropy.strength.replace('-', ' ')}
+              </span>
             </div>
           </div>
 
@@ -532,7 +645,14 @@ export function PasswordGenerator() {
                   <Input
                     type="number"
                     value={pwLength}
-                    onChange={(e) => setPwLength(Math.min(128, Math.max(8, parseInt(e.target.value) || 8)))}
+                    onChange={(e) =>
+                      setPwLength(
+                        Math.min(
+                          128,
+                          Math.max(8, parseInt(e.target.value) || 8)
+                        )
+                      )
+                    }
                     className="w-20 text-center"
                     min={8}
                     max={128}
@@ -548,27 +668,45 @@ export function PasswordGenerator() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={pwUpper} onCheckedChange={(v) => setPwUpper(!!v)} />
+                  <Checkbox
+                    checked={pwUpper}
+                    onCheckedChange={(v) => setPwUpper(!!v)}
+                  />
                   Uppercase (A-Z)
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={pwLower} onCheckedChange={(v) => setPwLower(!!v)} />
+                  <Checkbox
+                    checked={pwLower}
+                    onCheckedChange={(v) => setPwLower(!!v)}
+                  />
                   Lowercase (a-z)
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={pwNum} onCheckedChange={(v) => setPwNum(!!v)} />
+                  <Checkbox
+                    checked={pwNum}
+                    onCheckedChange={(v) => setPwNum(!!v)}
+                  />
                   Numbers (0-9)
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={pwSym} onCheckedChange={(v) => setPwSym(!!v)} />
+                  <Checkbox
+                    checked={pwSym}
+                    onCheckedChange={(v) => setPwSym(!!v)}
+                  />
                   Symbols (!@#...)
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={pwSafe} onCheckedChange={(v) => setPwSafe(!!v)} />
+                  <Checkbox
+                    checked={pwSafe}
+                    onCheckedChange={(v) => setPwSafe(!!v)}
+                  />
                   Safe Symbols Only
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={pwNoAmbig} onCheckedChange={(v) => setPwNoAmbig(!!v)} />
+                  <Checkbox
+                    checked={pwNoAmbig}
+                    onCheckedChange={(v) => setPwNoAmbig(!!v)}
+                  />
                   Exclude Ambiguous
                 </label>
               </div>
@@ -587,7 +725,9 @@ export function PasswordGenerator() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Word Count</Label>
-                  <span className="text-sm text-muted-foreground">{ppWords}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {ppWords}
+                  </span>
                 </div>
                 <Slider
                   value={[ppWords]}
@@ -622,11 +762,17 @@ export function PasswordGenerator() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={ppCap} onCheckedChange={(v) => setPpCap(!!v)} />
+                  <Checkbox
+                    checked={ppCap}
+                    onCheckedChange={(v) => setPpCap(!!v)}
+                  />
                   Capitalize Words
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={ppAddNum} onCheckedChange={(v) => setPpAddNum(!!v)} />
+                  <Checkbox
+                    checked={ppAddNum}
+                    onCheckedChange={(v) => setPpAddNum(!!v)}
+                  />
                   Include Number
                 </label>
               </div>
@@ -637,7 +783,9 @@ export function PasswordGenerator() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Length</Label>
-                  <span className="text-sm text-muted-foreground">{memLength}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {memLength}
+                  </span>
                 </div>
                 <Slider
                   value={[memLength]}
@@ -649,11 +797,17 @@ export function PasswordGenerator() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={memDigits} onCheckedChange={(v) => setMemDigits(!!v)} />
+                  <Checkbox
+                    checked={memDigits}
+                    onCheckedChange={(v) => setMemDigits(!!v)}
+                  />
                   Include Digits
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={memSymbols} onCheckedChange={(v) => setMemSymbols(!!v)} />
+                  <Checkbox
+                    checked={memSymbols}
+                    onCheckedChange={(v) => setMemSymbols(!!v)}
+                  />
                   Include Symbols
                 </label>
               </div>
@@ -664,7 +818,9 @@ export function PasswordGenerator() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Length</Label>
-                  <span className="text-sm text-muted-foreground">{pinLength}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {pinLength}
+                  </span>
                 </div>
                 <Slider
                   value={[pinLength]}
@@ -681,7 +837,9 @@ export function PasswordGenerator() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Length (bytes)</Label>
-                  <span className="text-sm text-muted-foreground">{saltLength}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {saltLength}
+                  </span>
                 </div>
                 <Slider
                   value={[saltLength]}
@@ -693,7 +851,10 @@ export function PasswordGenerator() {
               </div>
               <div className="space-y-2">
                 <Label>Encoding</Label>
-                <Select value={saltEnc} onValueChange={(v) => setSaltEnc(v as 'hex' | 'base64')}>
+                <Select
+                  value={saltEnc}
+                  onValueChange={(v) => setSaltEnc(v as 'hex' | 'base64')}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -710,7 +871,9 @@ export function PasswordGenerator() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>Length</Label>
-                  <span className="text-sm text-muted-foreground">{secLength}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {secLength}
+                  </span>
                 </div>
                 <Slider
                   value={[secLength]}
@@ -745,7 +908,12 @@ export function PasswordGenerator() {
               </div>
               <div className="space-y-2">
                 <Label>Encoding</Label>
-                <Select value={secEnc} onValueChange={(v) => setSecEnc(v as 'hex' | 'base64' | 'alphanumeric')}>
+                <Select
+                  value={secEnc}
+                  onValueChange={(v) =>
+                    setSecEnc(v as 'hex' | 'base64' | 'alphanumeric')
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -762,7 +930,10 @@ export function PasswordGenerator() {
             <TabsContent value="uuid" className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label>Version</Label>
-                <Select value={uuidVer.toString()} onValueChange={(v) => setUuidVer(parseInt(v) as 4 | 7)}>
+                <Select
+                  value={uuidVer.toString()}
+                  onValueChange={(v) => setUuidVer(parseInt(v) as 4 | 7)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

@@ -14,7 +14,7 @@ const CHARS = {
   safeSymbols: '-_!@#$%^',
   lowercaseNoAmbiguous: 'abcdefghjkmnpqrstuvwxyz',
   uppercaseNoAmbiguous: 'ABCDEFGHJKLMNPQRSTUVWXYZ',
-  numbersNoAmbiguous: '23456789',
+  numbersNoAmbiguous: '23456789'
 };
 
 export interface PasswordOptions {
@@ -30,14 +30,27 @@ export interface PasswordOptions {
 
 export function generatePassword(options: PasswordOptions): string {
   let charset = '';
-  if (options.lowercase) charset += options.excludeAmbiguous ? CHARS.lowercaseNoAmbiguous : CHARS.lowercase;
-  if (options.uppercase) charset += options.excludeAmbiguous ? CHARS.uppercaseNoAmbiguous : CHARS.uppercase;
-  if (options.numbers) charset += options.excludeAmbiguous ? CHARS.numbersNoAmbiguous : CHARS.numbers;
-  if (options.symbols) charset += options.safeSymbols ? CHARS.safeSymbols : CHARS.symbols;
+  if (options.lowercase)
+    charset += options.excludeAmbiguous
+      ? CHARS.lowercaseNoAmbiguous
+      : CHARS.lowercase;
+  if (options.uppercase)
+    charset += options.excludeAmbiguous
+      ? CHARS.uppercaseNoAmbiguous
+      : CHARS.uppercase;
+  if (options.numbers)
+    charset += options.excludeAmbiguous
+      ? CHARS.numbersNoAmbiguous
+      : CHARS.numbers;
+  if (options.symbols)
+    charset += options.safeSymbols ? CHARS.safeSymbols : CHARS.symbols;
 
   if (options.customExclude) {
     const excluded = new Set(options.customExclude.split(''));
-    charset = charset.split('').filter(c => !excluded.has(c)).join('');
+    charset = charset
+      .split('')
+      .filter((c) => !excluded.has(c))
+      .join('');
   }
 
   if (charset.length === 0) return '';
@@ -123,7 +136,9 @@ export function generateSalt(options: SaltOptions): string {
   crypto.getRandomValues(bytes);
 
   if (options.encoding === 'hex') {
-    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
   return btoa(String.fromCharCode(...bytes));
 }
@@ -143,11 +158,16 @@ export function generateSecret(options: SecretOptions): string {
   if (options.encoding === 'hex') {
     const bytes = new Uint8Array(Math.ceil(bodyLen / 2));
     crypto.getRandomValues(bytes);
-    body = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, bodyLen);
+    body = Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+      .slice(0, bodyLen);
   } else if (options.encoding === 'base64') {
-    const bytes = new Uint8Array(Math.ceil(bodyLen * 3 / 4));
+    const bytes = new Uint8Array(Math.ceil((bodyLen * 3) / 4));
     crypto.getRandomValues(bytes);
-    body = btoa(String.fromCharCode(...bytes)).replace(/[+/=]/g, '').slice(0, bodyLen);
+    body = btoa(String.fromCharCode(...bytes))
+      .replace(/[+/=]/g, '')
+      .slice(0, bodyLen);
     while (body.length < bodyLen) {
       const extra = new Uint8Array(4);
       crypto.getRandomValues(extra);
@@ -184,11 +204,11 @@ function generateUUIDv7(): string {
   crypto.getRandomValues(bytes);
 
   const timestamp = Date.now();
-  bytes[0] = (timestamp / 2**40) & 0xff;
-  bytes[1] = (timestamp / 2**32) & 0xff;
-  bytes[2] = (timestamp / 2**24) & 0xff;
-  bytes[3] = (timestamp / 2**16) & 0xff;
-  bytes[4] = (timestamp / 2**8) & 0xff;
+  bytes[0] = (timestamp / 2 ** 40) & 0xff;
+  bytes[1] = (timestamp / 2 ** 32) & 0xff;
+  bytes[2] = (timestamp / 2 ** 24) & 0xff;
+  bytes[3] = (timestamp / 2 ** 16) & 0xff;
+  bytes[4] = (timestamp / 2 ** 8) & 0xff;
   bytes[5] = timestamp & 0xff;
 
   bytes[6] = (bytes[6] & 0x0f) | 0x70;
@@ -197,6 +217,8 @@ function generateUUIDv7(): string {
 }
 
 function formatUUID(bytes: Uint8Array): string {
-  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }

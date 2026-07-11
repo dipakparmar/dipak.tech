@@ -6,7 +6,13 @@ import { PackageCard } from './PackageCard';
 import { BlurFade } from '@/components/magicui/blur-fade';
 import BlurFadeText from '@/components/magicui/blur-fade-text';
 import { ogUrls } from '@/lib/og-config';
-import type { CollectionPage, ItemList, ListItem, WebSite, WithContext } from 'schema-dts';
+import type {
+  CollectionPage,
+  ItemList,
+  ListItem,
+  WebSite,
+  WithContext
+} from 'schema-dts';
 
 import { JsonLd } from '@/components/seo/json-ld';
 import { personSchema, personReference } from '@/lib/schema';
@@ -15,7 +21,7 @@ const BLUR_FADE_DELAY = 0.04;
 
 const ogImageUrl = ogUrls.goPkg({
   package: 'Go Packages',
-  description: 'Vanity import domain for Go modules',
+  description: 'Vanity import domain for Go modules'
 });
 
 export const metadata: Metadata = {
@@ -100,7 +106,9 @@ export default async function GoPackagesHome() {
 
   return (
     <>
-      <JsonLd data={[personSchema, websiteSchema, packageListSchema, pageSchema]} />
+      <JsonLd
+        data={[personSchema, websiteSchema, packageListSchema, pageSchema]}
+      />
       <main className="flex flex-col min-h-dvh space-y-10">
         <section id="hero">
           <div className="mx-auto w-full max-w-2xl space-y-8">
@@ -120,58 +128,61 @@ export default async function GoPackagesHome() {
           </div>
         </section>
 
-      <section id="about">
-        <BlurFade delay={BLUR_FADE_DELAY * 3}>
-          <p className="text-sm text-muted-foreground">
-            Vanity import domain for Go packages I own and maintain. All
-            packages listed here are from my GitHub ({' '}
-            <Link
-              href="https://github.com/dipakparmar"
-              className="text-foreground hover:text-blue-500 transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              @dipakparmar
-            </Link>
-            ).
-          </p>
-        </BlurFade>
-      </section>
-
-      <section id="install">
-        <BlurFade delay={BLUR_FADE_DELAY * 4}>
-          <h2 className="text-xl font-bold">Usage</h2>
-        </BlurFade>
-        <BlurFade delay={BLUR_FADE_DELAY * 5}>
-          <p className="text-sm text-muted-foreground mt-2">
-            Import packages using the vanity path:
-          </p>
-          <code className="block rounded-md bg-muted px-4 py-3 font-mono text-sm mt-2">
-            go get go.pkg.dipak.io/package-name
-          </code>
-        </BlurFade>
-      </section>
-
-      <section id="packages">
-        <BlurFade delay={BLUR_FADE_DELAY * 6}>
-          <h2 className="text-xl font-bold">My Packages</h2>
-        </BlurFade>
-        <div className="mt-4 grid gap-4">
-          {repositories.map((repo: Repo, index: number) => (
-            <BlurFade key={repo.id} delay={BLUR_FADE_DELAY * 7 + index * 0.05}>
-              <PackageCard repo={repo} host={host} />
-            </BlurFade>
-          ))}
-        </div>
-
-        {repositories.length === 0 && (
-          <BlurFade delay={BLUR_FADE_DELAY * 7}>
-            <p className="mt-4 text-sm text-muted-foreground">
-              No Go packages found.
+        <section id="about">
+          <BlurFade delay={BLUR_FADE_DELAY * 3}>
+            <p className="text-sm text-muted-foreground">
+              Vanity import domain for Go packages I own and maintain. All
+              packages listed here are from my GitHub ({' '}
+              <Link
+                href="https://github.com/dipakparmar"
+                className="text-foreground hover:text-blue-500 transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                @dipakparmar
+              </Link>
+              ).
             </p>
           </BlurFade>
-        )}
-      </section>
+        </section>
+
+        <section id="install">
+          <BlurFade delay={BLUR_FADE_DELAY * 4}>
+            <h2 className="text-xl font-bold">Usage</h2>
+          </BlurFade>
+          <BlurFade delay={BLUR_FADE_DELAY * 5}>
+            <p className="text-sm text-muted-foreground mt-2">
+              Import packages using the vanity path:
+            </p>
+            <code className="block rounded-md bg-muted px-4 py-3 font-mono text-sm mt-2">
+              go get go.pkg.dipak.io/package-name
+            </code>
+          </BlurFade>
+        </section>
+
+        <section id="packages">
+          <BlurFade delay={BLUR_FADE_DELAY * 6}>
+            <h2 className="text-xl font-bold">My Packages</h2>
+          </BlurFade>
+          <div className="mt-4 grid gap-4">
+            {repositories.map((repo: Repo, index: number) => (
+              <BlurFade
+                key={repo.id}
+                delay={BLUR_FADE_DELAY * 7 + index * 0.05}
+              >
+                <PackageCard repo={repo} host={host} />
+              </BlurFade>
+            ))}
+          </div>
+
+          {repositories.length === 0 && (
+            <BlurFade delay={BLUR_FADE_DELAY * 7}>
+              <p className="mt-4 text-sm text-muted-foreground">
+                No Go packages found.
+              </p>
+            </BlurFade>
+          )}
+        </section>
 
         <footer className="mt-auto pt-16 pb-8">
           <BlurFade delay={BLUR_FADE_DELAY * 10}>

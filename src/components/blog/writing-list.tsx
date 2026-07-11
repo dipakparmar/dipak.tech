@@ -32,7 +32,7 @@ export function WritingList({
   posts,
   label = 'Writing',
   newThresholdDays = 21,
-  className,
+  className
 }: WritingListProps) {
   const [now] = useState(() => Date.now());
   if (posts.length === 0) return null;

@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { createContext, type ReactNode } from "react";
-import { useWebHaptics } from "web-haptics/react";
+import { createContext, type ReactNode } from 'react';
+import { useWebHaptics } from 'web-haptics/react';
 
 type HapticsContextValue = {
-  trigger: ReturnType<typeof useWebHaptics>["trigger"];
-  cancel: ReturnType<typeof useWebHaptics>["cancel"];
+  trigger: ReturnType<typeof useWebHaptics>['trigger'];
+  cancel: ReturnType<typeof useWebHaptics>['cancel'];
   isSupported: boolean;
 };
 

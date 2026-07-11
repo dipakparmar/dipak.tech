@@ -7,7 +7,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
+  CommandList
 } from '@/components/ui/command';
 import { useEffect, useState } from 'react';
 

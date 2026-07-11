@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useContext } from "react";
-import { HapticsContext } from "@/components/haptics-provider";
+import { useContext } from 'react';
+import { HapticsContext } from '@/components/haptics-provider';
 
 const noop = async () => {};
 

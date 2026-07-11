@@ -1,46 +1,48 @@
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { ReleaseNotesTool } from "@/components/release-notes-tool"
-import { FileText, Filter, Layers } from "lucide-react"
-import { GitHubIcon } from "@/components/icons"
-import { Suspense } from "react"
-import { ogUrls } from "@/lib/og-config"
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { ReleaseNotesTool } from '@/components/release-notes-tool';
+import { FileText, Filter, Layers } from 'lucide-react';
+import { GitHubIcon } from '@/components/icons';
+import { Suspense } from 'react';
+import { ogUrls } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
-  tool: "Release Notes Combiner",
-  description: "Merge, filter, and export GitHub release notes",
-  category: "github-release-notes",
-})
+  tool: 'Release Notes Combiner',
+  description: 'Merge, filter, and export GitHub release notes',
+  category: 'github-release-notes'
+});
 
 export const metadata = {
-  title: "GitHub Release Notes | Dipak Parmar",
-  description: "Combine and export GitHub release notes with version filters.",
+  title: 'GitHub Release Notes | Dipak Parmar',
+  description: 'Combine and export GitHub release notes with version filters.',
   openGraph: {
-    title: "GitHub Release Notes",
-    description: "Merge, filter, and export release notes from any GitHub repository",
-    url: "https://tools.dipak.io/github-release-notes",
-    siteName: "tools.dipak.io",
-    type: "website",
+    title: 'GitHub Release Notes',
+    description:
+      'Merge, filter, and export release notes from any GitHub repository',
+    url: 'https://tools.dipak.io/github-release-notes',
+    siteName: 'tools.dipak.io',
+    type: 'website',
     images: [
       {
         url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: "GitHub Release Notes Combiner",
-      },
-    ],
+        alt: 'GitHub Release Notes Combiner'
+      }
+    ]
   },
   twitter: {
-    card: "summary_large_image",
-    title: "GitHub Release Notes | Dipak Parmar",
-    description: "Merge, filter, and export release notes from any GitHub repository",
-    images: [ogImageUrl],
+    card: 'summary_large_image',
+    title: 'GitHub Release Notes | Dipak Parmar',
+    description:
+      'Merge, filter, and export release notes from any GitHub repository',
+    images: [ogImageUrl]
   },
   alternates: {
-    canonical: "https://tools.dipak.io/github-release-notes",
-  },
-}
+    canonical: 'https://tools.dipak.io/github-release-notes'
+  }
+};
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 export default function GitHubReleaseNotesPage() {
   return (
@@ -62,8 +64,9 @@ export default function GitHubReleaseNotesPage() {
                   Release Notes Combiner
                 </h1>
                 <p className="mx-auto max-w-2xl text-muted-foreground">
-                  Merge, filter, and export release notes from any GitHub repository. Built for changelog
-                  reviews, launch notes, and migration prep.
+                  Merge, filter, and export release notes from any GitHub
+                  repository. Built for changelog reviews, launch notes, and
+                  migration prep.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3">
@@ -84,12 +87,16 @@ export default function GitHubReleaseNotesPage() {
           </BlurFade>
 
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <Suspense fallback={<div className="h-72 animate-pulse rounded-2xl border bg-muted/40" />}>
+            <Suspense
+              fallback={
+                <div className="h-72 animate-pulse rounded-2xl border bg-muted/40" />
+              }
+            >
               <ReleaseNotesTool />
             </Suspense>
           </BlurFade>
         </div>
       </div>
     </main>
-  )
+  );
 }

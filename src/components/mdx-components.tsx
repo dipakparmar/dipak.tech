@@ -84,7 +84,7 @@ function FigureImage({
   caption,
   sourceHref,
   sourceLabel,
-  priority = false,
+  priority = false
 }: FigureImageProps) {
   return (
     <figure className="mdx-figure">
@@ -113,7 +113,6 @@ function FigureImage({
   );
 }
 
-
 interface CiteProps {
   n: number | string;
 }
@@ -130,7 +129,6 @@ function Cite({ n }: CiteProps) {
     </sup>
   );
 }
-
 
 function Acknowledgements({ children }: { children: ReactNode }) {
   return (
@@ -166,5 +164,5 @@ export const mdxComponents: MDXComponents = {
   LaneDiagram,
   MarginNote,
   Quote,
-  References,
+  References
 };

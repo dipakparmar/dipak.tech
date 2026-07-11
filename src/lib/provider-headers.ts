@@ -1296,7 +1296,8 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
       {
         exact: 'x-github-sender',
         title: 'X-GitHub-Sender',
-        description: 'GitHub username of the actor who triggered the notification.',
+        description:
+          'GitHub username of the actor who triggered the notification.',
         why: 'Identifies which GitHub user performed the action that generated this email.',
         howToRead:
           'The value is a GitHub username, not an email address. Cross-reference with the From display name to confirm they match.',
@@ -1329,7 +1330,8 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
       {
         exact: 'x-github-reason',
         title: 'X-GitHub-Reason',
-        description: 'The subscription reason that caused GitHub to send this notification.',
+        description:
+          'The subscription reason that caused GitHub to send this notification.',
         why: 'Explains why you received the email without reading the body. Common values include review_requested, mention, assign, author, comment, subscribed, and team_mention.',
         howToRead:
           'Use this for mail filtering rules. For example, route review_requested to a high-priority folder and subscribed to a lower-priority one.',
@@ -1345,7 +1347,8 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         title: 'X-GitHub-Notify-Platform',
         description: 'Internal GitHub notification delivery system identifier.',
         why: 'Primarily a platform fingerprint confirming the mail came from GitHub internal notification infrastructure.',
-        howToRead: 'Treat as an opaque internal label rather than a user-facing value.',
+        howToRead:
+          'Treat as an opaque internal label rather than a user-facing value.',
         references: [
           { label: 'GitHub notification docs', url: GITHUB_NOTIFICATIONS_DOC }
         ]
@@ -1353,7 +1356,8 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
       {
         exact: 'x-github-labels',
         title: 'X-GitHub-Labels',
-        description: 'Labels applied to the issue or pull request at notification time.',
+        description:
+          'Labels applied to the issue or pull request at notification time.',
         why: 'Enables label-based mail filtering without parsing the email body.',
         howToRead:
           'Comma-separated label names. An empty value means no labels were applied when the notification was sent.',
@@ -1375,7 +1379,8 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
       {
         exact: 'x-github-pullrequeststatus',
         title: 'X-GitHub-PullRequestStatus',
-        description: 'Current state of the pull request that triggered the notification.',
+        description:
+          'Current state of the pull request that triggered the notification.',
         why: 'Lets you classify incoming GitHub mail by PR lifecycle state without opening the message.',
         howToRead:
           'Common values are open, merged, and closed. Use alongside X-GitHub-Reason to understand both the state and the triggering event.',
@@ -1388,7 +1393,8 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         headerName: 'x-auto-response-suppress',
         valuePattern: /\bAll\b/i,
         title: 'Auto-Response Suppression',
-        description: 'GitHub instruction to suppress automated replies such as out-of-office responses.',
+        description:
+          'GitHub instruction to suppress automated replies such as out-of-office responses.',
         why: 'Prevents reply-storm loops when automated systems receive GitHub notifications.',
         howToRead:
           'A value of All means the sender explicitly asked mail systems not to auto-reply. Other providers use this header too, so treat it as a GitHub signal only when paired with other X-GitHub-* headers.',
@@ -1400,7 +1406,8 @@ const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
         headerName: 'list-id',
         valuePattern: /\.github\.com>?\s*$/i,
         title: 'List-ID from github.com',
-        description: 'Mailing list identifier stamped by GitHub for repository notification threads.',
+        description:
+          'Mailing list identifier stamped by GitHub for repository notification threads.',
         why: 'Confirms the notification belongs to a specific GitHub repository list and enables thread-level mail filtering.',
         howToRead:
           'The format is typically <repo-name.OrgOrUser.github.com>. Use the repository slug to build filter rules in your mail client.',

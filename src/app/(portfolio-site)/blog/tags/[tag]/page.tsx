@@ -12,15 +12,15 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({
-  params,
+  params
 }: TagPageProps): Promise<Metadata> {
   const { tag } = await params;
   return {
     title: `Posts tagged "${tag}" | Blog | Dipak Parmar`,
     description: `Blog posts about ${tag}.`,
     alternates: {
-      canonical: `https://dipak.tech/blog/tags/${tag}`,
-    },
+      canonical: `https://dipak.tech/blog/tags/${tag}`
+    }
   };
 }
 
@@ -29,7 +29,7 @@ function formatRowDate(date: string) {
   return {
     mon: d.toLocaleDateString('en-US', { month: 'short' }),
     day: d.toLocaleDateString('en-US', { day: '2-digit' }),
-    year: d.toLocaleDateString('en-US', { year: 'numeric' }),
+    year: d.toLocaleDateString('en-US', { year: 'numeric' })
   };
 }
 
@@ -88,7 +88,10 @@ export default async function TagPage({ params }: TagPageProps) {
                   <h2 className="text-[17px] font-[470] tracking-[-0.015em] leading-[1.35] text-foreground/95">
                     <span
                       className="bg-no-repeat bg-[length:0%_1px] bg-[position:0_92%] group-hover:bg-[length:100%_1px] transition-[background-size] duration-300 ease-out"
-                      style={{ backgroundImage: 'linear-gradient(var(--color-primary), var(--color-primary))' }}
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(var(--color-primary), var(--color-primary))'
+                      }}
                     >
                       {post.title}
                     </span>
@@ -110,7 +113,8 @@ export default async function TagPage({ params }: TagPageProps) {
 
       {posts.length === 0 && (
         <p className="text-sm text-muted-foreground italic py-16 text-center">
-          Nothing tagged here yet — but every great repo starts with an empty folder.
+          Nothing tagged here yet — but every great repo starts with an empty
+          folder.
         </p>
       )}
     </main>

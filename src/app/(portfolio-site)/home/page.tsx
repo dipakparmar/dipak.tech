@@ -54,7 +54,9 @@ export default function Home() {
                 <BlurFade delay={BLUR_FADE_DELAY}>
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
                     Hi, I&apos;m {DATA.name.split(' ')[0]}{' '}
-                    <span className="inline-block origin-[70%_70%] animate-wave">👋</span>
+                    <span className="inline-block origin-[70%_70%] animate-wave">
+                      👋
+                    </span>
                   </h1>
                 </BlurFade>
                 <BlurFadeText
@@ -108,9 +110,10 @@ export default function Home() {
                   >
                     Linkedin
                   </Link>
-                  . I&apos;m always open to new opportunities and collaborations,
-                  and I&apos;ll do my best to respond promptly. Please note that I
-                  do not engage with unsolicited offers or advertisements.
+                  . I&apos;m always open to new opportunities and
+                  collaborations, and I&apos;ll do my best to respond promptly.
+                  Please note that I do not engage with unsolicited offers or
+                  advertisements.
                 </p>
               </div>
             </BlurFade>

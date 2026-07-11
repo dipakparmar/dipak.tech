@@ -99,12 +99,8 @@ const FIELD_PATTERNS = {
     /^\s*registrar abuse contact phone:\s*(.+)$/im,
     /^\s*abuse contact phone:\s*(.+)$/im
   ],
-  registrarUrl: [
-    /^\s*registrar url:\s*(.+)$/im
-  ],
-  registrarIanaId: [
-    /^\s*registrar iana id:\s*(.+)$/im
-  ],
+  registrarUrl: [/^\s*registrar url:\s*(.+)$/im],
+  registrarIanaId: [/^\s*registrar iana id:\s*(.+)$/im],
   registryDomainId: [
     /^\s*registry domain id:\s*(.+)$/im,
     /^\s*domain id:\s*(.+)$/im
@@ -113,17 +109,9 @@ const FIELD_PATTERNS = {
     /^\s*registry registrant id:\s*(.+)$/im,
     /^\s*registrant id:\s*(.+)$/im
   ],
-  adminId: [
-    /^\s*registry admin id:\s*(.+)$/im,
-    /^\s*admin id:\s*(.+)$/im
-  ],
-  techId: [
-    /^\s*registry tech id:\s*(.+)$/im,
-    /^\s*tech id:\s*(.+)$/im
-  ],
-  dnssec: [
-    /^\s*dnssec:\s*(.+)$/im
-  ],
+  adminId: [/^\s*registry admin id:\s*(.+)$/im, /^\s*admin id:\s*(.+)$/im],
+  techId: [/^\s*registry tech id:\s*(.+)$/im, /^\s*tech id:\s*(.+)$/im],
+  dnssec: [/^\s*dnssec:\s*(.+)$/im],
   registrarWhoisServer: [
     /^\s*registrar whois server:\s*(.+)$/im,
     /^\s*whois server:\s*(.+)$/im
@@ -161,7 +149,10 @@ export function isWhoisDomainNotFound(rawWhois: string): boolean {
   return patterns.some((pattern) => pattern.test(normalized));
 }
 
-function matchFirst(rawWhois: string, patterns: readonly RegExp[]): string | null {
+function matchFirst(
+  rawWhois: string,
+  patterns: readonly RegExp[]
+): string | null {
   for (const pattern of patterns) {
     const match = rawWhois.match(pattern);
     const value = match?.[1]?.trim();
@@ -170,11 +161,19 @@ function matchFirst(rawWhois: string, patterns: readonly RegExp[]): string | nul
   return null;
 }
 
-function collectMatches(rawWhois: string, patterns: readonly RegExp[]): string[] {
+function collectMatches(
+  rawWhois: string,
+  patterns: readonly RegExp[]
+): string[] {
   const values = new Set<string>();
 
   for (const pattern of patterns) {
-    for (const match of rawWhois.matchAll(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`))) {
+    for (const match of rawWhois.matchAll(
+      new RegExp(
+        pattern.source,
+        pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`
+      )
+    )) {
       const value = match[1]?.trim();
       if (value) values.add(value);
     }
@@ -211,13 +210,23 @@ function emptyContact(): ParsedWhoisContact {
   };
 }
 
-function extractContactField(rawWhois: string, role: string, fieldPatterns: string[]): string | null {
+function extractContactField(
+  rawWhois: string,
+  role: string,
+  fieldPatterns: string[]
+): string | null {
   for (const field of fieldPatterns) {
-    const directPattern = new RegExp(`^\\s*${role}\\s+${field}:\\s*(.+)$`, 'im');
+    const directPattern = new RegExp(
+      `^\\s*${role}\\s+${field}:\\s*(.+)$`,
+      'im'
+    );
     const directMatch = rawWhois.match(directPattern);
     if (directMatch?.[1]?.trim()) return directMatch[1].trim();
 
-    const prefixedPattern = new RegExp(`^\\s*${role}\\s*${field}:\\s*(.+)$`, 'im');
+    const prefixedPattern = new RegExp(
+      `^\\s*${role}\\s*${field}:\\s*(.+)$`,
+      'im'
+    );
     const prefixedMatch = rawWhois.match(prefixedPattern);
     if (prefixedMatch?.[1]?.trim()) return prefixedMatch[1].trim();
   }
@@ -225,13 +234,21 @@ function extractContactField(rawWhois: string, role: string, fieldPatterns: stri
   return null;
 }
 
-function extractIanaContactBlock(rawWhois: string, role: string): ParsedWhoisContact | null {
-  const blockPattern = new RegExp(`contact:\\s*${role}\\n([\\s\\S]*?)(?:\\ncontact:\\s*\\w+|\\n\\n|\\n(?:nserver|ds-rdata|whois|status|remarks|created|changed|source):|$)`, 'i');
+function extractIanaContactBlock(
+  rawWhois: string,
+  role: string
+): ParsedWhoisContact | null {
+  const blockPattern = new RegExp(
+    `contact:\\s*${role}\\n([\\s\\S]*?)(?:\\ncontact:\\s*\\w+|\\n\\n|\\n(?:nserver|ds-rdata|whois|status|remarks|created|changed|source):|$)`,
+    'i'
+  );
   const blockMatch = rawWhois.match(blockPattern);
   if (!blockMatch?.[1]) return null;
 
   const block = blockMatch[1];
-  const pick = (label: string) => block.match(new RegExp(`^\\s*${label}:\\s*(.+)$`, 'im'))?.[1]?.trim() || null;
+  const pick = (label: string) =>
+    block.match(new RegExp(`^\\s*${label}:\\s*(.+)$`, 'im'))?.[1]?.trim() ||
+    null;
 
   const contact: ParsedWhoisContact = {
     name: pick('name'),
@@ -248,18 +265,29 @@ function extractIanaContactBlock(rawWhois: string, role: string): ParsedWhoisCon
 
 function parseWhoisContacts(rawWhois: string): ParsedWhoisContacts {
   const registrant: ParsedWhoisContact = {
-    name: extractContactField(rawWhois, 'Registrant', ['Name']) || extractContactField(rawWhois, 'Registrant', ['Contact Name']),
-    organization: extractContactField(rawWhois, 'Registrant', ['Organization', 'Org']),
+    name:
+      extractContactField(rawWhois, 'Registrant', ['Name']) ||
+      extractContactField(rawWhois, 'Registrant', ['Contact Name']),
+    organization: extractContactField(rawWhois, 'Registrant', [
+      'Organization',
+      'Org'
+    ]),
     email: extractContactField(rawWhois, 'Registrant', ['Email']),
     phone: extractContactField(rawWhois, 'Registrant', ['Phone']),
     country: extractContactField(rawWhois, 'Registrant', ['Country']),
-    state: extractContactField(rawWhois, 'Registrant', ['State/Province', 'State']),
+    state: extractContactField(rawWhois, 'Registrant', [
+      'State/Province',
+      'State'
+    ]),
     city: extractContactField(rawWhois, 'Registrant', ['City'])
   };
 
   const admin: ParsedWhoisContact = {
     name: extractContactField(rawWhois, 'Admin', ['Name']),
-    organization: extractContactField(rawWhois, 'Admin', ['Organization', 'Org']),
+    organization: extractContactField(rawWhois, 'Admin', [
+      'Organization',
+      'Org'
+    ]),
     email: extractContactField(rawWhois, 'Admin', ['Email']),
     phone: extractContactField(rawWhois, 'Admin', ['Phone']),
     country: extractContactField(rawWhois, 'Admin', ['Country']),
@@ -269,7 +297,10 @@ function parseWhoisContacts(rawWhois: string): ParsedWhoisContacts {
 
   const tech: ParsedWhoisContact = {
     name: extractContactField(rawWhois, 'Tech', ['Name']),
-    organization: extractContactField(rawWhois, 'Tech', ['Organization', 'Org']),
+    organization: extractContactField(rawWhois, 'Tech', [
+      'Organization',
+      'Org'
+    ]),
     email: extractContactField(rawWhois, 'Tech', ['Email']),
     phone: extractContactField(rawWhois, 'Tech', ['Phone']),
     country: extractContactField(rawWhois, 'Tech', ['Country']),
@@ -281,8 +312,12 @@ function parseWhoisContacts(rawWhois: string): ParsedWhoisContacts {
   const ianaTech = extractIanaContactBlock(rawWhois, 'technical');
 
   return {
-    registrant: Object.values(registrant).some(Boolean) ? registrant : emptyContact(),
-    admin: Object.values(admin).some(Boolean) ? admin : ianaAdmin || emptyContact(),
+    registrant: Object.values(registrant).some(Boolean)
+      ? registrant
+      : emptyContact(),
+    admin: Object.values(admin).some(Boolean)
+      ? admin
+      : ianaAdmin || emptyContact(),
     tech: Object.values(tech).some(Boolean) ? tech : ianaTech || emptyContact()
   };
 }
@@ -299,7 +334,9 @@ export function parseWhoisText(rawWhois: string): ParsedWhoisData {
     /^\s*domain status:\s*(.+)$/im,
     /^\s*status:\s*(.+)$/im,
     /^\s*state:\s*(.+)$/im
-  ]).map(normalizeWhoisStatus).filter(Boolean);
+  ])
+    .map(normalizeWhoisStatus)
+    .filter(Boolean);
 
   return {
     registrar: matchFirst(rawWhois, FIELD_PATTERNS.registrar),
@@ -310,15 +347,24 @@ export function parseWhoisText(rawWhois: string): ParsedWhoisData {
     registrantId: matchFirst(rawWhois, FIELD_PATTERNS.registrantId),
     adminId: matchFirst(rawWhois, FIELD_PATTERNS.adminId),
     techId: matchFirst(rawWhois, FIELD_PATTERNS.techId),
-    creationDate: normalizeDate(matchFirst(rawWhois, FIELD_PATTERNS.creationDate)),
-    expirationDate: normalizeDate(matchFirst(rawWhois, FIELD_PATTERNS.expirationDate)),
-    updatedDate: normalizeDate(matchFirst(rawWhois, FIELD_PATTERNS.updatedDate)),
+    creationDate: normalizeDate(
+      matchFirst(rawWhois, FIELD_PATTERNS.creationDate)
+    ),
+    expirationDate: normalizeDate(
+      matchFirst(rawWhois, FIELD_PATTERNS.expirationDate)
+    ),
+    updatedDate: normalizeDate(
+      matchFirst(rawWhois, FIELD_PATTERNS.updatedDate)
+    ),
     dnssec: matchFirst(rawWhois, FIELD_PATTERNS.dnssec),
     nameservers: [...new Set(nameservers)],
     status,
     abuseEmail: matchFirst(rawWhois, FIELD_PATTERNS.abuseEmail),
     abusePhone: matchFirst(rawWhois, FIELD_PATTERNS.abusePhone),
-    registrarWhoisServer: matchFirst(rawWhois, FIELD_PATTERNS.registrarWhoisServer),
+    registrarWhoisServer: matchFirst(
+      rawWhois,
+      FIELD_PATTERNS.registrarWhoisServer
+    ),
     registrantCountry: contacts.registrant.country,
     registrantState: contacts.registrant.state,
     registrantCity: contacts.registrant.city,
@@ -326,7 +372,10 @@ export function parseWhoisText(rawWhois: string): ParsedWhoisData {
   };
 }
 
-export async function queryWhoisServer(server: string, query: string): Promise<string> {
+export async function queryWhoisServer(
+  server: string,
+  query: string
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const socket = new Socket();
     const chunks: Buffer[] = [];
@@ -354,7 +403,9 @@ export async function queryWhoisServer(server: string, query: string): Promise<s
       sawData = true;
       totalBytes += chunk.length;
       if (totalBytes > MAX_WHOIS_RESPONSE_BYTES) {
-        finish(() => reject(new Error(`WHOIS response from ${server} exceeded size limit`)));
+        finish(() =>
+          reject(new Error(`WHOIS response from ${server} exceeded size limit`))
+        );
         return;
       }
       chunks.push(chunk);
@@ -369,7 +420,9 @@ export async function queryWhoisServer(server: string, query: string): Promise<s
     });
 
     socket.on('error', (error) => {
-      finish(() => reject(new Error(`WHOIS query to ${server} failed: ${error.message}`)));
+      finish(() =>
+        reject(new Error(`WHOIS query to ${server} failed: ${error.message}`))
+      );
     });
 
     socket.on('end', () => {
@@ -448,7 +501,10 @@ export async function queryDomainWhoisFallback(
       throw error;
     }
 
-    const degradedReason = error instanceof Error ? error.message : `WHOIS query to ${referralServer} failed`;
+    const degradedReason =
+      error instanceof Error
+        ? error.message
+        : `WHOIS query to ${referralServer} failed`;
     const parsedWhois = parseWhoisText(ianaResponse);
 
     return {

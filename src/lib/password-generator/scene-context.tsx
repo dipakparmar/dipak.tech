@@ -8,7 +8,7 @@ const DEFAULT_ENTROPY: EntropyResult = {
   crackTime: 'Instant',
   strength: 'very-weak',
   color: 'bg-red-500',
-  percentage: 0,
+  percentage: 0
 };
 
 interface SceneContextValue {
@@ -18,7 +18,7 @@ interface SceneContextValue {
 
 const SceneContext = createContext<SceneContextValue>({
   entropy: DEFAULT_ENTROPY,
-  setEntropy: () => {},
+  setEntropy: () => {}
 });
 
 export function SceneProvider({ children }: { children: ReactNode }) {

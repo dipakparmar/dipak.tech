@@ -133,9 +133,8 @@ export default function LinksContent({
   initialSocialLinks
 }: LinksContentProps) {
   const [links, setLinks] = useState<Link[]>(initialLinks);
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(
-    initialSocialLinks
-  );
+  const [socialLinks, setSocialLinks] =
+    useState<SocialLink[]>(initialSocialLinks);
 
   useEffect(() => {
     // Attempt to fetch fresh data on client-side
@@ -148,7 +147,10 @@ export default function LinksContent({
         );
 
         if (errors) {
-          console.warn('Failed to fetch fresh data, using static data:', errors);
+          console.warn(
+            'Failed to fetch fresh data, using static data:',
+            errors
+          );
           return;
         }
 

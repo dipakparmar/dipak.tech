@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useState } from 'react';
-import { useHaptics } from "@/hooks/use-haptics";
+import { useHaptics } from '@/hooks/use-haptics';
 import {
   RegistryBackend,
   REGISTRY_BACKENDS,
@@ -62,7 +62,7 @@ export function ImageCard({ image }: ImageCardProps) {
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(pullCommand);
-    trigger("success");
+    trigger('success');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -88,7 +88,9 @@ export function ImageCard({ image }: ImageCardProps) {
                 d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
               />
             </svg>
-            <span className="font-semibold tracking-tight truncate">{fullImageName}</span>
+            <span className="font-semibold tracking-tight truncate">
+              {fullImageName}
+            </span>
           </div>
           {image.description && (
             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
@@ -152,7 +154,8 @@ export function ImageCard({ image }: ImageCardProps) {
       {/* Pull Command */}
       <div className="mt-4 flex items-center gap-2 rounded-md bg-zinc-100 dark:bg-zinc-900 p-2 sm:p-3 border border-zinc-200 dark:border-zinc-800 min-w-0">
         <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 break-all leading-tight">
-          <span className="text-zinc-400 dark:text-zinc-500">$</span> {pullCommand}
+          <span className="text-zinc-400 dark:text-zinc-500">$</span>{' '}
+          {pullCommand}
         </code>
         <button
           onClick={handleCopy}

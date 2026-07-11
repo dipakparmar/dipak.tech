@@ -1,45 +1,50 @@
-import { CalendarHeart, Globe, Download } from "lucide-react"
-import { Suspense } from "react"
+import { CalendarHeart, Globe, Download } from 'lucide-react';
+import { Suspense } from 'react';
 
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { TimeoffOptimizerTool } from "@/components/timeoff-optimizer/timeoff-optimizer-tool"
-import { detectGeoFromHeaders } from "@/lib/geo"
-import { ogUrls } from "@/lib/og-config"
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { TimeoffOptimizerTool } from '@/components/timeoff-optimizer/timeoff-optimizer-tool';
+import { detectGeoFromHeaders } from '@/lib/geo';
+import { ogUrls } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
-  tool: "Time-off Optimizer",
-  description: "Maximize your PTO by stacking days off around weekends and holidays",
-  category: "timeoff-optimizer",
-})
+  tool: 'Time-off Optimizer',
+  description:
+    'Maximize your PTO by stacking days off around weekends and holidays',
+  category: 'timeoff-optimizer'
+});
 
 export const metadata = {
-  title: "Time-off Optimizer | Dipak Parmar",
+  title: 'Time-off Optimizer | Dipak Parmar',
   description:
-    "Plan the perfect year of vacations. Stack your PTO days around weekends, public holidays, and company days off to maximize time off.",
+    'Plan the perfect year of vacations. Stack your PTO days around weekends, public holidays, and company days off to maximize time off.',
   openGraph: {
-    title: "Time-off Optimizer",
-    description: "Maximize your PTO by stacking days off around weekends, public holidays, and company days.",
-    url: "https://tools.dipak.io/timeoff-optimizer",
-    siteName: "tools.dipak.io",
-    type: "website",
-    images: [{ url: ogImageUrl, width: 1200, height: 630, alt: "Time-off Optimizer" }],
+    title: 'Time-off Optimizer',
+    description:
+      'Maximize your PTO by stacking days off around weekends, public holidays, and company days.',
+    url: 'https://tools.dipak.io/timeoff-optimizer',
+    siteName: 'tools.dipak.io',
+    type: 'website',
+    images: [
+      { url: ogImageUrl, width: 1200, height: 630, alt: 'Time-off Optimizer' }
+    ]
   },
   twitter: {
-    card: "summary_large_image" as const,
-    title: "Time-off Optimizer | Dipak Parmar",
-    description: "Stack your PTO around weekends and holidays for the most time off.",
-    images: [ogImageUrl],
+    card: 'summary_large_image' as const,
+    title: 'Time-off Optimizer | Dipak Parmar',
+    description:
+      'Stack your PTO around weekends and holidays for the most time off.',
+    images: [ogImageUrl]
   },
-  alternates: { canonical: "https://tools.dipak.io/timeoff-optimizer" },
-}
+  alternates: { canonical: 'https://tools.dipak.io/timeoff-optimizer' }
+};
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 export default async function TimeoffOptimizerPage() {
-  const detectedGeo = await detectGeoFromHeaders()
+  const detectedGeo = await detectGeoFromHeaders();
   // Only a boolean — never send the actual secret to the client. Visitors who
   // know the access code enter it themselves in the Subscribe UI.
-  const icsSubscribeEnabled = Boolean(process.env.TIMEOFF_OPTIMIZER_ICS_TOKEN)
+  const icsSubscribeEnabled = Boolean(process.env.TIMEOFF_OPTIMIZER_ICS_TOKEN);
   return (
     <main className="min-h-screen bg-background">
       <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]">
@@ -61,8 +66,9 @@ export default async function TimeoffOptimizerPage() {
                 Make every PTO day count
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Plan your year by stacking time off around weekends, public holidays, and company
-                days. Pick a strategy and we&rsquo;ll find the dates that give you the most rest.
+                Plan your year by stacking time off around weekends, public
+                holidays, and company days. Pick a strategy and we&rsquo;ll find
+                the dates that give you the most rest.
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
@@ -82,17 +88,24 @@ export default async function TimeoffOptimizerPage() {
           </BlurFade>
 
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
-              <TimeoffOptimizerTool detectedGeo={detectedGeo} icsSubscribeEnabled={icsSubscribeEnabled} />
+            <Suspense
+              fallback={
+                <div className="h-96 animate-pulse rounded-xl bg-muted" />
+              }
+            >
+              <TimeoffOptimizerTool
+                detectedGeo={detectedGeo}
+                icsSubscribeEnabled={icsSubscribeEnabled}
+              />
             </Suspense>
           </BlurFade>
 
           <p className="text-center text-xs text-muted-foreground/70">
-            Everything runs in your browser &mdash; calendar subscriptions are the only feature
-            that talks to a server.
+            Everything runs in your browser &mdash; calendar subscriptions are
+            the only feature that talks to a server.
           </p>
         </div>
       </div>
     </main>
-  )
+  );
 }

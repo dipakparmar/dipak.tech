@@ -1,27 +1,33 @@
-"use client"
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Plus, Sparkles, Trash2 } from "lucide-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 
-import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 interface VersionRange {
-  min: string
-  max: string
+  min: string;
+  max: string;
 }
 
 interface ReleaseNotesFormProps {
-  repoInput: string
-  repoHint?: string
-  versionRanges: VersionRange[]
-  loading: boolean
-  onRepoInputChange: (value: string) => void
-  onVersionRangesChange: (ranges: VersionRange[]) => void
-  onFetch: () => void
-  onExampleSelect?: (value: string) => void
+  repoInput: string;
+  repoHint?: string;
+  versionRanges: VersionRange[];
+  loading: boolean;
+  onRepoInputChange: (value: string) => void;
+  onVersionRangesChange: (ranges: VersionRange[]) => void;
+  onFetch: () => void;
+  onExampleSelect?: (value: string) => void;
 }
 
 export function ReleaseNotesForm({
@@ -32,29 +38,36 @@ export function ReleaseNotesForm({
   onRepoInputChange,
   onVersionRangesChange,
   onFetch,
-  onExampleSelect,
+  onExampleSelect
 }: ReleaseNotesFormProps) {
   const addVersionRange = () => {
-    onVersionRangesChange([...versionRanges, { min: "", max: "" }])
-  }
+    onVersionRangesChange([...versionRanges, { min: '', max: '' }]);
+  };
 
   const removeVersionRange = (index: number) => {
     if (versionRanges.length > 1) {
-      onVersionRangesChange(versionRanges.filter((_, i) => i !== index))
+      onVersionRangesChange(versionRanges.filter((_, i) => i !== index));
     }
-  }
+  };
 
-  const updateVersionRange = (index: number, field: "min" | "max", value: string) => {
-    const updated = versionRanges.map((range, i) => (i === index ? { ...range, [field]: value } : range))
-    onVersionRangesChange(updated)
-  }
+  const updateVersionRange = (
+    index: number,
+    field: 'min' | 'max',
+    value: string
+  ) => {
+    const updated = versionRanges.map((range, i) =>
+      i === index ? { ...range, [field]: value } : range
+    );
+    onVersionRangesChange(updated);
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Repository Configuration</CardTitle>
         <CardDescription>
-          Enter a GitHub repository and define version ranges to combine release notes.
+          Enter a GitHub repository and define version ranges to combine release
+          notes.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -73,7 +86,7 @@ export function ReleaseNotesForm({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onExampleSelect?.("vercel/next.js")}
+              onClick={() => onExampleSelect?.('vercel/next.js')}
               disabled={loading}
             >
               vercel/next.js
@@ -82,7 +95,7 @@ export function ReleaseNotesForm({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => onExampleSelect?.("microsoft/vscode")}
+              onClick={() => onExampleSelect?.('microsoft/vscode')}
               disabled={loading}
             >
               microsoft/vscode
@@ -100,7 +113,13 @@ export function ReleaseNotesForm({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Version Ranges</Label>
-            <Button type="button" variant="outline" size="sm" onClick={addVersionRange} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addVersionRange}
+              disabled={loading}
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Range
             </Button>
@@ -111,7 +130,9 @@ export function ReleaseNotesForm({
               <Input
                 placeholder="Min version (e.g., 2.9.1)"
                 value={range.min}
-                onChange={(e) => updateVersionRange(index, "min", e.target.value)}
+                onChange={(e) =>
+                  updateVersionRange(index, 'min', e.target.value)
+                }
                 disabled={loading}
                 className="flex-1"
               />
@@ -119,7 +140,9 @@ export function ReleaseNotesForm({
               <Input
                 placeholder="Max version (e.g., 2.9.10)"
                 value={range.max}
-                onChange={(e) => updateVersionRange(index, "max", e.target.value)}
+                onChange={(e) =>
+                  updateVersionRange(index, 'max', e.target.value)
+                }
                 disabled={loading}
                 className="flex-1"
               />
@@ -137,7 +160,8 @@ export function ReleaseNotesForm({
             </div>
           ))}
           <p className="text-xs text-muted-foreground">
-            Use semantic version ranges (for example, 1.4.0 to 1.6.0). Pre-release tags are skipped.
+            Use semantic version ranges (for example, 1.4.0 to 1.6.0).
+            Pre-release tags are skipped.
           </p>
         </div>
 
@@ -148,10 +172,10 @@ export function ReleaseNotesForm({
               Fetching Releases...
             </>
           ) : (
-            "Fetch Release Notes"
+            'Fetch Release Notes'
           )}
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }

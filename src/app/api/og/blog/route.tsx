@@ -10,7 +10,7 @@ import {
   createOGResponse,
   gradients,
   siteConfig,
-  verifyOGRequest,
+  verifyOGRequest
 } from '@/lib/og-utils';
 
 import { NextRequest } from 'next/server';
@@ -20,7 +20,7 @@ function BlogOG({
   description,
   tags,
   date,
-  readingTime,
+  readingTime
 }: {
   title: string;
   description: string;
@@ -32,14 +32,19 @@ function BlogOG({
     ? new Date(date).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
-        day: 'numeric',
+        day: 'numeric'
       })
     : '';
 
   return (
     <OGWrapper gradient={gradients.blog}>
       <GridPattern />
-      <GradientAccent color="rgba(251,146,60,0.25)" size={350} top={-80} right={-80} />
+      <GradientAccent
+        color="rgba(251,146,60,0.25)"
+        size={350}
+        top={-80}
+        right={-80}
+      />
       <ContentContainer>
         {/* Header row */}
         <Header
@@ -67,7 +72,7 @@ function BlogOG({
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
-              textShadow: '0 2px 10px rgba(0,0,0,0.2)',
+              textShadow: '0 2px 10px rgba(0,0,0,0.2)'
             }}
           >
             {title}
@@ -82,7 +87,7 @@ function BlogOG({
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              overflow: 'hidden'
             }}
           >
             {description}
@@ -99,7 +104,7 @@ function BlogOG({
                     borderRadius: 999,
                     padding: '6px 16px',
                     fontSize: 20,
-                    display: 'flex',
+                    display: 'flex'
                   }}
                 >
                   {tag}
@@ -114,7 +119,7 @@ function BlogOG({
           style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'space-between'
           }}
         >
           {/* Reading time + date */}
@@ -124,19 +129,27 @@ function BlogOG({
               alignItems: 'center',
               gap: '12px',
               color: 'rgba(255,255,255,0.5)',
-              fontSize: 22,
+              fontSize: 22
             }}
           >
             {readingTime && <span>⏱ {readingTime} min read</span>}
             {readingTime && formattedDate && (
               <span style={{ display: 'flex' }}>·</span>
             )}
-            {formattedDate && <span style={{ display: 'flex' }}>{formattedDate}</span>}
+            {formattedDate && (
+              <span style={{ display: 'flex' }}>{formattedDate}</span>
+            )}
           </div>
           {/* Avatar + name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Avatar size={48} />
-            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 22, display: 'flex' }}>
+            <span
+              style={{
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: 22,
+                display: 'flex'
+              }}
+            >
               Dipak Parmar
             </span>
           </div>
@@ -161,7 +174,12 @@ export async function GET(request: NextRequest) {
   const date = searchParams.get('date') || '';
   const readingTime = searchParams.get('readingTime') || '';
 
-  const tags = tagsParam ? tagsParam.split(',').map((t) => t.trim()).filter(Boolean) : [];
+  const tags = tagsParam
+    ? tagsParam
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
 
   const allText = [
     title,
@@ -172,12 +190,12 @@ export async function GET(request: NextRequest) {
       ? new Date(date).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
-          day: 'numeric',
+          day: 'numeric'
         })
       : '',
     'Blog',
     'Dipak Parmar',
-    'dipak.tech',
+    'dipak.tech'
   ]
     .filter(Boolean)
     .join('');
@@ -195,6 +213,8 @@ export async function GET(request: NextRequest) {
   try {
     return await createOGResponse(element, allText);
   } catch (e: unknown) {
-    return createErrorResponse(e instanceof Error ? e.message : 'Unknown error');
+    return createErrorResponse(
+      e instanceof Error ? e.message : 'Unknown error'
+    );
   }
 }

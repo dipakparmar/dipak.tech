@@ -35,7 +35,7 @@ export async function generateMetadata({
   const ogImageUrl = ogUrls.goPkg({
     package: repoName,
     description,
-    import: `go.pkg.dipak.io/${repoName}`,
+    import: `go.pkg.dipak.io/${repoName}`
   });
 
   return {
@@ -52,19 +52,19 @@ export async function generateMetadata({
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `${repoName} Go Package`,
-        },
-      ],
+          alt: `${repoName} Go Package`
+        }
+      ]
     },
     twitter: {
       card: 'summary_large_image',
       title: `${repoName} - Go Package`,
       description,
-      images: [ogImageUrl],
+      images: [ogImageUrl]
     },
     alternates: {
-      canonical: `${siteConfig.goPkg.baseUrl}/view/${repoName}`,
-    },
+      canonical: `${siteConfig.goPkg.baseUrl}/view/${repoName}`
+    }
   };
 }
 
@@ -127,14 +127,10 @@ export default async function PackageViewPage({ params }: PackageViewProps) {
             <BlurFade delay={BLUR_FADE_DELAY * 2}>
               <div className="flex items-center gap-2 shrink-0">
                 {repo.stargazers_count > 0 && (
-                  <Badge variant="secondary">
-                    ⭐ {repo.stargazers_count}
-                  </Badge>
+                  <Badge variant="secondary">⭐ {repo.stargazers_count}</Badge>
                 )}
                 {repo.forks_count > 0 && (
-                  <Badge variant="secondary">
-                    🔀 {repo.forks_count}
-                  </Badge>
+                  <Badge variant="secondary">🔀 {repo.forks_count}</Badge>
                 )}
               </div>
             </BlurFade>
@@ -157,7 +153,8 @@ export default async function PackageViewPage({ params }: PackageViewProps) {
           <BlurFade delay={BLUR_FADE_DELAY * 5}>
             <div className="flex items-center gap-2 rounded-md bg-zinc-100 dark:bg-zinc-900 p-3 border border-zinc-200 dark:border-zinc-800">
               <code className="flex-1 text-sm font-mono text-zinc-700 dark:text-zinc-300 truncate">
-                <span className="text-zinc-400 dark:text-zinc-500">$</span> {installCommand}
+                <span className="text-zinc-400 dark:text-zinc-500">$</span>{' '}
+                {installCommand}
               </code>
               <CopyButton text={installCommand} />
             </div>
@@ -290,7 +287,8 @@ function ReleaseCard({
 
       <div className="flex items-center gap-2 rounded-md bg-zinc-100 dark:bg-zinc-900 p-2 border border-zinc-200 dark:border-zinc-800">
         <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
-          <span className="text-zinc-400 dark:text-zinc-500">$</span> {installCommand}
+          <span className="text-zinc-400 dark:text-zinc-500">$</span>{' '}
+          {installCommand}
         </code>
         <CopyButton text={installCommand} />
       </div>

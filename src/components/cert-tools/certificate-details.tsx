@@ -1,10 +1,16 @@
-"use client"
+'use client';
 
-import { useState, useCallback } from "react"
-import { useHaptics } from "@/hooks/use-haptics"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { HapticButton as Button } from "@/components/haptic-wrappers"
+import { useState, useCallback } from 'react';
+import { useHaptics } from '@/hooks/use-haptics';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
 import {
   Building,
   Calendar,
@@ -12,83 +18,94 @@ import {
   Hash,
   FileText,
   Copy,
-  Check,
-} from "lucide-react"
+  Check
+} from 'lucide-react';
 
 // Normalized certificate data interface
 export interface CertificateData {
-  commonName: string
-  subject: Record<string, string>
-  issuer: Record<string, string>
-  serialNumber: string
-  validFrom: Date | string
-  validTo: Date | string
-  publicKeyAlgorithm?: string
-  signatureAlgorithm?: string
-  sans?: string[]
-  fingerprint?: string
-  sha256?: string
-  pem?: string
-  isWildcard?: boolean
-  isPrecert?: boolean
-  isCA?: boolean
-  validationType?: "DV" | "OV" | "EV"
+  commonName: string;
+  subject: Record<string, string>;
+  issuer: Record<string, string>;
+  serialNumber: string;
+  validFrom: Date | string;
+  validTo: Date | string;
+  publicKeyAlgorithm?: string;
+  signatureAlgorithm?: string;
+  sans?: string[];
+  fingerprint?: string;
+  sha256?: string;
+  pem?: string;
+  isWildcard?: boolean;
+  isPrecert?: boolean;
+  isCA?: boolean;
+  validationType?: 'DV' | 'OV' | 'EV';
 }
 
 interface CertificateDetailsProps {
-  certificate: CertificateData
-  showPem?: boolean
-  className?: string
+  certificate: CertificateData;
+  showPem?: boolean;
+  className?: string;
 }
 
 // Parse DN string like "CN=R13,O=Let's Encrypt,C=US" into object
 export function parseDN(dn: string): Record<string, string> {
-  const result: Record<string, string> = {}
-  const parts = dn.split(/,(?=\s*[A-Z]+=)/)
+  const result: Record<string, string> = {};
+  const parts = dn.split(/,(?=\s*[A-Z]+=)/);
   for (const part of parts) {
-    const match = part.trim().match(/^([A-Z]+)=(.+)$/)
+    const match = part.trim().match(/^([A-Z]+)=(.+)$/);
     if (match) {
-      result[match[1]] = match[2]
+      result[match[1]] = match[2];
     }
   }
-  return result
+  return result;
 }
 
-export function CertificateDetails({ certificate, showPem = true, className = "" }: CertificateDetailsProps) {
-  const [copied, setCopied] = useState<string | null>(null)
-  const { trigger } = useHaptics()
+export function CertificateDetails({
+  certificate,
+  showPem = true,
+  className = ''
+}: CertificateDetailsProps) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const { trigger } = useHaptics();
 
-  const handleCopy = useCallback(async (text: string, id: string) => {
-    await navigator.clipboard.writeText(text)
-    trigger("success")
-    setCopied(id)
-    setTimeout(() => setCopied(null), 2000)
-  }, [trigger])
+  const handleCopy = useCallback(
+    async (text: string, id: string) => {
+      await navigator.clipboard.writeText(text);
+      trigger('success');
+      setCopied(id);
+      setTimeout(() => setCopied(null), 2000);
+    },
+    [trigger]
+  );
 
   const formatDate = (date: Date | string) => {
-    const d = typeof date === "string" ? new Date(date) : date
-    return d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZoneName: "short",
-    })
-  }
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+  };
 
   const getExpiryStatus = () => {
-    const now = new Date()
-    const expiry = typeof certificate.validTo === "string" ? new Date(certificate.validTo) : certificate.validTo
-    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const now = new Date();
+    const expiry =
+      typeof certificate.validTo === 'string'
+        ? new Date(certificate.validTo)
+        : certificate.validTo;
+    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     return {
       isExpired: expiry < now,
-      isExpiringSoon: expiry >= now && expiry < thirtyDays,
-    }
-  }
+      isExpiringSoon: expiry >= now && expiry < thirtyDays
+    };
+  };
 
-  const { isExpired, isExpiringSoon } = getExpiryStatus()
-  const isWildcard = certificate.isWildcard ?? certificate.commonName?.startsWith("*.")
+  const { isExpired, isExpiringSoon } = getExpiryStatus();
+  const isWildcard =
+    certificate.isWildcard ?? certificate.commonName?.startsWith('*.');
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -105,21 +122,23 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
             Valid
           </Badge>
         )}
-        {certificate.validationType === "EV" && (
+        {certificate.validationType === 'EV' && (
           <Badge variant="default" className="bg-green-600">
             EV
           </Badge>
         )}
-        {certificate.validationType === "OV" && (
+        {certificate.validationType === 'OV' && (
           <Badge variant="default" className="bg-blue-600">
             OV
           </Badge>
         )}
-        {certificate.validationType === "DV" && (
+        {certificate.validationType === 'DV' && (
           <Badge variant="outline">DV</Badge>
         )}
         {isWildcard && <Badge variant="outline">Wildcard</Badge>}
-        {certificate.isPrecert && <Badge variant="secondary">Precertificate</Badge>}
+        {certificate.isPrecert && (
+          <Badge variant="secondary">Precertificate</Badge>
+        )}
         {certificate.isCA && <Badge variant="secondary">CA</Badge>}
         {certificate.publicKeyAlgorithm && (
           <Badge variant="secondary">{certificate.publicKeyAlgorithm}</Badge>
@@ -140,7 +159,9 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
         <CardContent className="space-y-3">
           <div className="rounded-lg border bg-muted/30 p-3">
             <p className="text-xs text-muted-foreground">Common Name (CN)</p>
-            <p className="break-all font-mono text-sm">{certificate.commonName}</p>
+            <p className="break-all font-mono text-sm">
+              {certificate.commonName}
+            </p>
           </div>
           {certificate.subject.O && (
             <div className="rounded-lg border bg-muted/30 p-3">
@@ -150,11 +171,15 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
           )}
           {certificate.subject.OU && (
             <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Organizational Unit (OU)</p>
+              <p className="text-xs text-muted-foreground">
+                Organizational Unit (OU)
+              </p>
               <p className="font-mono text-sm">{certificate.subject.OU}</p>
             </div>
           )}
-          {(certificate.subject.L || certificate.subject.ST || certificate.subject.C) && (
+          {(certificate.subject.L ||
+            certificate.subject.ST ||
+            certificate.subject.C) && (
             <div className="grid gap-3 sm:grid-cols-3">
               {certificate.subject.L && (
                 <div className="rounded-lg border bg-muted/30 p-3">
@@ -187,12 +212,18 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
               <Globe className="h-5 w-5 text-emerald-500" />
               Subject Alternative Names ({certificate.sans.length})
             </CardTitle>
-            <CardDescription>DNS names and IPs covered by this certificate</CardDescription>
+            <CardDescription>
+              DNS names and IPs covered by this certificate
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {certificate.sans.map((name) => (
-                <Badge key={name} variant="secondary" className="font-mono text-xs">
+                <Badge
+                  key={name}
+                  variant="secondary"
+                  className="font-mono text-xs"
+                >
                   {name}
                 </Badge>
               ))}
@@ -243,11 +274,15 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border bg-muted/30 p-4">
               <p className="text-xs text-muted-foreground">Not Before</p>
-              <p className="font-mono text-sm">{formatDate(certificate.validFrom)}</p>
+              <p className="font-mono text-sm">
+                {formatDate(certificate.validFrom)}
+              </p>
             </div>
             <div className="rounded-lg border bg-muted/30 p-4">
               <p className="text-xs text-muted-foreground">Not After</p>
-              <p className="font-mono text-sm">{formatDate(certificate.validTo)}</p>
+              <p className="font-mono text-sm">
+                {formatDate(certificate.validTo)}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -266,15 +301,21 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-muted-foreground">Serial Number</p>
-                <p className="break-all font-mono text-xs">{certificate.serialNumber}</p>
+                <p className="break-all font-mono text-xs">
+                  {certificate.serialNumber}
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                onClick={() => handleCopy(certificate.serialNumber, "serial")}
+                onClick={() => handleCopy(certificate.serialNumber, 'serial')}
               >
-                {copied === "serial" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied === 'serial' ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
               </Button>
             </div>
           </div>
@@ -283,7 +324,7 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-muted-foreground">
-                    {certificate.sha256 ? "SHA-256 Fingerprint" : "Fingerprint"}
+                    {certificate.sha256 ? 'SHA-256 Fingerprint' : 'Fingerprint'}
                   </p>
                   <p className="break-all font-mono text-xs">
                     {certificate.sha256 || certificate.fingerprint}
@@ -293,9 +334,18 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 shrink-0"
-                  onClick={() => handleCopy(certificate.sha256 || certificate.fingerprint || "", "fingerprint")}
+                  onClick={() =>
+                    handleCopy(
+                      certificate.sha256 || certificate.fingerprint || '',
+                      'fingerprint'
+                    )
+                  }
                 >
-                  {copied === "fingerprint" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied === 'fingerprint' ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -319,10 +369,14 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
                 variant="outline"
                 size="sm"
                 className="gap-1"
-                onClick={() => handleCopy(certificate.pem || "", "pem")}
+                onClick={() => handleCopy(certificate.pem || '', 'pem')}
               >
-                {copied === "pem" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                {copied === "pem" ? "Copied" : "Copy"}
+                {copied === 'pem' ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
+                {copied === 'pem' ? 'Copied' : 'Copy'}
               </Button>
             </div>
           </CardHeader>
@@ -334,5 +388,5 @@ export function CertificateDetails({ certificate, showPem = true, className = ""
         </Card>
       )}
     </div>
-  )
+  );
 }

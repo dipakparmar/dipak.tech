@@ -1,8 +1,8 @@
-import { ReactNode } from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import { HapticsProvider } from "@/components/haptics-provider"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { ModeToggle } from "@/components/mode-toggle"
+import { ReactNode } from 'react';
+import { ThemeProvider } from '@/components/theme-provider';
+import { HapticsProvider } from '@/components/haptics-provider';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { ModeToggle } from '@/components/mode-toggle';
 
 export default function ToolsLayout({ children }: { children: ReactNode }) {
   return (
@@ -17,5 +17,5 @@ export default function ToolsLayout({ children }: { children: ReactNode }) {
         </TooltipProvider>
       </HapticsProvider>
     </ThemeProvider>
-  )
+  );
 }

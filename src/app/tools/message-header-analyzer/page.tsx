@@ -1,46 +1,50 @@
-import { Route, ShieldCheck, Clock } from "lucide-react"
+import { Route, ShieldCheck, Clock } from 'lucide-react';
 
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { Suspense } from "react"
-import { HeaderAnalyzer } from "@/components/message-header-analyzer/header-analyzer"
-import { ogUrls } from "@/lib/og-config"
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { Suspense } from 'react';
+import { HeaderAnalyzer } from '@/components/message-header-analyzer/header-analyzer';
+import { ogUrls } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
-  tool: "Message Header Analyzer",
-  description: "Parse email headers, trace routing hops, and verify authentication",
-  category: "message-header-analyzer",
-})
+  tool: 'Message Header Analyzer',
+  description:
+    'Parse email headers, trace routing hops, and verify authentication',
+  category: 'message-header-analyzer'
+});
 
 export const metadata = {
-  title: "Message Header Analyzer | Dipak Parmar",
-  description: "Parse and analyze email headers to trace routing hops, measure delays, and verify SPF/DKIM/DMARC authentication results",
+  title: 'Message Header Analyzer | Dipak Parmar',
+  description:
+    'Parse and analyze email headers to trace routing hops, measure delays, and verify SPF/DKIM/DMARC authentication results',
   openGraph: {
-    title: "Message Header Analyzer",
-    description: "Parse email headers, trace routing hops, and verify authentication",
-    url: "https://tools.dipak.io/message-header-analyzer",
-    siteName: "tools.dipak.io",
-    type: "website",
+    title: 'Message Header Analyzer',
+    description:
+      'Parse email headers, trace routing hops, and verify authentication',
+    url: 'https://tools.dipak.io/message-header-analyzer',
+    siteName: 'tools.dipak.io',
+    type: 'website',
     images: [
       {
         url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: "Message Header Analyzer",
-      },
-    ],
+        alt: 'Message Header Analyzer'
+      }
+    ]
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Message Header Analyzer | Dipak Parmar",
-    description: "Parse email headers, trace routing hops, and verify authentication",
-    images: [ogImageUrl],
+    card: 'summary_large_image',
+    title: 'Message Header Analyzer | Dipak Parmar',
+    description:
+      'Parse email headers, trace routing hops, and verify authentication',
+    images: [ogImageUrl]
   },
   alternates: {
-    canonical: "https://tools.dipak.io/message-header-analyzer",
-  },
-}
+    canonical: 'https://tools.dipak.io/message-header-analyzer'
+  }
+};
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 export default function Page() {
   return (
@@ -59,14 +63,16 @@ export default function Page() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-500 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500" />
                 </span>
-                <span className="text-sm font-medium">Message Header Analyzer</span>
+                <span className="text-sm font-medium">
+                  Message Header Analyzer
+                </span>
               </div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 Message Header Analyzer
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Parse and analyze email headers to trace routing hops, measure delays, and verify
-                authentication results.
+                Parse and analyze email headers to trace routing hops, measure
+                delays, and verify authentication results.
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
@@ -87,12 +93,16 @@ export default function Page() {
 
           {/* Analyzer Component */}
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <Suspense fallback={<div className="h-14 animate-pulse rounded-xl bg-muted" />}>
+            <Suspense
+              fallback={
+                <div className="h-14 animate-pulse rounded-xl bg-muted" />
+              }
+            >
               <HeaderAnalyzer />
             </Suspense>
           </BlurFade>
         </div>
       </div>
     </main>
-  )
+  );
 }

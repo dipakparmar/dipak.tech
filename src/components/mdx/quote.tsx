@@ -4,7 +4,12 @@ import { useRef, type ReactNode } from 'react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
 
 /** Visual treatment. See globals.css `.mdx-quote[data-variant]`. */
-export type QuoteVariant = 'editorial' | 'magazine' | 'gutter' | 'watermark' | 'hybrid';
+export type QuoteVariant =
+  | 'editorial'
+  | 'magazine'
+  | 'gutter'
+  | 'watermark'
+  | 'hybrid';
 
 interface QuoteProps {
   children: ReactNode;
@@ -20,7 +25,14 @@ interface QuoteProps {
   align?: 'left' | 'right';
 }
 
-export function Quote({ children, author, source, href, variant = 'hybrid', align = 'left' }: QuoteProps) {
+export function Quote({
+  children,
+  author,
+  source,
+  href,
+  variant = 'hybrid',
+  align = 'left'
+}: QuoteProps) {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: '-8% 0px' });
   const reduced = useReducedMotion();

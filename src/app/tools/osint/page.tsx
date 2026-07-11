@@ -1,46 +1,49 @@
-import { Globe, Hash, Network } from "lucide-react"
+import { Globe, Hash, Network } from 'lucide-react';
 
-import { BlurFade } from "@/components/magicui/blur-fade"
-import { Suspense } from "react"
-import { WhoisLookup } from "@/components/whois-lookup"
-import { ogUrls } from "@/lib/og-config"
+import { BlurFade } from '@/components/magicui/blur-fade';
+import { Suspense } from 'react';
+import { WhoisLookup } from '@/components/whois-lookup';
+import { ogUrls } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
-  tool: "OSINT Scanner",
-  description: "Domain & IP intelligence with WHOIS, DNS, and geolocation",
-  category: "osint",
-})
+  tool: 'OSINT Scanner',
+  description: 'Domain & IP intelligence with WHOIS, DNS, and geolocation',
+  category: 'osint'
+});
 
 export const metadata = {
-  title: "OSINT Scanner | Dipak Parmar",
-  description: "Domain & IP intelligence - WHOIS lookup, DNS records, IP geolocation, and domain analysis",
+  title: 'OSINT Scanner | Dipak Parmar',
+  description:
+    'Domain & IP intelligence - WHOIS lookup, DNS records, IP geolocation, and domain analysis',
   openGraph: {
-    title: "OSINT Scanner",
-    description: "Domain & IP intelligence - WHOIS, DNS, and IP geolocation tools",
-    url: "https://tools.dipak.io/osint",
-    siteName: "tools.dipak.io",
-    type: "website",
+    title: 'OSINT Scanner',
+    description:
+      'Domain & IP intelligence - WHOIS, DNS, and IP geolocation tools',
+    url: 'https://tools.dipak.io/osint',
+    siteName: 'tools.dipak.io',
+    type: 'website',
     images: [
       {
         url: ogImageUrl,
         width: 1200,
         height: 630,
-        alt: "OSINT Scanner",
-      },
-    ],
+        alt: 'OSINT Scanner'
+      }
+    ]
   },
   twitter: {
-    card: "summary_large_image",
-    title: "OSINT Scanner | Dipak Parmar",
-    description: "Domain & IP intelligence - WHOIS, DNS, and IP geolocation tools",
-    images: [ogImageUrl],
+    card: 'summary_large_image',
+    title: 'OSINT Scanner | Dipak Parmar',
+    description:
+      'Domain & IP intelligence - WHOIS, DNS, and IP geolocation tools',
+    images: [ogImageUrl]
   },
   alternates: {
-    canonical: "https://tools.dipak.io/osint",
-  },
-}
+    canonical: 'https://tools.dipak.io/osint'
+  }
+};
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 export default function Page() {
   return (
@@ -60,14 +63,16 @@ export default function Page() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
-                <span className="text-sm font-medium">OSINT Command Center</span>
+                <span className="text-sm font-medium">
+                  OSINT Command Center
+                </span>
               </div>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 Domain & IP Intelligence
               </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Investigate domains, IPs, and autonomous systems with live DNS, HTTP, TLS, and geo intelligence.
-                Powered by RDAP and OSINT APIs.
+                Investigate domains, IPs, and autonomous systems with live DNS,
+                HTTP, TLS, and geo intelligence. Powered by RDAP and OSINT APIs.
               </p>
               {/* Feature pills */}
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
@@ -89,12 +94,16 @@ export default function Page() {
 
           {/* Search Component */}
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <Suspense fallback={<div className="h-14 animate-pulse rounded-xl bg-muted" />}>
+            <Suspense
+              fallback={
+                <div className="h-14 animate-pulse rounded-xl bg-muted" />
+              }
+            >
               <WhoisLookup />
             </Suspense>
           </BlurFade>
         </div>
       </div>
     </main>
-  )
+  );
 }

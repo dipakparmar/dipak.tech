@@ -91,7 +91,8 @@ export function PackageCard({ repo, host }: PackageCardProps) {
       {/* Install Command */}
       <div className="mt-4 flex items-center gap-2 rounded-md bg-zinc-100 dark:bg-zinc-900 p-3 border border-zinc-200 dark:border-zinc-800">
         <code className="flex-1 text-xs font-mono text-zinc-700 dark:text-zinc-300 truncate">
-          <span className="text-zinc-400 dark:text-zinc-500">$</span> {installCommand}
+          <span className="text-zinc-400 dark:text-zinc-500">$</span>{' '}
+          {installCommand}
         </code>
         <button
           onClick={handleCopy}

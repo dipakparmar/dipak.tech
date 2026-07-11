@@ -1,23 +1,23 @@
-"use client"
+'use client';
 
-import * as React from "react"
+import * as React from 'react';
 
-import Link from "next/link"
-import { PixelCanvas } from "@/components/pixel-canvas"
+import Link from 'next/link';
+import { PixelCanvas } from '@/components/pixel-canvas';
 
 type ToolCardProps = {
-  href: string
-  color: string
-  hoverBg: string
-  borderColor: string
-  iconBg: string
-  tagBg: string
-  icon: React.ReactNode
-  title: string
-  description: string
-  stat: string
-  tags: string[]
-}
+  href: string;
+  color: string;
+  hoverBg: string;
+  borderColor: string;
+  iconBg: string;
+  tagBg: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  stat: string;
+  tags: string[];
+};
 
 // ponytail: tilt driven by CSS vars set directly on the node (no re-renders),
 // upgrade to a shared primitive if more cards need the same effect later.
@@ -32,28 +32,28 @@ export function ToolCard({
   title,
   description,
   stat,
-  tags,
+  tags
 }: ToolCardProps) {
-  const ref = React.useRef<HTMLDivElement>(null)
+  const ref = React.useRef<HTMLDivElement>(null);
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = ref.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const px = (e.clientX - rect.left) / rect.width
-    const py = (e.clientY - rect.top) / rect.height
-    el.style.setProperty("--rx", `${(0.5 - py) * 6}deg`)
-    el.style.setProperty("--ry", `${(px - 0.5) * 6}deg`)
-    el.style.setProperty("--mx", `${px * 100}%`)
-    el.style.setProperty("--my", `${py * 100}%`)
-  }
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    el.style.setProperty('--rx', `${(0.5 - py) * 6}deg`);
+    el.style.setProperty('--ry', `${(px - 0.5) * 6}deg`);
+    el.style.setProperty('--mx', `${px * 100}%`);
+    el.style.setProperty('--my', `${py * 100}%`);
+  };
 
   const handlePointerLeave = () => {
-    const el = ref.current
-    if (!el) return
-    el.style.setProperty("--rx", "0deg")
-    el.style.setProperty("--ry", "0deg")
-  }
+    const el = ref.current;
+    if (!el) return;
+    el.style.setProperty('--rx', '0deg');
+    el.style.setProperty('--ry', '0deg');
+  };
 
   return (
     <Link href={href} className="group block h-full perspective-[700px]">
@@ -65,7 +65,7 @@ export function ToolCard({
         className={`relative h-full overflow-hidden rounded-xl border bg-card p-5 transition-[transform,box-shadow,border-color,background-color] duration-300 will-change-transform ${borderColor} ${hoverBg} group-hover:shadow-lg group-hover:shadow-black/10`}
         style={{
           transform:
-            "rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0)",
+            'rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0)'
         }}
       >
         {/* Pixel-grid ripple, brand-colored, triggered on hover */}
@@ -91,10 +91,10 @@ export function ToolCard({
               <div className="border-t border-border pt-3">
                 <p className="text-[11px] text-muted-foreground">
                   <span className="font-medium text-foreground/80">
-                    {stat.split("·")[0].trim()}
+                    {stat.split('·')[0].trim()}
                   </span>
-                  {stat.includes("·") && (
-                    <span> · {stat.split("·").slice(1).join("·").trim()}</span>
+                  {stat.includes('·') && (
+                    <span> · {stat.split('·').slice(1).join('·').trim()}</span>
                   )}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -113,5 +113,5 @@ export function ToolCard({
         </div>
       </div>
     </Link>
-  )
+  );
 }

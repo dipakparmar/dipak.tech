@@ -1,7 +1,10 @@
 'use client';
 
 import { type ReactNode } from 'react';
-import { SceneProvider, useSceneEntropy } from '@/lib/password-generator/scene-context';
+import {
+  SceneProvider,
+  useSceneEntropy
+} from '@/lib/password-generator/scene-context';
 import { ScenePageBackground } from '@/components/password-generator/password-strength-scene';
 
 function LayoutInner({ children }: { children: ReactNode }) {
@@ -14,7 +17,11 @@ function LayoutInner({ children }: { children: ReactNode }) {
   );
 }
 
-export default function PasswordGeneratorLayout({ children }: { children: ReactNode }) {
+export default function PasswordGeneratorLayout({
+  children
+}: {
+  children: ReactNode;
+}) {
   return (
     <SceneProvider>
       <LayoutInner>{children}</LayoutInner>

@@ -1,166 +1,199 @@
-"use client"
+'use client';
 
-import { useState, useCallback, useEffect, useRef } from "react"
-import { useHaptics } from "@/hooks/use-haptics"
-import Link from "next/link"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Search, Eye, Shield, Calendar, Building, Globe, Share2, Check } from "lucide-react"
-import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { buildHref, normalizePathname } from "@/lib/host-routing"
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useHaptics } from '@/hooks/use-haptics';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  Search,
+  Eye,
+  Shield,
+  Calendar,
+  Building,
+  Globe,
+  Share2,
+  Check
+} from 'lucide-react';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { Input } from '@/components/ui/input';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { buildHref, normalizePathname } from '@/lib/host-routing';
 
 interface CertEntry {
-  serialNumber: string
-  commonName: string
-  issuerOrganization: string
-  issuerCommonName: string
-  dnsNames: string[]
-  notBefore: string
-  notAfter: string
-  isWildcard: boolean
-  isPrecert: boolean
-  insertedTime: string
+  serialNumber: string;
+  commonName: string;
+  issuerOrganization: string;
+  issuerCommonName: string;
+  dnsNames: string[];
+  notBefore: string;
+  notAfter: string;
+  isWildcard: boolean;
+  isPrecert: boolean;
+  insertedTime: string;
 }
 
 interface SearchResponse {
-  timeTakenMs: number
-  totalCount: number
-  results: CertEntry[]
+  timeTakenMs: number;
+  totalCount: number;
+  results: CertEntry[];
 }
 
 interface CTLogsViewerProps {
-  initialDomain?: string
+  initialDomain?: string;
 }
 
-export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
-  const pathname = usePathname()
-  const { trigger } = useHaptics()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [query, setQuery] = useState(initialDomain)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [results, setResults] = useState<CertEntry[] | null>(null)
-  const [stats, setStats] = useState<{ total: number; timeTaken: number; issuers: string[]; names: string[] } | null>(null)
-  const [urlCopied, setUrlCopied] = useState(false)
-  const hasAutoSearched = useRef(false)
+export function CTLogsViewer({ initialDomain = '' }: CTLogsViewerProps) {
+  const pathname = usePathname();
+  const { trigger } = useHaptics();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(initialDomain);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<CertEntry[] | null>(null);
+  const [stats, setStats] = useState<{
+    total: number;
+    timeTaken: number;
+    issuers: string[];
+    names: string[];
+  } | null>(null);
+  const [urlCopied, setUrlCopied] = useState(false);
+  const hasAutoSearched = useRef(false);
 
   // Update URL with domain param (preserves search state on navigation)
   const updateUrlWithDomain = useCallback(
     (domain: string) => {
-      const params = new URLSearchParams(searchParams.toString())
+      const params = new URLSearchParams(searchParams.toString());
       if (domain.trim()) {
-        params.set("domain", domain.trim())
+        params.set('domain', domain.trim());
       } else {
-        params.delete("domain")
+        params.delete('domain');
       }
-      const queryString = params.toString()
-      const host = typeof window === "undefined" ? "" : window.location.host
-      const resolvedPath = normalizePathname('tools', pathname, host)
-      router.replace(`${resolvedPath}${queryString ? `?${queryString}` : ""}`, { scroll: false })
+      const queryString = params.toString();
+      const host = typeof window === 'undefined' ? '' : window.location.host;
+      const resolvedPath = normalizePathname('tools', pathname, host);
+      router.replace(`${resolvedPath}${queryString ? `?${queryString}` : ''}`, {
+        scroll: false
+      });
     },
     [router, pathname, searchParams]
-  )
+  );
 
   const handleShareUrl = useCallback(async () => {
-    if (!query.trim()) return
-    const params = new URLSearchParams()
-    params.set("domain", query.trim())
-    const host = window.location.host
-    const resolvedPath = normalizePathname('tools', pathname, host)
-    const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
-    await navigator.clipboard.writeText(url)
-    trigger("success")
-    setUrlCopied(true)
-    setTimeout(() => setUrlCopied(false), 2000)
-  }, [query, pathname, trigger])
+    if (!query.trim()) return;
+    const params = new URLSearchParams();
+    params.set('domain', query.trim());
+    const host = window.location.host;
+    const resolvedPath = normalizePathname('tools', pathname, host);
+    const url = `${window.location.origin}${resolvedPath}?${params.toString()}`;
+    await navigator.clipboard.writeText(url);
+    trigger('success');
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
+  }, [query, pathname, trigger]);
 
-  const handleSearch = useCallback(async (searchQuery?: string) => {
-    const q = searchQuery ?? query
-    if (!q.trim()) {
-      setError("Please enter a domain to search")
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-    setResults(null)
-    setStats(null)
-
-    // Update URL with current search query
-    updateUrlWithDomain(q)
-
-    try {
-      const response = await fetch("https://ct.certkit.io/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          domain: q.trim(),
-          sort: "",
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch certificate logs")
+  const handleSearch = useCallback(
+    async (searchQuery?: string) => {
+      const q = searchQuery ?? query;
+      if (!q.trim()) {
+        setError('Please enter a domain to search');
+        return;
       }
 
-      const data: SearchResponse = await response.json()
+      setLoading(true);
+      setError(null);
+      setResults(null);
+      setStats(null);
 
-      if (!data.results || data.results.length === 0) {
-        setError("No certificates found for this domain")
-        return
+      // Update URL with current search query
+      updateUrlWithDomain(q);
+
+      try {
+        const response = await fetch('https://ct.certkit.io/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+          },
+          body: JSON.stringify({
+            domain: q.trim(),
+            sort: ''
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch certificate logs');
+        }
+
+        const data: SearchResponse = await response.json();
+
+        if (!data.results || data.results.length === 0) {
+          setError('No certificates found for this domain');
+          return;
+        }
+
+        // Calculate stats
+        const issuers = [
+          ...new Set(
+            data.results.map((c) => c.issuerOrganization).filter(Boolean)
+          )
+        ];
+        const names = [...new Set(data.results.flatMap((c) => c.dnsNames))];
+
+        setResults(data.results.slice(0, 100)); // Limit to 100 for performance
+        setStats({
+          total: data.totalCount,
+          timeTaken: data.timeTakenMs,
+          issuers: issuers.slice(0, 5),
+          names: names.slice(0, 20)
+        });
+        trigger('success');
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to search certificate logs'
+        );
+        trigger('error');
+      } finally {
+        setLoading(false);
       }
-
-      // Calculate stats
-      const issuers = [...new Set(data.results.map((c) => c.issuerOrganization).filter(Boolean))]
-      const names = [...new Set(data.results.flatMap((c) => c.dnsNames))]
-
-      setResults(data.results.slice(0, 100)) // Limit to 100 for performance
-      setStats({
-        total: data.totalCount,
-        timeTaken: data.timeTakenMs,
-        issuers: issuers.slice(0, 5),
-        names: names.slice(0, 20),
-      })
-      trigger("success")
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to search certificate logs")
-      trigger("error")
-    } finally {
-      setLoading(false)
-    }
-  }, [query, updateUrlWithDomain, trigger])
+    },
+    [query, updateUrlWithDomain, trigger]
+  );
 
   // Auto-search if initial domain is provided
   useEffect(() => {
     if (initialDomain && !hasAutoSearched.current) {
-      hasAutoSearched.current = true
-      handleSearch(initialDomain)
+      hasAutoSearched.current = true;
+      handleSearch(initialDomain);
     }
-  }, [initialDomain, handleSearch])
+  }, [initialDomain, handleSearch]);
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
-  const isExpired = (notAfter: string) => new Date(notAfter) < new Date()
+  const isExpired = (notAfter: string) => new Date(notAfter) < new Date();
   const isExpiringSoon = (notAfter: string) => {
-    const expiry = new Date(notAfter)
-    const thirtyDays = new Date()
-    thirtyDays.setDate(thirtyDays.getDate() + 30)
-    return expiry < thirtyDays && expiry > new Date()
-  }
+    const expiry = new Date(notAfter);
+    const thirtyDays = new Date();
+    thirtyDays.setDate(thirtyDays.getDate() + 30);
+    return expiry < thirtyDays && expiry > new Date();
+  };
 
   return (
     <div className="space-y-6">
@@ -172,15 +205,15 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
             Certificate Transparency Search
           </CardTitle>
           <CardDescription>
-            Search Certificate Transparency logs for certificates issued to a domain. Discover subdomains and monitor
-            certificate issuance.
+            Search Certificate Transparency logs for certificates issued to a
+            domain. Discover subdomains and monitor certificate issuance.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form
             onSubmit={(e) => {
-              e.preventDefault()
-              handleSearch()
+              e.preventDefault();
+              handleSearch();
             }}
             className="flex gap-3"
           >
@@ -192,7 +225,7 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
               disabled={loading}
             />
             <Button type="submit" disabled={loading}>
-              {loading ? "Searching..." : "Search"}
+              {loading ? 'Searching...' : 'Search'}
             </Button>
             <Button
               type="button"
@@ -202,7 +235,11 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
               disabled={!query.trim()}
               title="Copy share URL"
             >
-              {urlCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+              {urlCopied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
             </Button>
           </form>
 
@@ -219,7 +256,9 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{stats.total.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                {stats.total.toLocaleString()}
+              </div>
               <p className="text-sm text-muted-foreground">
                 Certificates Found
                 <span className="ml-2 text-xs">({stats.timeTaken}ms)</span>
@@ -245,7 +284,11 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
               <p className="text-sm text-muted-foreground">Unique Names</p>
               <div className="mt-2 flex flex-wrap gap-1">
                 {stats.names.slice(0, 8).map((name) => (
-                  <Badge key={name} variant="secondary" className="font-mono text-xs">
+                  <Badge
+                    key={name}
+                    variant="secondary"
+                    className="font-mono text-xs"
+                  >
                     {name}
                   </Badge>
                 ))}
@@ -279,17 +322,23 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
       {results && results.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-muted-foreground">
-            Showing {results.length} of {stats?.total.toLocaleString()} certificates
+            Showing {results.length} of {stats?.total.toLocaleString()}{' '}
+            certificates
           </h3>
           {results.map((cert) => (
-            <Card key={cert.serialNumber} className="transition-colors hover:border-cyan-500/30">
+            <Card
+              key={cert.serialNumber}
+              className="transition-colors hover:border-cyan-500/30"
+            >
               <CardContent className="pt-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1 space-y-2">
                     {/* Common Name */}
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 shrink-0 text-cyan-500" />
-                      <code className="break-all font-mono text-sm font-medium">{cert.commonName}</code>
+                      <code className="break-all font-mono text-sm font-medium">
+                        {cert.commonName}
+                      </code>
                       {cert.isWildcard && (
                         <Badge variant="outline" className="text-xs">
                           Wildcard
@@ -308,7 +357,11 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
                         <Globe className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                         <div className="flex flex-wrap gap-1">
                           {cert.dnsNames.slice(0, 5).map((name) => (
-                            <Badge key={name} variant="secondary" className="font-mono text-xs">
+                            <Badge
+                              key={name}
+                              variant="secondary"
+                              className="font-mono text-xs"
+                            >
                               {name}
                             </Badge>
                           ))}
@@ -344,7 +397,10 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
                           </Badge>
                         )}
                         {isExpiringSoon(cert.notAfter) && (
-                          <Badge variant="outline" className="border-amber-500 text-xs text-amber-500">
+                          <Badge
+                            variant="outline"
+                            className="border-amber-500 text-xs text-amber-500"
+                          >
                             Expiring Soon
                           </Badge>
                         )}
@@ -353,14 +409,18 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
 
                     {/* Serial */}
                     <div className="text-xs text-muted-foreground">
-                      <span className="font-medium">Serial:</span>{" "}
+                      <span className="font-medium">Serial:</span>{' '}
                       <code className="font-mono">{cert.serialNumber}</code>
                     </div>
                   </div>
 
                   {/* Actions */}
                   <Link
-                    href={buildHref('tools', `/certificates/view/${cert.serialNumber}`, typeof window === "undefined" ? "" : window.location.host)}
+                    href={buildHref(
+                      'tools',
+                      `/certificates/view/${cert.serialNumber}`,
+                      typeof window === 'undefined' ? '' : window.location.host
+                    )}
                     className="shrink-0"
                   >
                     <Button variant="outline" size="sm" className="gap-1">
@@ -375,5 +435,5 @@ export function CTLogsViewer({ initialDomain = "" }: CTLogsViewerProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

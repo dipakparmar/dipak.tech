@@ -11,20 +11,20 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
+  TooltipTrigger
 } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { HapticDropdownMenuCheckboxItem as DropdownMenuCheckboxItem } from '@/components/haptic-wrappers';
 import {
@@ -34,7 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
+  DialogFooter
 } from '@/components/ui/dialog';
 import {
   Usb,
@@ -54,11 +54,11 @@ import {
   ChevronDown,
   X,
   Plus,
-  Minus,
+  Minus
 } from 'lucide-react';
 import {
   TerminalDisplay,
-  type TerminalDisplayHandle,
+  type TerminalDisplayHandle
 } from './terminal-display';
 import type {
   ConnectionType,
@@ -67,32 +67,29 @@ import type {
   SSHSettings,
   TelnetSettings,
   TerminalSettings,
-  TabState,
+  TabState
 } from '@/types/serial';
-import {
-  DEFAULT_TERMINAL_SETTINGS,
-  createDefaultTab,
-} from '@/types/serial';
+import { DEFAULT_TERMINAL_SETTINGS, createDefaultTab } from '@/types/serial';
 import {
   isWebSerialSupported,
   stringToBytes,
   bytesToString,
   formatTimestamp,
-  COMMON_BAUD_RATES,
+  COMMON_BAUD_RATES
 } from '@/lib/serial-utils';
 
 const CONNECTION_ICONS: Record<ConnectionType, React.ReactNode> = {
   serial: <Usb className="h-4 w-4" />,
   websocket: <Globe className="h-4 w-4" />,
   ssh: <Terminal className="h-4 w-4" />,
-  telnet: <Network className="h-4 w-4" />,
+  telnet: <Network className="h-4 w-4" />
 };
 
 const CONNECTION_LABELS: Record<ConnectionType, string> = {
   serial: 'Serial',
   websocket: 'WebSocket',
   ssh: 'SSH',
-  telnet: 'Telnet',
+  telnet: 'Telnet'
 };
 
 // Connection refs stored per tab
@@ -107,7 +104,7 @@ interface TabConnections {
 export function WebTerminal() {
   // Tab management - use stable initial ID to avoid hydration mismatch
   const [tabs, setTabs] = useState<TabState[]>(() => [
-    createDefaultTab('initial-tab', 'serial'),
+    createDefaultTab('initial-tab', 'serial')
   ]);
   const [activeTabId, setActiveTabId] = useState<string>('initial-tab');
 
@@ -119,11 +116,19 @@ export function WebTerminal() {
 
   // Window state for draggable/resizable (desktop-only floating window)
   const [isDesktop, setIsDesktop] = useState(false);
-  const [windowState, setWindowState] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [windowState, setWindowState] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [rndKey, setRndKey] = useState(0); // Key to force Rnd remount when needed
   const [isMinimized, setIsMinimized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [savedWindowState, setSavedWindowState] = useState<{ pos: { x: number; y: number }; size: { width: number; height: number } } | null>(null);
+  const [savedWindowState, setSavedWindowState] = useState<{
+    pos: { x: number; y: number };
+    size: { width: number; height: number };
+  } | null>(null);
   const hasUserMovedWindow = useRef(false); // Track if user has moved/resized window
 
   // Terminal settings (shared across tabs)
@@ -138,11 +143,15 @@ export function WebTerminal() {
   const localInputBuffer = useRef<Map<string, string>>(new Map());
 
   // Refs - stored per tab
-  const terminalRefs = useRef<Map<string, TerminalDisplayHandle | null>>(new Map());
+  const terminalRefs = useRef<Map<string, TerminalDisplayHandle | null>>(
+    new Map()
+  );
   const connectionsRef = useRef<Map<string, TabConnections>>(new Map());
   const welcomeShownRef = useRef<Set<string>>(new Set());
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const handleDisconnectRef = useRef<(tabId: string) => Promise<void>>(() => Promise.resolve());
+  const handleDisconnectRef = useRef<(tabId: string) => Promise<void>>(() =>
+    Promise.resolve()
+  );
 
   // Get active tab
   const activeTab = tabs.find((t) => t.id === activeTabId) ?? tabs[0];
@@ -155,7 +164,7 @@ export function WebTerminal() {
         ws: null,
         reader: null,
         writer: null,
-        readLoopActive: false,
+        readLoopActive: false
       });
     }
     return connectionsRef.current.get(tabId)!;
@@ -169,8 +178,11 @@ export function WebTerminal() {
   }, []);
 
   // Check Web Serial API support
-  const isSupported = activeTab.connectionType !== 'serial' || isWebSerialSupported();
-  const error = !isSupported ? 'Web Serial API not supported. Use Chrome, Edge, or Opera.' : null;
+  const isSupported =
+    activeTab.connectionType !== 'serial' || isWebSerialSupported();
+  const error = !isSupported
+    ? 'Web Serial API not supported. Use Chrome, Edge, or Opera.'
+    : null;
 
   // Set responsive font size based on screen width
   useEffect(() => {
@@ -191,11 +203,22 @@ export function WebTerminal() {
 
   // Add log entry to tab
   const addLogEntry = useCallback(
-    (tabId: string, direction: 'tx' | 'rx', data: string, rawBytes?: Uint8Array) => {
+    (
+      tabId: string,
+      direction: 'tx' | 'rx',
+      data: string,
+      rawBytes?: Uint8Array
+    ) => {
       setTabs((prev) =>
         prev.map((tab) =>
           tab.id === tabId
-            ? { ...tab, sessionLog: [...tab.sessionLog, { timestamp: new Date(), direction, data, rawBytes }] }
+            ? {
+                ...tab,
+                sessionLog: [
+                  ...tab.sessionLog,
+                  { timestamp: new Date(), direction, data, rawBytes }
+                ]
+              }
             : tab
         )
       );
@@ -276,7 +299,7 @@ export function WebTerminal() {
         dataBits: settings.dataBits,
         stopBits: settings.stopBits,
         parity: settings.parity,
-        flowControl: settings.flowControl,
+        flowControl: settings.flowControl
       });
 
       if (port.writable) {
@@ -284,14 +307,18 @@ export function WebTerminal() {
       }
 
       updateTab(tabId, { isConnected: true });
-      terminalRefs.current.get(tabId)?.writeln(
-        `\x1b[32mConnected to serial port at ${settings.baudRate} baud\x1b[0m`
-      );
+      terminalRefs.current
+        .get(tabId)
+        ?.writeln(
+          `\x1b[32mConnected to serial port at ${settings.baudRate} baud\x1b[0m`
+        );
       startSerialReadLoop(tabId);
 
       port.addEventListener('disconnect', () => {
         handleDisconnectRef.current(tabId);
-        terminalRefs.current.get(tabId)?.writeln('\x1b[31mDevice disconnected\x1b[0m');
+        terminalRefs.current
+          .get(tabId)
+          ?.writeln('\x1b[31mDevice disconnected\x1b[0m');
       });
     },
     [getConnections, updateTab, startSerialReadLoop]
@@ -307,9 +334,9 @@ export function WebTerminal() {
 
         ws.onopen = () => {
           updateTab(tabId, { isConnected: true });
-          terminalRefs.current.get(tabId)?.writeln(
-            `\x1b[32mConnected to WebSocket: ${settings.url}\x1b[0m`
-          );
+          terminalRefs.current
+            .get(tabId)
+            ?.writeln(`\x1b[32mConnected to WebSocket: ${settings.url}\x1b[0m`);
           resolve();
         };
 
@@ -326,9 +353,11 @@ export function WebTerminal() {
         ws.onclose = (event) => {
           updateTab(tabId, { isConnected: false });
           conn.ws = null;
-          terminalRefs.current.get(tabId)?.writeln(
-            `\x1b[33mWebSocket disconnected${event.reason ? `: ${event.reason}` : ''}\x1b[0m`
-          );
+          terminalRefs.current
+            .get(tabId)
+            ?.writeln(
+              `\x1b[33mWebSocket disconnected${event.reason ? `: ${event.reason}` : ''}\x1b[0m`
+            );
         };
       });
     },
@@ -344,13 +373,15 @@ export function WebTerminal() {
         ws.binaryType = 'arraybuffer';
 
         ws.onopen = () => {
-          ws.send(JSON.stringify({
-            type: 'connect',
-            host: settings.host,
-            port: settings.port,
-            username: settings.username,
-            password,
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'connect',
+              host: settings.host,
+              port: settings.port,
+              username: settings.username,
+              password
+            })
+          );
         };
 
         ws.onmessage = (event) => {
@@ -359,9 +390,11 @@ export function WebTerminal() {
               const msg = JSON.parse(event.data);
               if (msg.type === 'connected') {
                 updateTab(tabId, { isConnected: true });
-                terminalRefs.current.get(tabId)?.writeln(
-                  `\x1b[32mConnected to SSH: ${settings.username}@${settings.host}:${settings.port}\x1b[0m`
-                );
+                terminalRefs.current
+                  .get(tabId)
+                  ?.writeln(
+                    `\x1b[32mConnected to SSH: ${settings.username}@${settings.host}:${settings.port}\x1b[0m`
+                  );
                 resolve();
               } else if (msg.type === 'error') {
                 reject(new Error(msg.message || 'SSH connection failed'));
@@ -381,9 +414,11 @@ export function WebTerminal() {
         ws.onclose = (event) => {
           updateTab(tabId, { isConnected: false });
           conn.ws = null;
-          terminalRefs.current.get(tabId)?.writeln(
-            `\x1b[33mSSH disconnected${event.reason ? `: ${event.reason}` : ''}\x1b[0m`
-          );
+          terminalRefs.current
+            .get(tabId)
+            ?.writeln(
+              `\x1b[33mSSH disconnected${event.reason ? `: ${event.reason}` : ''}\x1b[0m`
+            );
         };
       });
     },
@@ -399,11 +434,13 @@ export function WebTerminal() {
         ws.binaryType = 'arraybuffer';
 
         ws.onopen = () => {
-          ws.send(JSON.stringify({
-            type: 'connect',
-            host: settings.host,
-            port: settings.port,
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'connect',
+              host: settings.host,
+              port: settings.port
+            })
+          );
         };
 
         ws.onmessage = (event) => {
@@ -412,9 +449,11 @@ export function WebTerminal() {
               const msg = JSON.parse(event.data);
               if (msg.type === 'connected') {
                 updateTab(tabId, { isConnected: true });
-                terminalRefs.current.get(tabId)?.writeln(
-                  `\x1b[32mConnected to Telnet: ${settings.host}:${settings.port}\x1b[0m`
-                );
+                terminalRefs.current
+                  .get(tabId)
+                  ?.writeln(
+                    `\x1b[32mConnected to Telnet: ${settings.host}:${settings.port}\x1b[0m`
+                  );
                 resolve();
               } else if (msg.type === 'error') {
                 reject(new Error(msg.message || 'Telnet connection failed'));
@@ -434,9 +473,11 @@ export function WebTerminal() {
         ws.onclose = (event) => {
           updateTab(tabId, { isConnected: false });
           conn.ws = null;
-          terminalRefs.current.get(tabId)?.writeln(
-            `\x1b[33mTelnet disconnected${event.reason ? `: ${event.reason}` : ''}\x1b[0m`
-          );
+          terminalRefs.current
+            .get(tabId)
+            ?.writeln(
+              `\x1b[33mTelnet disconnected${event.reason ? `: ${event.reason}` : ''}\x1b[0m`
+            );
         };
       });
     },
@@ -467,48 +508,67 @@ export function WebTerminal() {
       }
     } catch (err) {
       if (err instanceof Error && err.name !== 'NotFoundError') {
-        terminalRefs.current.get(tab.id)?.writeln(`\x1b[31mError: ${err.message}\x1b[0m`);
+        terminalRefs.current
+          .get(tab.id)
+          ?.writeln(`\x1b[31mError: ${err.message}\x1b[0m`);
       }
     } finally {
       setIsConnecting(false);
     }
-  }, [isSupported, activeTab, sshPassword, handleSerialConnect, handleWebSocketConnect, handleSSHConnect, handleTelnetConnect]);
+  }, [
+    isSupported,
+    activeTab,
+    sshPassword,
+    handleSerialConnect,
+    handleWebSocketConnect,
+    handleSSHConnect,
+    handleTelnetConnect
+  ]);
 
   // Disconnect
-  const handleDisconnect = useCallback(async (tabId: string) => {
-    const conn = getConnections(tabId);
-    conn.readLoopActive = false;
+  const handleDisconnect = useCallback(
+    async (tabId: string) => {
+      const conn = getConnections(tabId);
+      conn.readLoopActive = false;
 
-    if (conn.ws) {
-      conn.ws.close();
-      conn.ws = null;
-    }
+      if (conn.ws) {
+        conn.ws.close();
+        conn.ws = null;
+      }
 
-    if (conn.reader) {
-      try {
-        await conn.reader.cancel();
-        conn.reader.releaseLock();
-      } catch { /* ignore */ }
-      conn.reader = null;
-    }
+      if (conn.reader) {
+        try {
+          await conn.reader.cancel();
+          conn.reader.releaseLock();
+        } catch {
+          /* ignore */
+        }
+        conn.reader = null;
+      }
 
-    if (conn.writer) {
-      try {
-        await conn.writer.close();
-      } catch { /* ignore */ }
-      conn.writer = null;
-    }
+      if (conn.writer) {
+        try {
+          await conn.writer.close();
+        } catch {
+          /* ignore */
+        }
+        conn.writer = null;
+      }
 
-    if (conn.port) {
-      try {
-        await conn.port.close();
-      } catch { /* ignore */ }
-      conn.port = null;
-    }
+      if (conn.port) {
+        try {
+          await conn.port.close();
+        } catch {
+          /* ignore */
+        }
+        conn.port = null;
+      }
 
-    updateTab(tabId, { isConnected: false });
-    terminalRefs.current.get(tabId)?.writeln('\x1b[33mDisconnected\x1b[0m');
-  }, [getConnections, updateTab]);
+      updateTab(tabId, { isConnected: false });
+      terminalRefs.current.get(tabId)?.writeln('\x1b[33mDisconnected\x1b[0m');
+    },
+    [getConnections, updateTab]
+  );
 
   // Keep handleDisconnect ref updated
   useEffect(() => {
@@ -524,7 +584,7 @@ export function WebTerminal() {
         none: '',
         cr: '\r',
         lf: '\n',
-        crlf: '\r\n',
+        crlf: '\r\n'
       };
       const dataToSend = data + lineEndings[terminalSettings.lineEnding];
       const bytes = stringToBytes(dataToSend);
@@ -534,7 +594,10 @@ export function WebTerminal() {
         if (activeTab.connectionType === 'serial' && conn.writer) {
           await conn.writer.write(bytes);
         } else if (conn.ws && conn.ws.readyState === WebSocket.OPEN) {
-          if (activeTab.connectionType === 'ssh' || activeTab.connectionType === 'telnet') {
+          if (
+            activeTab.connectionType === 'ssh' ||
+            activeTab.connectionType === 'telnet'
+          ) {
             conn.ws.send(JSON.stringify({ type: 'data', data: dataToSend }));
           } else {
             conn.ws.send(dataToSend);
@@ -560,58 +623,83 @@ export function WebTerminal() {
   );
 
   // Process local commands when not connected
-  const processLocalCommand = useCallback((tabId: string, command: string) => {
-    const terminal = terminalRefs.current.get(tabId);
-    if (!terminal) return;
+  const processLocalCommand = useCallback(
+    (tabId: string, command: string) => {
+      const terminal = terminalRefs.current.get(tabId);
+      if (!terminal) return;
 
-    const cmd = command.trim().toLowerCase();
-    const args = command.trim().split(/\s+/).slice(1);
+      const cmd = command.trim().toLowerCase();
+      const args = command.trim().split(/\s+/).slice(1);
 
-    switch (cmd.split(' ')[0]) {
-      case 'help':
-        terminal.writeln('');
-        terminal.writeln('\x1b[33mAvailable commands:\x1b[0m');
-        terminal.writeln('  \x1b[36mhelp\x1b[0m       - Show this help message');
-        terminal.writeln('  \x1b[36mclear\x1b[0m      - Clear the terminal');
-        terminal.writeln('  \x1b[36mecho\x1b[0m <msg> - Echo a message');
-        terminal.writeln('  \x1b[36mdate\x1b[0m       - Show current date/time');
-        terminal.writeln('  \x1b[36minfo\x1b[0m       - Show connection info');
-        terminal.writeln('');
-        terminal.writeln('\x1b[90mConnect to a device to send commands to it.\x1b[0m');
-        break;
-      case 'clear':
-        terminal.clear();
-        break;
-      case 'echo':
-        terminal.writeln(args.join(' ') || '');
-        break;
-      case 'date':
-        terminal.writeln(new Date().toString());
-        break;
-      case 'info':
-        const tab = tabs.find(t => t.id === tabId);
-        if (tab) {
+      switch (cmd.split(' ')[0]) {
+        case 'help':
           terminal.writeln('');
-          terminal.writeln(`\x1b[33mConnection Type:\x1b[0m ${CONNECTION_LABELS[tab.connectionType]}`);
-          terminal.writeln(`\x1b[33mStatus:\x1b[0m ${tab.isConnected ? '\x1b[32mConnected\x1b[0m' : '\x1b[31mDisconnected\x1b[0m'}`);
-          if (tab.connectionType === 'serial') {
-            terminal.writeln(`\x1b[33mBaud Rate:\x1b[0m ${tab.serialSettings.baudRate}`);
-          } else if (tab.connectionType === 'websocket') {
-            terminal.writeln(`\x1b[33mURL:\x1b[0m ${tab.wsSettings.url}`);
-          } else if (tab.connectionType === 'ssh') {
-            terminal.writeln(`\x1b[33mHost:\x1b[0m ${tab.sshSettings.username}@${tab.sshSettings.host}:${tab.sshSettings.port}`);
-          } else if (tab.connectionType === 'telnet') {
-            terminal.writeln(`\x1b[33mHost:\x1b[0m ${tab.telnetSettings.host}:${tab.telnetSettings.port}`);
+          terminal.writeln('\x1b[33mAvailable commands:\x1b[0m');
+          terminal.writeln(
+            '  \x1b[36mhelp\x1b[0m       - Show this help message'
+          );
+          terminal.writeln('  \x1b[36mclear\x1b[0m      - Clear the terminal');
+          terminal.writeln('  \x1b[36mecho\x1b[0m <msg> - Echo a message');
+          terminal.writeln(
+            '  \x1b[36mdate\x1b[0m       - Show current date/time'
+          );
+          terminal.writeln(
+            '  \x1b[36minfo\x1b[0m       - Show connection info'
+          );
+          terminal.writeln('');
+          terminal.writeln(
+            '\x1b[90mConnect to a device to send commands to it.\x1b[0m'
+          );
+          break;
+        case 'clear':
+          terminal.clear();
+          break;
+        case 'echo':
+          terminal.writeln(args.join(' ') || '');
+          break;
+        case 'date':
+          terminal.writeln(new Date().toString());
+          break;
+        case 'info':
+          const tab = tabs.find((t) => t.id === tabId);
+          if (tab) {
+            terminal.writeln('');
+            terminal.writeln(
+              `\x1b[33mConnection Type:\x1b[0m ${CONNECTION_LABELS[tab.connectionType]}`
+            );
+            terminal.writeln(
+              `\x1b[33mStatus:\x1b[0m ${tab.isConnected ? '\x1b[32mConnected\x1b[0m' : '\x1b[31mDisconnected\x1b[0m'}`
+            );
+            if (tab.connectionType === 'serial') {
+              terminal.writeln(
+                `\x1b[33mBaud Rate:\x1b[0m ${tab.serialSettings.baudRate}`
+              );
+            } else if (tab.connectionType === 'websocket') {
+              terminal.writeln(`\x1b[33mURL:\x1b[0m ${tab.wsSettings.url}`);
+            } else if (tab.connectionType === 'ssh') {
+              terminal.writeln(
+                `\x1b[33mHost:\x1b[0m ${tab.sshSettings.username}@${tab.sshSettings.host}:${tab.sshSettings.port}`
+              );
+            } else if (tab.connectionType === 'telnet') {
+              terminal.writeln(
+                `\x1b[33mHost:\x1b[0m ${tab.telnetSettings.host}:${tab.telnetSettings.port}`
+              );
+            }
           }
-        }
-        break;
-      default:
-        if (command.trim()) {
-          terminal.writeln(`\x1b[31mCommand not found:\x1b[0m ${command.trim()}`);
-          terminal.writeln('\x1b[90mType "help" for available commands.\x1b[0m');
-        }
-    }
-  }, [tabs]);
+          break;
+        default:
+          if (command.trim()) {
+            terminal.writeln(
+              `\x1b[31mCommand not found:\x1b[0m ${command.trim()}`
+            );
+            terminal.writeln(
+              '\x1b[90mType "help" for available commands.\x1b[0m'
+            );
+          }
+      }
+    },
+    [tabs]
+  );
 
   // Terminal keyboard input
   const handleTerminalData = useCallback(
@@ -701,7 +789,10 @@ export function WebTerminal() {
   const handleExportLog = useCallback(() => {
     if (activeTab.sessionLog.length === 0) return;
     const content = activeTab.sessionLog
-      .map((e) => `[${e.timestamp.toISOString()}] [${e.direction.toUpperCase()}] ${e.data}`)
+      .map(
+        (e) =>
+          `[${e.timestamp.toISOString()}] [${e.direction.toUpperCase()}] ${e.data}`
+      )
       .join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -718,15 +809,18 @@ export function WebTerminal() {
   }, []);
 
   // Search handlers
-  const handleSearch = useCallback((term: string) => {
-    setSearchTerm(term);
-    const terminal = terminalRefs.current.get(activeTabId);
-    if (term) {
-      terminal?.search(term);
-    } else {
-      terminal?.clearSearch();
-    }
-  }, [activeTabId]);
+  const handleSearch = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+      const terminal = terminalRefs.current.get(activeTabId);
+      if (term) {
+        terminal?.search(term);
+      } else {
+        terminal?.clearSearch();
+      }
+    },
+    [activeTabId]
+  );
 
   const handleSearchNext = useCallback(() => {
     if (searchTerm) {
@@ -783,65 +877,99 @@ export function WebTerminal() {
   }, [activeTab.isConnected, activeTab.id]);
 
   // Show welcome message when tab changes connection type
-  const showWelcomeMessage = useCallback((tabId: string, type: ConnectionType) => {
-    const terminal = terminalRefs.current.get(tabId);
-    if (!terminal) return;
+  const showWelcomeMessage = useCallback(
+    (tabId: string, type: ConnectionType) => {
+      const terminal = terminalRefs.current.get(tabId);
+      if (!terminal) return;
 
-    terminal.writeln('');
-    terminal.writeln('\x1b[1;36m╔════════════════════════════════════════════════════════╗\x1b[0m');
-    terminal.writeln('\x1b[1;36m║\x1b[0m  \x1b[1;37mWeb Terminal\x1b[0m                                          \x1b[1;36m║\x1b[0m');
-    terminal.writeln('\x1b[1;36m╚════════════════════════════════════════════════════════╝\x1b[0m');
-    terminal.writeln('');
+      terminal.writeln('');
+      terminal.writeln(
+        '\x1b[1;36m╔════════════════════════════════════════════════════════╗\x1b[0m'
+      );
+      terminal.writeln(
+        '\x1b[1;36m║\x1b[0m  \x1b[1;37mWeb Terminal\x1b[0m                                          \x1b[1;36m║\x1b[0m'
+      );
+      terminal.writeln(
+        '\x1b[1;36m╚════════════════════════════════════════════════════════╝\x1b[0m'
+      );
+      terminal.writeln('');
 
-    switch (type) {
-      case 'serial':
-        terminal.writeln('\x1b[33mSerial Port Connection\x1b[0m');
-        terminal.writeln('  Connect to USB/serial devices like Arduino, ESP32, Raspberry Pi.');
-        terminal.writeln('  Configure baud rate, data bits, stop bits, and parity.');
-        terminal.writeln('');
-        terminal.writeln('\x1b[90mNote: Requires Chrome, Edge, or Opera with Web Serial API.\x1b[0m');
-        break;
-      case 'websocket':
-        terminal.writeln('\x1b[33mWebSocket Connection\x1b[0m');
-        terminal.writeln('  Connect to WebSocket servers for real-time communication.');
-        terminal.writeln('  Supports both text and binary protocols.');
-        terminal.writeln('');
-        terminal.writeln('\x1b[90mExample: ws://localhost:8080 or wss://example.com/ws\x1b[0m');
-        break;
-      case 'ssh':
-        terminal.writeln('\x1b[33mSSH Connection\x1b[0m');
-        terminal.writeln('  Connect to SSH servers via WebSocket proxy.');
-        terminal.writeln('  Requires a WebSocket-to-SSH proxy server running.');
-        terminal.writeln('');
-        terminal.writeln('\x1b[90mProxy handles SSH protocol - browser cannot do raw TCP.\x1b[0m');
-        break;
-      case 'telnet':
-        terminal.writeln('\x1b[33mTelnet Connection\x1b[0m');
-        terminal.writeln('  Connect to Telnet servers via WebSocket proxy.');
-        terminal.writeln('  Requires a WebSocket-to-Telnet proxy server running.');
-        terminal.writeln('');
-        terminal.writeln('\x1b[90mProxy handles Telnet protocol - browser cannot do raw TCP.\x1b[0m');
-        break;
-    }
+      switch (type) {
+        case 'serial':
+          terminal.writeln('\x1b[33mSerial Port Connection\x1b[0m');
+          terminal.writeln(
+            '  Connect to USB/serial devices like Arduino, ESP32, Raspberry Pi.'
+          );
+          terminal.writeln(
+            '  Configure baud rate, data bits, stop bits, and parity.'
+          );
+          terminal.writeln('');
+          terminal.writeln(
+            '\x1b[90mNote: Requires Chrome, Edge, or Opera with Web Serial API.\x1b[0m'
+          );
+          break;
+        case 'websocket':
+          terminal.writeln('\x1b[33mWebSocket Connection\x1b[0m');
+          terminal.writeln(
+            '  Connect to WebSocket servers for real-time communication.'
+          );
+          terminal.writeln('  Supports both text and binary protocols.');
+          terminal.writeln('');
+          terminal.writeln(
+            '\x1b[90mExample: ws://localhost:8080 or wss://example.com/ws\x1b[0m'
+          );
+          break;
+        case 'ssh':
+          terminal.writeln('\x1b[33mSSH Connection\x1b[0m');
+          terminal.writeln('  Connect to SSH servers via WebSocket proxy.');
+          terminal.writeln(
+            '  Requires a WebSocket-to-SSH proxy server running.'
+          );
+          terminal.writeln('');
+          terminal.writeln(
+            '\x1b[90mProxy handles SSH protocol - browser cannot do raw TCP.\x1b[0m'
+          );
+          break;
+        case 'telnet':
+          terminal.writeln('\x1b[33mTelnet Connection\x1b[0m');
+          terminal.writeln('  Connect to Telnet servers via WebSocket proxy.');
+          terminal.writeln(
+            '  Requires a WebSocket-to-Telnet proxy server running.'
+          );
+          terminal.writeln('');
+          terminal.writeln(
+            '\x1b[90mProxy handles Telnet protocol - browser cannot do raw TCP.\x1b[0m'
+          );
+          break;
+      }
 
-    terminal.writeln('');
-    terminal.writeln('\x1b[33mKeyboard shortcuts:\x1b[0m');
-    terminal.writeln('  • \x1b[36mCtrl+F\x1b[0m  Search terminal');
-    terminal.writeln('  • \x1b[36mESC\x1b[0m     Exit fullscreen / Close search');
-    terminal.writeln('');
-    terminal.writeln('\x1b[90mType "help" for local commands. Click connect button to start.\x1b[0m');
-    terminal.writeln('');
-    terminal.write('\x1b[36m$ \x1b[0m');
-  }, []);
+      terminal.writeln('');
+      terminal.writeln('\x1b[33mKeyboard shortcuts:\x1b[0m');
+      terminal.writeln('  • \x1b[36mCtrl+F\x1b[0m  Search terminal');
+      terminal.writeln(
+        '  • \x1b[36mESC\x1b[0m     Exit fullscreen / Close search'
+      );
+      terminal.writeln('');
+      terminal.writeln(
+        '\x1b[90mType "help" for local commands. Click connect button to start.\x1b[0m'
+      );
+      terminal.writeln('');
+      terminal.write('\x1b[36m$ \x1b[0m');
+    },
+    []
+  );
 
   // Update connection type for active tab
-  const setConnectionType = useCallback((type: ConnectionType) => {
-    updateTab(activeTabId, {
-      connectionType: type,
-      title: `${CONNECTION_LABELS[type]} ${activeTabId.slice(-4)}`,
-    });
-    setTimeout(() => showWelcomeMessage(activeTabId, type), 50);
-  }, [activeTabId, updateTab, showWelcomeMessage]);
+  const setConnectionType = useCallback(
+    (type: ConnectionType) => {
+      updateTab(activeTabId, {
+        connectionType: type,
+        title: `${CONNECTION_LABELS[type]} ${activeTabId.slice(-4)}`
+      });
+      setTimeout(() => showWelcomeMessage(activeTabId, type), 50);
+    },
+    [activeTabId, updateTab, showWelcomeMessage]
+  );
 
   // Update settings for active tab
   const setSerialSettings = useCallback(
@@ -899,8 +1027,8 @@ export function WebTerminal() {
   const containerClass = isFullscreen
     ? 'fixed inset-0 z-50 flex flex-col bg-background'
     : isDesktop
-    ? 'flex flex-col rounded-xl overflow-hidden border bg-background shadow-2xl'
-    : 'relative flex flex-col h-[500px] sm:h-[650px] rounded-xl overflow-hidden border bg-background shadow-xl';
+      ? 'flex flex-col rounded-xl overflow-hidden border bg-background shadow-2xl'
+      : 'relative flex flex-col h-[500px] sm:h-[650px] rounded-xl overflow-hidden border bg-background shadow-xl';
 
   // Check if device is desktop and initialize/restore window position
   useEffect(() => {
@@ -916,7 +1044,9 @@ export function WebTerminal() {
       const defaultWidth = Math.min(900, window.innerWidth - 100);
       const defaultHeight = Math.min(600, window.innerHeight - 150);
       const centeredX = Math.round((window.innerWidth - defaultWidth) / 2);
-      const centeredY = Math.round(Math.max(80, (window.innerHeight - defaultHeight) / 2));
+      const centeredY = Math.round(
+        Math.max(80, (window.innerHeight - defaultHeight) / 2)
+      );
 
       // Try to restore from localStorage
       try {
@@ -924,11 +1054,28 @@ export function WebTerminal() {
         if (saved) {
           const { pos, size } = JSON.parse(saved);
           // Validate position is within current viewport
-          const validWidth = Math.min(Math.max(400, size.width), window.innerWidth - 40);
-          const validHeight = Math.min(Math.max(300, size.height), window.innerHeight - 40);
-          const validX = Math.min(Math.max(0, pos.x), window.innerWidth - validWidth);
-          const validY = Math.min(Math.max(0, pos.y), window.innerHeight - validHeight);
-          setWindowState({ x: validX, y: validY, width: validWidth, height: validHeight });
+          const validWidth = Math.min(
+            Math.max(400, size.width),
+            window.innerWidth - 40
+          );
+          const validHeight = Math.min(
+            Math.max(300, size.height),
+            window.innerHeight - 40
+          );
+          const validX = Math.min(
+            Math.max(0, pos.x),
+            window.innerWidth - validWidth
+          );
+          const validY = Math.min(
+            Math.max(0, pos.y),
+            window.innerHeight - validHeight
+          );
+          setWindowState({
+            x: validX,
+            y: validY,
+            width: validWidth,
+            height: validHeight
+          });
           hasUserMovedWindow.current = true;
           return;
         }
@@ -937,7 +1084,12 @@ export function WebTerminal() {
       }
 
       // Default: center the window
-      setWindowState({ x: centeredX, y: centeredY, width: defaultWidth, height: defaultHeight });
+      setWindowState({
+        x: centeredX,
+        y: centeredY,
+        width: defaultWidth,
+        height: defaultHeight
+      });
     };
 
     const handleResize = () => {
@@ -953,13 +1105,21 @@ export function WebTerminal() {
 
   // Save window state to localStorage only after user interaction
   useEffect(() => {
-    if (isDesktop && windowState && !isFullscreen && hasUserMovedWindow.current) {
+    if (
+      isDesktop &&
+      windowState &&
+      !isFullscreen &&
+      hasUserMovedWindow.current
+    ) {
       const STORAGE_KEY = 'web-terminal-window-state-v2';
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          pos: { x: windowState.x, y: windowState.y },
-          size: { width: windowState.width, height: windowState.height },
-        }));
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            pos: { x: windowState.x, y: windowState.y },
+            size: { width: windowState.width, height: windowState.height }
+          })
+        );
       } catch {
         // Ignore localStorage errors
       }
@@ -981,14 +1141,17 @@ export function WebTerminal() {
           x: savedWindowState.pos.x,
           y: savedWindowState.pos.y,
           width: savedWindowState.size.width,
-          height: savedWindowState.size.height,
+          height: savedWindowState.size.height
         });
         // Force Rnd remount to apply restored position
-        setRndKey(k => k + 1);
+        setRndKey((k) => k + 1);
       }
     } else if (windowState) {
       // Save current state and go fullscreen
-      setSavedWindowState({ pos: { x: windowState.x, y: windowState.y }, size: { width: windowState.width, height: windowState.height } });
+      setSavedWindowState({
+        pos: { x: windowState.x, y: windowState.y },
+        size: { width: windowState.width, height: windowState.height }
+      });
       setIsFullscreen(true);
     }
   }, [isFullscreen, windowState, savedWindowState]);
@@ -1025,7 +1188,10 @@ export function WebTerminal() {
                 <Select
                   value={activeTab.serialSettings.dataBits.toString()}
                   onValueChange={(v) =>
-                    setSerialSettings((s) => ({ ...s, dataBits: parseInt(v) as 7 | 8 }))
+                    setSerialSettings((s) => ({
+                      ...s,
+                      dataBits: parseInt(v) as 7 | 8
+                    }))
                   }
                 >
                   <SelectTrigger>
@@ -1042,7 +1208,10 @@ export function WebTerminal() {
                 <Select
                   value={activeTab.serialSettings.stopBits.toString()}
                   onValueChange={(v) =>
-                    setSerialSettings((s) => ({ ...s, stopBits: parseInt(v) as 1 | 2 }))
+                    setSerialSettings((s) => ({
+                      ...s,
+                      stopBits: parseInt(v) as 1 | 2
+                    }))
                   }
                 >
                   <SelectTrigger>
@@ -1059,7 +1228,10 @@ export function WebTerminal() {
                 <Select
                   value={activeTab.serialSettings.parity}
                   onValueChange={(v) =>
-                    setSerialSettings((s) => ({ ...s, parity: v as 'none' | 'even' | 'odd' }))
+                    setSerialSettings((s) => ({
+                      ...s,
+                      parity: v as 'none' | 'even' | 'odd'
+                    }))
                   }
                 >
                   <SelectTrigger>
@@ -1078,7 +1250,10 @@ export function WebTerminal() {
               <Select
                 value={activeTab.serialSettings.flowControl}
                 onValueChange={(v) =>
-                  setSerialSettings((s) => ({ ...s, flowControl: v as 'none' | 'hardware' }))
+                  setSerialSettings((s) => ({
+                    ...s,
+                    flowControl: v as 'none' | 'hardware'
+                  }))
                 }
               >
                 <SelectTrigger>
@@ -1099,7 +1274,9 @@ export function WebTerminal() {
               <Label>WebSocket URL</Label>
               <Input
                 value={activeTab.wsSettings.url}
-                onChange={(e) => setWsSettings((s) => ({ ...s, url: e.target.value }))}
+                onChange={(e) =>
+                  setWsSettings((s) => ({ ...s, url: e.target.value }))
+                }
                 placeholder="ws://localhost:8080"
               />
             </div>
@@ -1112,7 +1289,7 @@ export function WebTerminal() {
                     ...s,
                     protocols: e.target.value
                       ? e.target.value.split(',').map((p) => p.trim())
-                      : undefined,
+                      : undefined
                   }))
                 }
                 placeholder="e.g., binary, text"
@@ -1127,7 +1304,9 @@ export function WebTerminal() {
               <Label>WebSocket Proxy URL</Label>
               <Input
                 value={activeTab.sshSettings.proxyUrl}
-                onChange={(e) => setSshSettings((s) => ({ ...s, proxyUrl: e.target.value }))}
+                onChange={(e) =>
+                  setSshSettings((s) => ({ ...s, proxyUrl: e.target.value }))
+                }
                 placeholder="ws://localhost:8022"
               />
               <p className="text-xs text-muted-foreground">
@@ -1139,7 +1318,9 @@ export function WebTerminal() {
                 <Label>Host</Label>
                 <Input
                   value={activeTab.sshSettings.host}
-                  onChange={(e) => setSshSettings((s) => ({ ...s, host: e.target.value }))}
+                  onChange={(e) =>
+                    setSshSettings((s) => ({ ...s, host: e.target.value }))
+                  }
                   placeholder="192.168.1.1"
                 />
               </div>
@@ -1148,7 +1329,12 @@ export function WebTerminal() {
                 <Input
                   type="number"
                   value={activeTab.sshSettings.port}
-                  onChange={(e) => setSshSettings((s) => ({ ...s, port: parseInt(e.target.value) || 22 }))}
+                  onChange={(e) =>
+                    setSshSettings((s) => ({
+                      ...s,
+                      port: parseInt(e.target.value) || 22
+                    }))
+                  }
                   placeholder="22"
                 />
               </div>
@@ -1157,7 +1343,9 @@ export function WebTerminal() {
               <Label>Username</Label>
               <Input
                 value={activeTab.sshSettings.username}
-                onChange={(e) => setSshSettings((s) => ({ ...s, username: e.target.value }))}
+                onChange={(e) =>
+                  setSshSettings((s) => ({ ...s, username: e.target.value }))
+                }
                 placeholder="root"
               />
             </div>
@@ -1179,7 +1367,9 @@ export function WebTerminal() {
               <Label>WebSocket Proxy URL</Label>
               <Input
                 value={activeTab.telnetSettings.proxyUrl}
-                onChange={(e) => setTelnetSettings((s) => ({ ...s, proxyUrl: e.target.value }))}
+                onChange={(e) =>
+                  setTelnetSettings((s) => ({ ...s, proxyUrl: e.target.value }))
+                }
                 placeholder="ws://localhost:8023"
               />
               <p className="text-xs text-muted-foreground">
@@ -1191,7 +1381,9 @@ export function WebTerminal() {
                 <Label>Host</Label>
                 <Input
                   value={activeTab.telnetSettings.host}
-                  onChange={(e) => setTelnetSettings((s) => ({ ...s, host: e.target.value }))}
+                  onChange={(e) =>
+                    setTelnetSettings((s) => ({ ...s, host: e.target.value }))
+                  }
                   placeholder="192.168.1.1"
                 />
               </div>
@@ -1200,7 +1392,12 @@ export function WebTerminal() {
                 <Input
                   type="number"
                   value={activeTab.telnetSettings.port}
-                  onChange={(e) => setTelnetSettings((s) => ({ ...s, port: parseInt(e.target.value) || 23 }))}
+                  onChange={(e) =>
+                    setTelnetSettings((s) => ({
+                      ...s,
+                      port: parseInt(e.target.value) || 23
+                    }))
+                  }
                   placeholder="23"
                 />
               </div>
@@ -1226,14 +1423,25 @@ export function WebTerminal() {
 
   // Terminal window content
   const terminalContent = (
-    <div className={containerClass} style={isDesktop && !isFullscreen ? { width: '100%', height: isMinimized ? 'auto' : '100%' } : undefined}>
+    <div
+      className={containerClass}
+      style={
+        isDesktop && !isFullscreen
+          ? { width: '100%', height: isMinimized ? 'auto' : '100%' }
+          : undefined
+      }
+    >
       {/* macOS-style Title Bar */}
       <div
         className={`title-bar flex items-center gap-2 bg-muted/80 px-3 py-2 border-b select-none ${isDesktop && !isFullscreen ? 'cursor-move' : 'cursor-default'}`}
         onDoubleClick={isDesktop ? toggleMaximize : undefined}
       >
         {/* Traffic light buttons */}
-        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+        <div
+          className="flex items-center gap-1.5"
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+        >
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1249,7 +1457,9 @@ export function WebTerminal() {
                   <X className="h-2 w-2 text-[#820005] opacity-0 group-hover:opacity-100" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">{isFullscreen ? 'Exit Fullscreen' : 'Close'}</TooltipContent>
+              <TooltipContent side="bottom">
+                {isFullscreen ? 'Exit Fullscreen' : 'Close'}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider>
@@ -1267,7 +1477,9 @@ export function WebTerminal() {
                   <Minus className="h-2 w-2 text-[#985600] opacity-0 group-hover:opacity-100" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">{isMinimized ? 'Restore' : 'Minimize'}</TooltipContent>
+              <TooltipContent side="bottom">
+                {isMinimized ? 'Restore' : 'Minimize'}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider>
@@ -1307,325 +1519,339 @@ export function WebTerminal() {
 
       {/* Tab Bar */}
       {!isMinimized && (
-      <div className="flex items-center bg-muted/50 border-b overflow-x-auto">
-        <div className="flex items-center flex-1 min-w-0">
-          {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              className={`group flex items-center gap-1.5 px-3 py-1.5 border-r cursor-pointer text-xs transition-colors ${
-                tab.id === activeTabId
-                  ? 'bg-background text-foreground'
-                  : 'text-muted-foreground hover:bg-background/50'
-              }`}
-              onClick={() => setActiveTabId(tab.id)}
-            >
-              <Circle
-                className={`h-2 w-2 shrink-0 ${
-                  tab.isConnected ? 'fill-green-500 text-green-500' : 'fill-muted-foreground/50 text-muted-foreground/50'
+        <div className="flex items-center bg-muted/50 border-b overflow-x-auto">
+          <div className="flex items-center flex-1 min-w-0">
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={`group flex items-center gap-1.5 px-3 py-1.5 border-r cursor-pointer text-xs transition-colors ${
+                  tab.id === activeTabId
+                    ? 'bg-background text-foreground'
+                    : 'text-muted-foreground hover:bg-background/50'
                 }`}
-              />
-              <span className="truncate max-w-24">{tab.title}</span>
-              {tabs.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    closeTab(tab.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        {/* Add tab button */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => addTab(activeTab.connectionType)}
-                className="px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+                onClick={() => setActiveTabId(tab.id)}
               >
-                <Plus className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>New Tab</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+                <Circle
+                  className={`h-2 w-2 shrink-0 ${
+                    tab.isConnected
+                      ? 'fill-green-500 text-green-500'
+                      : 'fill-muted-foreground/50 text-muted-foreground/50'
+                  }`}
+                />
+                <span className="truncate max-w-24">{tab.title}</span>
+                {tabs.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeTab(tab.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {/* Add tab button */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => addTab(activeTab.connectionType)}
+                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>New Tab</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       )}
 
       {/* Toolbar */}
       {!isMinimized && (
-      <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/50 px-1 sm:px-2 py-1.5 border-b overflow-x-auto">
-        {/* Connection status indicator */}
-        <div className="flex items-center gap-1.5 px-1 sm:px-2">
-          <Circle
-            className={`h-2.5 w-2.5 ${activeTab.isConnected ? 'fill-green-500 text-green-500' : 'fill-muted-foreground text-muted-foreground'}`}
-          />
-          <span className="hidden sm:inline text-xs text-muted-foreground">
-            {activeTab.isConnected ? 'Connected' : 'Disconnected'}
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-muted/50 px-1 sm:px-2 py-1.5 border-b overflow-x-auto">
+          {/* Connection status indicator */}
+          <div className="flex items-center gap-1.5 px-1 sm:px-2">
+            <Circle
+              className={`h-2.5 w-2.5 ${activeTab.isConnected ? 'fill-green-500 text-green-500' : 'fill-muted-foreground text-muted-foreground'}`}
+            />
+            <span className="hidden sm:inline text-xs text-muted-foreground">
+              {activeTab.isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-border mx-0.5 sm:mx-1" />
+
+          {/* Connection Type Selector */}
+          <Select
+            value={activeTab.connectionType}
+            onValueChange={(v) => setConnectionType(v as ConnectionType)}
+            disabled={activeTab.isConnected}
+          >
+            <SelectTrigger className="h-7 w-24 sm:w-36 bg-transparent border-input text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(
+                ['serial', 'websocket', 'ssh', 'telnet'] as ConnectionType[]
+              ).map((type) => (
+                <SelectItem key={type} value={type}>
+                  <div className="flex items-center gap-2">
+                    {CONNECTION_ICONS[type]}
+                    {CONNECTION_LABELS[type]}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Connection info display - hidden on mobile */}
+          <span className="hidden md:inline text-xs text-muted-foreground px-2 truncate max-w-40">
+            {getConnectionInfo()}
           </span>
-        </div>
 
-        <div className="h-4 w-px bg-border mx-0.5 sm:mx-1" />
+          {/* Connect Dialog / Disconnect Button */}
+          {activeTab.isConnected ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDisconnect(activeTab.id)}
+                    className="h-7 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  >
+                    <Unplug className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Disconnect</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Dialog
+              open={connectionDialogOpen}
+              onOpenChange={setConnectionDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!isSupported || isConnecting}
+                  className="h-7 px-2 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                >
+                  {CONNECTION_ICONS[activeTab.connectionType]}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    {CONNECTION_ICONS[activeTab.connectionType]}
+                    {CONNECTION_LABELS[activeTab.connectionType]} Connection
+                  </DialogTitle>
+                  <DialogDescription>
+                    Configure your{' '}
+                    {CONNECTION_LABELS[activeTab.connectionType].toLowerCase()}{' '}
+                    connection settings
+                  </DialogDescription>
+                </DialogHeader>
+                {renderConnectionSettings()}
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setConnectionDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleConnect} disabled={isConnecting}>
+                    {isConnecting ? 'Connecting...' : 'Connect'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
 
-        {/* Connection Type Selector */}
-        <Select
-          value={activeTab.connectionType}
-          onValueChange={(v) => setConnectionType(v as ConnectionType)}
-          disabled={activeTab.isConnected}
-        >
-          <SelectTrigger className="h-7 w-24 sm:w-36 bg-transparent border-input text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {(['serial', 'websocket', 'ssh', 'telnet'] as ConnectionType[]).map((type) => (
-              <SelectItem key={type} value={type}>
-                <div className="flex items-center gap-2">
-                  {CONNECTION_ICONS[type]}
-                  {CONNECTION_LABELS[type]}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <div className="h-4 w-px bg-border mx-0.5 sm:mx-1" />
 
-        {/* Connection info display - hidden on mobile */}
-        <span className="hidden md:inline text-xs text-muted-foreground px-2 truncate max-w-40">
-          {getConnectionInfo()}
-        </span>
+          {/* Settings Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-muted-foreground hover:text-foreground"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>Terminal</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem
+                checked={terminalSettings.localEcho}
+                onCheckedChange={(v) =>
+                  setTerminalSettings((s) => ({ ...s, localEcho: v }))
+                }
+              >
+                Local Echo
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={terminalSettings.hexView}
+                onCheckedChange={(v) =>
+                  setTerminalSettings((s) => ({ ...s, hexView: v }))
+                }
+              >
+                Hex View
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={terminalSettings.timestamps}
+                onCheckedChange={(v) =>
+                  setTerminalSettings((s) => ({ ...s, timestamps: v }))
+                }
+              >
+                Timestamps
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={terminalSettings.autoScroll}
+                onCheckedChange={(v) =>
+                  setTerminalSettings((s) => ({ ...s, autoScroll: v }))
+                }
+              >
+                Auto-Scroll
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Line Ending</DropdownMenuLabel>
+              {(['none', 'cr', 'lf', 'crlf'] as const).map((le) => (
+                <DropdownMenuCheckboxItem
+                  key={le}
+                  checked={terminalSettings.lineEnding === le}
+                  onCheckedChange={() =>
+                    setTerminalSettings((s) => ({ ...s, lineEnding: le }))
+                  }
+                >
+                  {le.toUpperCase()}
+                </DropdownMenuCheckboxItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Font Size</DropdownMenuLabel>
+              <div className="flex items-center justify-between px-2 py-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setFontSize((s) => Math.max(8, s - 1))}
+                  disabled={fontSize <= 8}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-sm font-mono">{fontSize}px</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={() => setFontSize((s) => Math.min(24, s + 1))}
+                  disabled={fontSize >= 24}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        {/* Connect Dialog / Disconnect Button */}
-        {activeTab.isConnected ? (
+          {/* Search */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDisconnect(activeTab.id)}
-                  className="h-7 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                  onClick={toggleSearch}
+                  className={`h-7 px-2 ${showSearch ? 'text-primary' : 'text-muted-foreground'} hover:text-foreground`}
                 >
-                  <Unplug className="h-4 w-4" />
+                  <Search className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Disconnect</TooltipContent>
+              <TooltipContent>Search (Ctrl+F)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        ) : (
-          <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!isSupported || isConnecting}
-                className="h-7 px-2 text-green-400 hover:text-green-300 hover:bg-green-500/10"
-              >
-                {CONNECTION_ICONS[activeTab.connectionType]}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {CONNECTION_ICONS[activeTab.connectionType]}
-                  {CONNECTION_LABELS[activeTab.connectionType]} Connection
-                </DialogTitle>
-                <DialogDescription>
-                  Configure your {CONNECTION_LABELS[activeTab.connectionType].toLowerCase()} connection settings
-                </DialogDescription>
-              </DialogHeader>
-              {renderConnectionSettings()}
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setConnectionDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleConnect} disabled={isConnecting}>
-                  {isConnecting ? 'Connecting...' : 'Connect'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
 
-        <div className="h-4 w-px bg-border mx-0.5 sm:mx-1" />
-
-        {/* Settings Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-muted-foreground hover:text-foreground"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuLabel>Terminal</DropdownMenuLabel>
-            <DropdownMenuCheckboxItem
-              checked={terminalSettings.localEcho}
-              onCheckedChange={(v) =>
-                setTerminalSettings((s) => ({ ...s, localEcho: v }))
-              }
-            >
-              Local Echo
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={terminalSettings.hexView}
-              onCheckedChange={(v) =>
-                setTerminalSettings((s) => ({ ...s, hexView: v }))
-              }
-            >
-              Hex View
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={terminalSettings.timestamps}
-              onCheckedChange={(v) =>
-                setTerminalSettings((s) => ({ ...s, timestamps: v }))
-              }
-            >
-              Timestamps
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={terminalSettings.autoScroll}
-              onCheckedChange={(v) =>
-                setTerminalSettings((s) => ({ ...s, autoScroll: v }))
-              }
-            >
-              Auto-Scroll
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Line Ending</DropdownMenuLabel>
-            {(['none', 'cr', 'lf', 'crlf'] as const).map((le) => (
-              <DropdownMenuCheckboxItem
-                key={le}
-                checked={terminalSettings.lineEnding === le}
-                onCheckedChange={() =>
-                  setTerminalSettings((s) => ({ ...s, lineEnding: le }))
-                }
-              >
-                {le.toUpperCase()}
-              </DropdownMenuCheckboxItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel>Font Size</DropdownMenuLabel>
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => setFontSize((s) => Math.max(8, s - 1))}
-                disabled={fontSize <= 8}
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="text-sm font-mono">{fontSize}px</span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => setFontSize((s) => Math.min(24, s + 1))}
-                disabled={fontSize >= 24}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Search */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleSearch}
-                className={`h-7 px-2 ${showSearch ? 'text-primary' : 'text-muted-foreground'} hover:text-foreground`}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Search (Ctrl+F)</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        {/* Clear */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => terminalRefs.current.get(activeTabId)?.clear()}
-                className="h-7 px-2 text-muted-foreground hover:text-foreground"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Clear Terminal</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        {/* Export */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleExportLog}
-                disabled={activeTab.sessionLog.length === 0}
-                className="h-7 px-2 text-muted-foreground hover:text-foreground disabled:opacity-30"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Export Log ({activeTab.sessionLog.length})</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <div className="flex-1" />
-
-        {/* Error indicator */}
-        {error && (
+          {/* Clear */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 text-destructive px-2">
-                  <AlertTriangle className="h-4 w-4" />
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => terminalRefs.current.get(activeTabId)?.clear()}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </TooltipTrigger>
-              <TooltipContent>{error}</TooltipContent>
+              <TooltipContent>Clear Terminal</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        )}
 
-        {/* Fullscreen */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleFullscreen}
-                className="h-7 px-2 text-muted-foreground hover:text-foreground"
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+          {/* Export */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleExportLog}
+                  disabled={activeTab.sessionLog.length === 0}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Export Log ({activeTab.sessionLog.length})
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <div className="flex-1" />
+
+          {/* Error indicator */}
+          {error && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 text-destructive px-2">
+                    <AlertTriangle className="h-4 w-4" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>{error}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* Fullscreen */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleFullscreen}
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       )}
 
       {/* Search Bar */}
@@ -1682,28 +1908,31 @@ export function WebTerminal() {
 
       {/* Terminal Panes - render all but only show active */}
       {!isMinimized && (
-      <div className="flex-1 min-h-0 relative overflow-hidden">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={`absolute inset-0 overflow-hidden ${tab.id === activeTabId ? 'z-10' : 'z-0 invisible'}`}
-          >
-            <TerminalDisplay
-              ref={(el) => {
-                terminalRefs.current.set(tab.id, el);
-                // Show welcome message when terminal is ready (only once per tab)
-                if (el && !welcomeShownRef.current.has(tab.id)) {
-                  welcomeShownRef.current.add(tab.id);
-                  setTimeout(() => showWelcomeMessage(tab.id, tab.connectionType), 100);
-                }
-              }}
-              onData={handleTerminalData}
-              autoScroll={terminalSettings.autoScroll}
-              fontSize={fontSize}
-            />
-          </div>
-        ))}
-      </div>
+        <div className="flex-1 min-h-0 relative overflow-hidden">
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              className={`absolute inset-0 overflow-hidden ${tab.id === activeTabId ? 'z-10' : 'z-0 invisible'}`}
+            >
+              <TerminalDisplay
+                ref={(el) => {
+                  terminalRefs.current.set(tab.id, el);
+                  // Show welcome message when terminal is ready (only once per tab)
+                  if (el && !welcomeShownRef.current.has(tab.id)) {
+                    welcomeShownRef.current.add(tab.id);
+                    setTimeout(
+                      () => showWelcomeMessage(tab.id, tab.connectionType),
+                      100
+                    );
+                  }
+                }}
+                onData={handleTerminalData}
+                autoScroll={terminalSettings.autoScroll}
+                fontSize={fontSize}
+              />
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Status Bar */}
@@ -1713,7 +1942,9 @@ export function WebTerminal() {
             <Circle
               className={`h-2 w-2 ${activeTab.isConnected ? 'fill-green-500 text-green-500' : 'fill-muted-foreground/50 text-muted-foreground/50'}`}
             />
-            {activeTab.isConnected ? 'Connected - click terminal to type' : 'Local shell - type "help" for commands'}
+            {activeTab.isConnected
+              ? 'Connected - click terminal to type'
+              : 'Local shell - type "help" for commands'}
           </span>
           <Badge variant="outline" className="h-5 text-[10px]">
             {terminalSettings.lineEnding.toUpperCase()}
@@ -1730,7 +1961,8 @@ export function WebTerminal() {
               Browser Not Supported
             </h3>
             <p className="text-muted-foreground text-sm">
-              Web Serial API is not available in this browser. Please use Chrome, Edge, or Opera on desktop.
+              Web Serial API is not available in this browser. Please use
+              Chrome, Edge, or Opera on desktop.
             </p>
           </div>
         </div>
@@ -1752,12 +1984,14 @@ export function WebTerminal() {
             x: windowState.x,
             y: windowState.y,
             width: windowState.width,
-            height: isMinimized ? 48 : windowState.height,
+            height: isMinimized ? 48 : windowState.height
           }}
           onDragStart={() => setIsDragging(true)}
           onDragStop={(_, d) => {
             hasUserMovedWindow.current = true;
-            setWindowState(prev => prev ? { ...prev, x: d.x, y: d.y } : null);
+            setWindowState((prev) =>
+              prev ? { ...prev, x: d.x, y: d.y } : null
+            );
             setIsDragging(false);
           }}
           onResizeStop={(_, __, ref, ___, position) => {
@@ -1766,13 +2000,17 @@ export function WebTerminal() {
               x: position.x,
               y: position.y,
               width: ref.offsetWidth,
-              height: ref.offsetHeight,
+              height: ref.offsetHeight
             });
           }}
           minWidth={400}
           minHeight={isMinimized ? 48 : 300}
-          maxWidth={typeof window !== 'undefined' ? window.innerWidth - 40 : 1200}
-          maxHeight={typeof window !== 'undefined' ? window.innerHeight - 40 : 800}
+          maxWidth={
+            typeof window !== 'undefined' ? window.innerWidth - 40 : 1200
+          }
+          maxHeight={
+            typeof window !== 'undefined' ? window.innerHeight - 40 : 800
+          }
           dragHandleClassName="title-bar"
           enableResizing={!isMinimized}
           resizeHandleStyles={{
@@ -1783,11 +2021,11 @@ export function WebTerminal() {
             topRight: { cursor: 'nesw-resize' },
             topLeft: { cursor: 'nwse-resize' },
             top: { cursor: 'ns-resize' },
-            left: { cursor: 'ew-resize' },
+            left: { cursor: 'ew-resize' }
           }}
           style={{
             position: 'fixed',
-            zIndex: 50,
+            zIndex: 50
           }}
         >
           {terminalContent}

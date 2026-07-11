@@ -9,7 +9,7 @@ import { personSchema, personReference } from '@/lib/schema';
 const ogImageUrl = ogUrls.links({
   name: 'Dipak Parmar',
   title: 'DevSecOps Engineer',
-  handle: '@iamdipakparmar',
+  handle: '@iamdipakparmar'
 });
 
 export const metadata: Metadata = {

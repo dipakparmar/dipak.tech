@@ -37,7 +37,7 @@ export function ReadingProgress() {
         className="h-full origin-left bg-primary/80"
         style={{
           transform: `scaleX(${progress})`,
-          transition: 'transform 80ms linear',
+          transition: 'transform 80ms linear'
         }}
       />
     </div>

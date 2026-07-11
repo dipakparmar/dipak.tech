@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useImperativeHandle, forwardRef } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useImperativeHandle,
+  forwardRef
+} from 'react';
 import { useTheme } from 'next-themes';
 import { Terminal, ITheme } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -54,7 +60,7 @@ const darkTheme: ITheme = {
   brightBlue: '#79c0ff',
   brightMagenta: '#d2a8ff',
   brightCyan: '#56d4dd',
-  brightWhite: '#f0f6fc',
+  brightWhite: '#f0f6fc'
 };
 
 const lightTheme: ITheme = {
@@ -79,16 +85,13 @@ const lightTheme: ITheme = {
   brightBlue: '#218bff',
   brightMagenta: '#a475f9',
   brightCyan: '#3192aa',
-  brightWhite: '#8c959f',
+  brightWhite: '#8c959f'
 };
 
 export const TerminalDisplay = forwardRef<
   TerminalDisplayHandle,
   TerminalDisplayProps
->(function TerminalDisplay(
-  { onData, fontSize = 13, autoScroll = true },
-  ref
-) {
+>(function TerminalDisplay({ onData, fontSize = 13, autoScroll = true }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -104,7 +107,8 @@ export const TerminalDisplay = forwardRef<
   // Update terminal theme when system theme changes
   useEffect(() => {
     if (terminalRef.current) {
-      terminalRef.current.options.theme = resolvedTheme === 'dark' ? darkTheme : lightTheme;
+      terminalRef.current.options.theme =
+        resolvedTheme === 'dark' ? darkTheme : lightTheme;
     }
   }, [resolvedTheme]);
 
@@ -128,7 +132,7 @@ export const TerminalDisplay = forwardRef<
       cursorStyle: 'bar',
       scrollback: 10000,
       convertEol: true,
-      allowProposedApi: true,
+      allowProposedApi: true
     });
 
     // Core addons
@@ -237,15 +241,10 @@ export const TerminalDisplay = forwardRef<
       },
       serializeAsHtml() {
         return serializeAddonRef.current?.serializeAsHTML() ?? '';
-      },
+      }
     }),
     []
   );
 
-  return (
-    <div
-      ref={containerRef}
-      className="h-full w-full bg-background"
-    />
-  );
+  return <div ref={containerRef} className="h-full w-full bg-background" />;
 });

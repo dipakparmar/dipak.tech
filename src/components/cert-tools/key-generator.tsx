@@ -1,146 +1,193 @@
-"use client"
+'use client';
 
-import { useState, useCallback } from "react"
-import { usePathname } from "next/navigation"
-import { useHaptics } from "@/hooks/use-haptics"
-import { Key, Copy, Check, Download, Lock, Unlock, Share2, AlertCircle } from "lucide-react"
-import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { HapticSelectItem as SelectItem } from "@/components/haptic-wrappers"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { normalizePathname } from "@/lib/host-routing"
+import { useState, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
+import { useHaptics } from '@/hooks/use-haptics';
+import {
+  Key,
+  Copy,
+  Check,
+  Download,
+  Lock,
+  Unlock,
+  Share2,
+  AlertCircle
+} from 'lucide-react';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { Label } from '@/components/ui/label';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { HapticSelectItem as SelectItem } from '@/components/haptic-wrappers';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { normalizePathname } from '@/lib/host-routing';
 
 interface KeyPairResult {
-  publicKey: string
-  privateKey: string
-  algorithm: string
-  keySize: string
-  format: string
+  publicKey: string;
+  privateKey: string;
+  algorithm: string;
+  keySize: string;
+  format: string;
 }
 
 // Convert ArrayBuffer to Base64
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ""
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i])
+    binary += String.fromCharCode(bytes[i]);
   }
-  return btoa(binary)
+  return btoa(binary);
 }
 
 // Format PEM with line breaks
 function formatPEM(base64: string, type: string): string {
-  const lines = base64.match(/.{1,64}/g) || []
-  return `-----BEGIN ${type}-----\n${lines.join("\n")}\n-----END ${type}-----`
+  const lines = base64.match(/.{1,64}/g) || [];
+  return `-----BEGIN ${type}-----\n${lines.join('\n')}\n-----END ${type}-----`;
 }
 
 interface KeyGeneratorProps {
   initialValues?: {
-    algorithm?: string
-    keySize?: string
-    usage?: string
-  }
+    algorithm?: string;
+    keySize?: string;
+    usage?: string;
+  };
 }
 
 export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
-  const pathname = usePathname()
-  const { trigger } = useHaptics()
+  const pathname = usePathname();
+  const { trigger } = useHaptics();
   const [settings, setSettings] = useState({
-    algorithm: initialValues?.algorithm || "RSA",
-    keySize: initialValues?.keySize || "2048",
-    usage: initialValues?.usage || "sign",
-  })
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<KeyPairResult | null>(null)
-  const [copied, setCopied] = useState<"public" | "private" | null>(null)
-  const [urlCopied, setUrlCopied] = useState(false)
+    algorithm: initialValues?.algorithm || 'RSA',
+    keySize: initialValues?.keySize || '2048',
+    usage: initialValues?.usage || 'sign'
+  });
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<KeyPairResult | null>(null);
+  const [copied, setCopied] = useState<'public' | 'private' | null>(null);
+  const [urlCopied, setUrlCopied] = useState(false);
 
   const handleShareUrl = useCallback(async () => {
-    const params = new URLSearchParams()
-    params.set("tool", "keygen")
-    if (settings.algorithm !== "RSA") params.set("algorithm", settings.algorithm)
-    if (settings.keySize !== "2048") params.set("keySize", settings.keySize)
-    if (settings.usage !== "sign") params.set("usage", settings.usage)
-    const host = window.location.host
-    const resolvedPath = normalizePathname('tools', pathname, host)
-    const url = `${window.location.origin}${resolvedPath}?${params.toString()}`
-    await navigator.clipboard.writeText(url)
-    trigger("success")
-    setUrlCopied(true)
-    setTimeout(() => setUrlCopied(false), 2000)
-  }, [settings, pathname, trigger])
+    const params = new URLSearchParams();
+    params.set('tool', 'keygen');
+    if (settings.algorithm !== 'RSA')
+      params.set('algorithm', settings.algorithm);
+    if (settings.keySize !== '2048') params.set('keySize', settings.keySize);
+    if (settings.usage !== 'sign') params.set('usage', settings.usage);
+    const host = window.location.host;
+    const resolvedPath = normalizePathname('tools', pathname, host);
+    const url = `${window.location.origin}${resolvedPath}?${params.toString()}`;
+    await navigator.clipboard.writeText(url);
+    trigger('success');
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
+  }, [settings, pathname, trigger]);
 
   const handleGenerate = useCallback(async () => {
-    setLoading(true)
-    setResult(null)
+    setLoading(true);
+    setResult(null);
 
     try {
-      let keyPair: CryptoKeyPair
-      let algorithm: RsaHashedKeyGenParams | EcKeyGenParams
+      let keyPair: CryptoKeyPair;
+      let algorithm: RsaHashedKeyGenParams | EcKeyGenParams;
 
-      if (settings.algorithm === "RSA") {
-        const rsaAlgo = settings.usage === "encrypt" ? "RSA-OAEP" : "RSASSA-PKCS1-v1_5"
+      if (settings.algorithm === 'RSA') {
+        const rsaAlgo =
+          settings.usage === 'encrypt' ? 'RSA-OAEP' : 'RSASSA-PKCS1-v1_5';
         algorithm = {
           name: rsaAlgo,
           modulusLength: parseInt(settings.keySize),
           publicExponent: new Uint8Array([1, 0, 1]),
-          hash: "SHA-256",
-        }
+          hash: 'SHA-256'
+        };
         keyPair = await crypto.subtle.generateKey(
           algorithm,
           true,
-          settings.usage === "encrypt" ? ["encrypt", "decrypt"] : ["sign", "verify"]
-        )
+          settings.usage === 'encrypt'
+            ? ['encrypt', 'decrypt']
+            : ['sign', 'verify']
+        );
       } else {
         algorithm = {
-          name: "ECDSA",
-          namedCurve: settings.keySize === "256" ? "P-256" : settings.keySize === "384" ? "P-384" : "P-521",
-        }
-        keyPair = await crypto.subtle.generateKey(algorithm, true, ["sign", "verify"])
+          name: 'ECDSA',
+          namedCurve:
+            settings.keySize === '256'
+              ? 'P-256'
+              : settings.keySize === '384'
+                ? 'P-384'
+                : 'P-521'
+        };
+        keyPair = await crypto.subtle.generateKey(algorithm, true, [
+          'sign',
+          'verify'
+        ]);
       }
 
       // Export keys
-      const privateKeyData = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
-      const publicKeyData = await crypto.subtle.exportKey("spki", keyPair.publicKey)
+      const privateKeyData = await crypto.subtle.exportKey(
+        'pkcs8',
+        keyPair.privateKey
+      );
+      const publicKeyData = await crypto.subtle.exportKey(
+        'spki',
+        keyPair.publicKey
+      );
 
-      const privateKeyPEM = formatPEM(arrayBufferToBase64(privateKeyData), "PRIVATE KEY")
-      const publicKeyPEM = formatPEM(arrayBufferToBase64(publicKeyData), "PUBLIC KEY")
+      const privateKeyPEM = formatPEM(
+        arrayBufferToBase64(privateKeyData),
+        'PRIVATE KEY'
+      );
+      const publicKeyPEM = formatPEM(
+        arrayBufferToBase64(publicKeyData),
+        'PUBLIC KEY'
+      );
 
       setResult({
         publicKey: publicKeyPEM,
         privateKey: privateKeyPEM,
         algorithm: settings.algorithm,
         keySize: settings.keySize,
-        format: "PEM (PKCS#8 / SPKI)",
-      })
-      trigger("success")
+        format: 'PEM (PKCS#8 / SPKI)'
+      });
+      trigger('success');
     } catch (err) {
-      console.error("Key generation failed:", err)
-      trigger("error")
+      console.error('Key generation failed:', err);
+      trigger('error');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [settings, trigger])
+  }, [settings, trigger]);
 
-  const handleCopy = useCallback(async (type: "public" | "private", content: string) => {
-    await navigator.clipboard.writeText(content)
-    trigger("success")
-    setCopied(type)
-    setTimeout(() => setCopied(null), 2000)
-  }, [trigger])
+  const handleCopy = useCallback(
+    async (type: 'public' | 'private', content: string) => {
+      await navigator.clipboard.writeText(content);
+      trigger('success');
+      setCopied(type);
+      setTimeout(() => setCopied(null), 2000);
+    },
+    [trigger]
+  );
 
   const handleDownload = useCallback((filename: string, content: string) => {
-    const blob = new Blob([content], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
-  }, [])
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -152,8 +199,8 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
             Key Pair Generator
           </CardTitle>
           <CardDescription>
-            Generate cryptographic key pairs using the Web Crypto API. All operations happen in your browser - keys
-            never leave this page.
+            Generate cryptographic key pairs using the Web Crypto API. All
+            operations happen in your browser - keys never leave this page.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -166,9 +213,9 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
                   setSettings((prev) => ({
                     ...prev,
                     algorithm: value,
-                    keySize: value === "RSA" ? "2048" : "256",
-                    usage: value === "EC" ? "sign" : prev.usage,
-                  }))
+                    keySize: value === 'RSA' ? '2048' : '256',
+                    usage: value === 'EC' ? 'sign' : prev.usage
+                  }));
                 }}
               >
                 <SelectTrigger>
@@ -185,17 +232,21 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
               <Label>Key Size</Label>
               <Select
                 value={settings.keySize}
-                onValueChange={(value) => setSettings((prev) => ({ ...prev, keySize: value }))}
+                onValueChange={(value) =>
+                  setSettings((prev) => ({ ...prev, keySize: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {settings.algorithm === "RSA" ? (
+                  {settings.algorithm === 'RSA' ? (
                     <>
                       <SelectItem value="2048">2048 bits (Standard)</SelectItem>
                       <SelectItem value="3072">3072 bits (Strong)</SelectItem>
-                      <SelectItem value="4096">4096 bits (Very Strong)</SelectItem>
+                      <SelectItem value="4096">
+                        4096 bits (Very Strong)
+                      </SelectItem>
                     </>
                   ) : (
                     <>
@@ -208,19 +259,25 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
               </Select>
             </div>
 
-            {settings.algorithm === "RSA" && (
+            {settings.algorithm === 'RSA' && (
               <div className="space-y-2">
                 <Label>Key Usage</Label>
                 <Select
                   value={settings.usage}
-                  onValueChange={(value) => setSettings((prev) => ({ ...prev, usage: value }))}
+                  onValueChange={(value) =>
+                    setSettings((prev) => ({ ...prev, usage: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sign">Signing (RSASSA-PKCS1-v1_5)</SelectItem>
-                    <SelectItem value="encrypt">Encryption (RSA-OAEP)</SelectItem>
+                    <SelectItem value="sign">
+                      Signing (RSASSA-PKCS1-v1_5)
+                    </SelectItem>
+                    <SelectItem value="encrypt">
+                      Encryption (RSA-OAEP)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -228,8 +285,12 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={handleGenerate} disabled={loading} className="w-full sm:w-auto">
-              {loading ? "Generating..." : "Generate Key Pair"}
+            <Button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="w-full sm:w-auto"
+            >
+              {loading ? 'Generating...' : 'Generate Key Pair'}
             </Button>
             <Button
               variant="outline"
@@ -237,7 +298,11 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
               onClick={handleShareUrl}
               title="Copy share URL"
             >
-              {urlCopied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+              {urlCopied ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </CardContent>
@@ -250,7 +315,7 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary">{result.algorithm}</Badge>
             <Badge variant="outline">
-              {result.keySize} {result.algorithm === "RSA" ? "bits" : ""}
+              {result.keySize} {result.algorithm === 'RSA' ? 'bits' : ''}
             </Badge>
             <Badge variant="outline">{result.format}</Badge>
           </div>
@@ -264,26 +329,38 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
                     <Unlock className="h-5 w-5 text-emerald-500" />
                     Public Key
                   </CardTitle>
-                  <CardDescription>Share this key publicly for verification or encryption</CardDescription>
+                  <CardDescription>
+                    Share this key publicly for verification or encryption
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea value={result.publicKey} readOnly className="min-h-40 font-mono text-xs" />
+              <Textarea
+                value={result.publicKey}
+                readOnly
+                className="min-h-40 font-mono text-xs"
+              />
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleCopy("public", result.publicKey)}
+                  onClick={() => handleCopy('public', result.publicKey)}
                   className="gap-1"
                 >
-                  {copied === "public" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  {copied === "public" ? "Copied" : "Copy"}
+                  {copied === 'public' ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  {copied === 'public' ? 'Copied' : 'Copy'}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleDownload("public_key.pem", result.publicKey)}
+                  onClick={() =>
+                    handleDownload('public_key.pem', result.publicKey)
+                  }
                   className="gap-1"
                 >
                   <Download className="h-3 w-3" />
@@ -306,21 +383,31 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Textarea value={result.privateKey} readOnly className="min-h-40 font-mono text-xs" />
+              <Textarea
+                value={result.privateKey}
+                readOnly
+                className="min-h-40 font-mono text-xs"
+              />
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleCopy("private", result.privateKey)}
+                  onClick={() => handleCopy('private', result.privateKey)}
                   className="gap-1"
                 >
-                  {copied === "private" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  {copied === "private" ? "Copied" : "Copy"}
+                  {copied === 'private' ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  {copied === 'private' ? 'Copied' : 'Copy'}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleDownload("private_key.pem", result.privateKey)}
+                  onClick={() =>
+                    handleDownload('private_key.pem', result.privateKey)
+                  }
                   className="gap-1"
                 >
                   <Download className="h-3 w-3" />
@@ -332,5 +419,5 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
         </div>
       )}
     </div>
-  )
+  );
 }

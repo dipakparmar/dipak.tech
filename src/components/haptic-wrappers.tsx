@@ -1,13 +1,16 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { useHaptics } from "@/hooks/use-haptics";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { TabsTrigger } from "@/components/ui/tabs";
-import { SelectItem } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { DropdownMenuCheckboxItem, DropdownMenuRadioItem } from "@/components/ui/dropdown-menu";
+import * as React from 'react';
+import { useHaptics } from '@/hooks/use-haptics';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { TabsTrigger } from '@/components/ui/tabs';
+import { SelectItem } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import {
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioItem
+} from '@/components/ui/dropdown-menu';
 
 // --- Button ---
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Button>;
@@ -15,7 +18,10 @@ type ButtonProps = React.ComponentPropsWithoutRef<typeof Button>;
 const HapticButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ onClick, variant, ...props }, ref) => {
     const { trigger } = useHaptics();
-    const pattern = variant === "ghost" || variant === "outline" || variant === "link" ? "light" : "medium";
+    const pattern =
+      variant === 'ghost' || variant === 'outline' || variant === 'link'
+        ? 'light'
+        : 'medium';
     return (
       <Button
         ref={ref}
@@ -29,7 +35,7 @@ const HapticButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
   }
 );
-HapticButton.displayName = "HapticButton";
+HapticButton.displayName = 'HapticButton';
 
 // --- Checkbox ---
 const HapticCheckbox = React.forwardRef<
@@ -41,14 +47,14 @@ const HapticCheckbox = React.forwardRef<
     <Checkbox
       ref={ref}
       onCheckedChange={(checked) => {
-        trigger("selection");
+        trigger('selection');
         onCheckedChange?.(checked);
       }}
       {...props}
     />
   );
 });
-HapticCheckbox.displayName = "HapticCheckbox";
+HapticCheckbox.displayName = 'HapticCheckbox';
 
 // --- TabsTrigger ---
 const HapticTabsTrigger = React.forwardRef<
@@ -60,14 +66,14 @@ const HapticTabsTrigger = React.forwardRef<
     <TabsTrigger
       ref={ref}
       onClick={(e) => {
-        trigger("selection");
+        trigger('selection');
         onClick?.(e);
       }}
       {...props}
     />
   );
 });
-HapticTabsTrigger.displayName = "HapticTabsTrigger";
+HapticTabsTrigger.displayName = 'HapticTabsTrigger';
 
 // --- SelectItem ---
 const HapticSelectItem = React.forwardRef<
@@ -79,14 +85,14 @@ const HapticSelectItem = React.forwardRef<
     <SelectItem
       ref={ref}
       onSelect={(e) => {
-        trigger("selection");
+        trigger('selection');
         onSelect?.(e);
       }}
       {...props}
     />
   );
 });
-HapticSelectItem.displayName = "HapticSelectItem";
+HapticSelectItem.displayName = 'HapticSelectItem';
 
 // --- Slider ---
 const HapticSlider = React.forwardRef<
@@ -98,14 +104,14 @@ const HapticSlider = React.forwardRef<
     <Slider
       ref={ref}
       onValueCommit={(value) => {
-        trigger("selection");
+        trigger('selection');
         onValueCommit?.(value);
       }}
       {...props}
     />
   );
 });
-HapticSlider.displayName = "HapticSlider";
+HapticSlider.displayName = 'HapticSlider';
 
 // --- DropdownMenuCheckboxItem ---
 const HapticDropdownMenuCheckboxItem = React.forwardRef<
@@ -117,14 +123,14 @@ const HapticDropdownMenuCheckboxItem = React.forwardRef<
     <DropdownMenuCheckboxItem
       ref={ref}
       onSelect={(e) => {
-        trigger("light");
+        trigger('light');
         onSelect?.(e);
       }}
       {...props}
     />
   );
 });
-HapticDropdownMenuCheckboxItem.displayName = "HapticDropdownMenuCheckboxItem";
+HapticDropdownMenuCheckboxItem.displayName = 'HapticDropdownMenuCheckboxItem';
 
 // --- DropdownMenuRadioItem ---
 const HapticDropdownMenuRadioItem = React.forwardRef<
@@ -136,14 +142,14 @@ const HapticDropdownMenuRadioItem = React.forwardRef<
     <DropdownMenuRadioItem
       ref={ref}
       onSelect={(e) => {
-        trigger("selection");
+        trigger('selection');
         onSelect?.(e);
       }}
       {...props}
     />
   );
 });
-HapticDropdownMenuRadioItem.displayName = "HapticDropdownMenuRadioItem";
+HapticDropdownMenuRadioItem.displayName = 'HapticDropdownMenuRadioItem';
 
 export {
   HapticButton,
@@ -152,5 +158,5 @@ export {
   HapticSelectItem,
   HapticSlider,
   HapticDropdownMenuCheckboxItem,
-  HapticDropdownMenuRadioItem,
+  HapticDropdownMenuRadioItem
 };

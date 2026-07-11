@@ -1,180 +1,197 @@
-"use client"
+'use client';
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ReleaseNotesDisplay } from "@/components/release-notes-display"
-import { ReleaseNotesForm } from "@/components/release-notes-form"
-import { AlertCircle, BookOpen, Filter } from "lucide-react"
-import { GitHubIcon } from "@/components/icons"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useHaptics } from "@/hooks/use-haptics"
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReleaseNotesDisplay } from '@/components/release-notes-display';
+import { ReleaseNotesForm } from '@/components/release-notes-form';
+import { AlertCircle, BookOpen, Filter } from 'lucide-react';
+import { GitHubIcon } from '@/components/icons';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useHaptics } from '@/hooks/use-haptics';
 
 interface VersionRange {
-  min: string
-  max: string
+  min: string;
+  max: string;
 }
 
 interface Release {
-  tag_name: string
-  name: string
-  body: string
-  published_at: string
-  html_url: string
-  prerelease: boolean
+  tag_name: string;
+  name: string;
+  body: string;
+  published_at: string;
+  html_url: string;
+  prerelease: boolean;
 }
 
 function parseRepo(input: string) {
-  const trimmed = input.trim().replace(/\.git$/, "")
-  if (!trimmed) return null
+  const trimmed = input.trim().replace(/\.git$/, '');
+  if (!trimmed) return null;
 
-  const urlMatch = trimmed.match(/github\.com\/([^/]+)\/([^/]+)/i)
+  const urlMatch = trimmed.match(/github\.com\/([^/]+)\/([^/]+)/i);
   if (urlMatch) {
-    return { owner: urlMatch[1], repo: urlMatch[2] }
+    return { owner: urlMatch[1], repo: urlMatch[2] };
   }
 
-  const parts = trimmed.split("/")
+  const parts = trimmed.split('/');
   if (parts.length === 2 && parts[0] && parts[1]) {
-    return { owner: parts[0], repo: parts[1] }
+    return { owner: parts[0], repo: parts[1] };
   }
 
-  return null
+  return null;
 }
 
 function parseRanges(input: string | null) {
-  if (!input) return [{ min: "", max: "" }]
+  if (!input) return [{ min: '', max: '' }];
   const ranges = input
-    .split(",")
-    .map((entry) => entry.split("..").map((value) => value.trim()))
+    .split(',')
+    .map((entry) => entry.split('..').map((value) => value.trim()))
     .filter((pair) => pair.length === 2 && pair[0] && pair[1])
-    .map(([min, max]) => ({ min, max }))
+    .map(([min, max]) => ({ min, max }));
 
-  return ranges.length > 0 ? ranges : [{ min: "", max: "" }]
+  return ranges.length > 0 ? ranges : [{ min: '', max: '' }];
 }
 
 function normalizeRanges(ranges: VersionRange[]) {
   return ranges
     .map((range) => ({ min: range.min.trim(), max: range.max.trim() }))
-    .filter((range) => range.min && range.max)
+    .filter((range) => range.min && range.max);
 }
 
 function serializeRanges(ranges: VersionRange[]) {
-  if (ranges.length === 0) return ""
-  return ranges.map((range) => `${range.min}..${range.max}`).join(",")
+  if (ranges.length === 0) return '';
+  return ranges.map((range) => `${range.min}..${range.max}`).join(',');
 }
 
 export function ReleaseNotesTool() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const { trigger: hapticTrigger } = useHaptics()
-  const prevUrlKey = useRef<string | null>(null)
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { trigger: hapticTrigger } = useHaptics();
+  const prevUrlKey = useRef<string | null>(null);
 
-  const [repoInput, setRepoInput] = useState("")
-  const [versionRanges, setVersionRanges] = useState<VersionRange[]>([{ min: "", max: "" }])
-  const [releases, setReleases] = useState<Release[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [meta, setMeta] = useState<{ totalFetched?: number; skippedRanges?: string[] } | null>(null)
-  const releaseKey = useMemo(() => releases.map((release) => release.tag_name).join("|"), [releases])
+  const [repoInput, setRepoInput] = useState('');
+  const [versionRanges, setVersionRanges] = useState<VersionRange[]>([
+    { min: '', max: '' }
+  ]);
+  const [releases, setReleases] = useState<Release[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState<{
+    totalFetched?: number;
+    skippedRanges?: string[];
+  } | null>(null);
+  const releaseKey = useMemo(
+    () => releases.map((release) => release.tag_name).join('|'),
+    [releases]
+  );
 
-  const parsedRepo = useMemo(() => parseRepo(repoInput), [repoInput])
-  const repoHint = parsedRepo ? `${parsedRepo.owner}/${parsedRepo.repo}` : undefined
+  const parsedRepo = useMemo(() => parseRepo(repoInput), [repoInput]);
+  const repoHint = parsedRepo
+    ? `${parsedRepo.owner}/${parsedRepo.repo}`
+    : undefined;
 
   const updateUrlParams = useCallback(
     (repoKey: string, ranges: VersionRange[]) => {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set("repo", repoKey)
-      const rangesValue = serializeRanges(ranges)
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('repo', repoKey);
+      const rangesValue = serializeRanges(ranges);
       if (rangesValue) {
-        params.set("ranges", rangesValue)
+        params.set('ranges', rangesValue);
       } else {
-        params.delete("ranges")
+        params.delete('ranges');
       }
-      const nextUrl = `${pathname}?${params.toString()}`
-      prevUrlKey.current = `${repoKey}|${rangesValue}`
-      router.push(nextUrl)
+      const nextUrl = `${pathname}?${params.toString()}`;
+      prevUrlKey.current = `${repoKey}|${rangesValue}`;
+      router.push(nextUrl);
     },
-    [pathname, router, searchParams],
-  )
+    [pathname, router, searchParams]
+  );
 
   const fetchReleaseNotes = useCallback(
-    async (owner: string, repo: string, ranges: VersionRange[], updateUrl: boolean) => {
-      setLoading(true)
-      setError(null)
-      setReleases([])
-      setMeta(null)
+    async (
+      owner: string,
+      repo: string,
+      ranges: VersionRange[],
+      updateUrl: boolean
+    ) => {
+      setLoading(true);
+      setError(null);
+      setReleases([]);
+      setMeta(null);
 
       try {
         if (updateUrl) {
-          updateUrlParams(`${owner}/${repo}`, ranges)
+          updateUrlParams(`${owner}/${repo}`, ranges);
         }
 
-        const response = await fetch("/api/github-release-notes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ owner, repo, versionRanges: ranges }),
-        })
+        const response = await fetch('/api/github-release-notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ owner, repo, versionRanges: ranges })
+        });
 
-        const result = await response.json()
+        const result = await response.json();
         if (!response.ok) {
-          throw new Error(result.error || "Failed to fetch release notes")
+          throw new Error(result.error || 'Failed to fetch release notes');
         }
 
-        setReleases(result.releases || [])
+        setReleases(result.releases || []);
         setMeta({
           totalFetched: result.totalFetched,
-          skippedRanges: result.skippedRanges,
-        })
-        hapticTrigger("success")
+          skippedRanges: result.skippedRanges
+        });
+        hapticTrigger('success');
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch release notes")
-        hapticTrigger("error")
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch release notes'
+        );
+        hapticTrigger('error');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     },
-    [updateUrlParams, hapticTrigger],
-  )
+    [updateUrlParams, hapticTrigger]
+  );
 
   const handleFetch = async () => {
-    const parsed = parseRepo(repoInput)
+    const parsed = parseRepo(repoInput);
     if (!parsed) {
-      setError("Enter a valid GitHub repository (owner/repo or full URL).")
-      return
+      setError('Enter a valid GitHub repository (owner/repo or full URL).');
+      return;
     }
 
-    const normalizedRanges = normalizeRanges(versionRanges)
+    const normalizedRanges = normalizeRanges(versionRanges);
     if (normalizedRanges.length === 0) {
-      setError("Add at least one valid version range before fetching.")
-      return
+      setError('Add at least one valid version range before fetching.');
+      return;
     }
 
-    setRepoInput(`${parsed.owner}/${parsed.repo}`)
-    await fetchReleaseNotes(parsed.owner, parsed.repo, normalizedRanges, true)
-  }
+    setRepoInput(`${parsed.owner}/${parsed.repo}`);
+    await fetchReleaseNotes(parsed.owner, parsed.repo, normalizedRanges, true);
+  };
 
   useEffect(() => {
-    const repoParam = searchParams.get("repo")
-    const rangesParam = searchParams.get("ranges") || ""
-    if (!repoParam) return
+    const repoParam = searchParams.get('repo');
+    const rangesParam = searchParams.get('ranges') || '';
+    if (!repoParam) return;
 
-    const urlKey = `${repoParam}|${rangesParam}`
-    if (urlKey === prevUrlKey.current) return
-    prevUrlKey.current = urlKey
+    const urlKey = `${repoParam}|${rangesParam}`;
+    if (urlKey === prevUrlKey.current) return;
+    prevUrlKey.current = urlKey;
 
-    const parsed = parseRepo(repoParam)
-    if (!parsed) return
-    const parsedRanges = parseRanges(rangesParam)
-    const normalizedRanges = normalizeRanges(parsedRanges)
-    setRepoInput(`${parsed.owner}/${parsed.repo}`)
-    setVersionRanges(parsedRanges)
+    const parsed = parseRepo(repoParam);
+    if (!parsed) return;
+    const parsedRanges = parseRanges(rangesParam);
+    const normalizedRanges = normalizeRanges(parsedRanges);
+    setRepoInput(`${parsed.owner}/${parsed.repo}`);
+    setVersionRanges(parsedRanges);
 
     if (normalizedRanges.length > 0) {
-      fetchReleaseNotes(parsed.owner, parsed.repo, normalizedRanges, false)
+      fetchReleaseNotes(parsed.owner, parsed.repo, normalizedRanges, false);
     }
-  }, [fetchReleaseNotes, searchParams])
+  }, [fetchReleaseNotes, searchParams]);
 
   return (
     <div className="space-y-8">
@@ -201,15 +218,23 @@ export function ReleaseNotesTool() {
             <div className="flex items-start gap-3">
               <Filter className="mt-0.5 h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="font-medium text-foreground">Filter by version ranges</p>
-                <p>Use ranges like 1.2.0..1.5.0 to keep notes focused on a release window.</p>
+                <p className="font-medium text-foreground">
+                  Filter by version ranges
+                </p>
+                <p>
+                  Use ranges like 1.2.0..1.5.0 to keep notes focused on a
+                  release window.
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <BookOpen className="mt-0.5 h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="font-medium text-foreground">Export or print</p>
-                <p>Download the combined notes as Markdown or print a release summary.</p>
+                <p>
+                  Download the combined notes as Markdown or print a release
+                  summary.
+                </p>
               </div>
             </div>
             {meta?.totalFetched && (
@@ -227,7 +252,8 @@ export function ReleaseNotesTool() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Some ranges were skipped</AlertTitle>
           <AlertDescription>
-            {meta.skippedRanges.join(", ")} could not be parsed. Check formatting and try again.
+            {meta.skippedRanges.join(', ')} could not be parsed. Check
+            formatting and try again.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -247,7 +273,11 @@ export function ReleaseNotesTool() {
         </div>
       )}
 
-      <ReleaseNotesDisplay key={releaseKey} releases={releases} loading={loading} />
+      <ReleaseNotesDisplay
+        key={releaseKey}
+        releases={releases}
+        loading={loading}
+      />
     </div>
-  )
+  );
 }

@@ -9,7 +9,11 @@ interface ErrorBoundaryProps {
   routeGroup: string;
 }
 
-export function ErrorBoundary({ error, reset, routeGroup }: ErrorBoundaryProps) {
+export function ErrorBoundary({
+  error,
+  reset,
+  routeGroup
+}: ErrorBoundaryProps) {
   useEffect(() => {
     Sentry.withScope((scope) => {
       scope.setTag('route_group', routeGroup);

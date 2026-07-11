@@ -1,16 +1,20 @@
-"use client"
+'use client';
 
-import { ChevronLeft, ChevronRight, Copy, Plus, Trash2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Copy, Plus, Trash2 } from 'lucide-react';
 
-import type { StudioApi } from "@/components/studio/use-studio"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
+import type { StudioApi } from '@/components/studio/use-studio';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 export function PagesStrip({ studio }: { studio: StudioApi }) {
-  const aspect = studio.preset.width / studio.preset.height
-  const thumbHeight = 64
-  const thumbWidth = Math.max(40, Math.min(thumbHeight * aspect, 148))
+  const aspect = studio.preset.width / studio.preset.height;
+  const thumbHeight = 64;
+  const thumbWidth = Math.max(40, Math.min(thumbHeight * aspect, 148));
 
   return (
     <div className="flex shrink-0 items-center gap-2 overflow-x-auto border-t bg-background/80 px-3 py-2">
@@ -18,7 +22,7 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
         Pages
       </span>
       {studio.pages.map((page, index) => {
-        const isActive = index === studio.activePageIndex
+        const isActive = index === studio.activePageIndex;
         return (
           <div key={page.id} className="group relative shrink-0">
             <button
@@ -27,14 +31,20 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
               aria-label={`Go to page ${index + 1}`}
               aria-current={isActive}
               className={cn(
-                "relative overflow-hidden rounded-md border bg-muted/40 transition-all",
-                isActive ? "ring-2 ring-sky-500 ring-offset-1 ring-offset-background" : "hover:border-sky-500/40",
+                'relative overflow-hidden rounded-md border bg-muted/40 transition-all',
+                isActive
+                  ? 'ring-2 ring-sky-500 ring-offset-1 ring-offset-background'
+                  : 'hover:border-sky-500/40'
               )}
               style={{ width: thumbWidth, height: thumbHeight }}
             >
               {page.thumb ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={page.thumb} alt={`Page ${index + 1}`} className="h-full w-full object-cover" />
+                <img
+                  src={page.thumb}
+                  alt={`Page ${index + 1}`}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
                   {index + 1}
@@ -53,7 +63,7 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
                 className="h-6 w-6"
                 aria-label="Move page left"
                 disabled={index === 0}
-                onClick={() => studio.movePage(index, "left")}
+                onClick={() => studio.movePage(index, 'left')}
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </Button>
@@ -85,13 +95,13 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
                 className="h-6 w-6"
                 aria-label="Move page right"
                 disabled={index === studio.pages.length - 1}
-                onClick={() => studio.movePage(index, "right")}
+                onClick={() => studio.movePage(index, 'right')}
               >
                 <ChevronRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
-        )
+        );
       })}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -111,5 +121,5 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
         Multiple pages export as numbered slides - perfect for carousels.
       </p>
     </div>
-  )
+  );
 }

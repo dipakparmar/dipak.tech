@@ -22,9 +22,9 @@ const EMPTY_LINES = [
   'sudo write --blog-posts... permission denied. Still working on it.',
   'git commit -m "add blog posts" — coming to a branch near you.',
   'Currently compiling thoughts. Estimated build time: soon™.',
-  'The blog is empty but my terminal history isn\'t. That counts, right?',
-  'I promise I\'m more interesting than this empty page suggests.',
-  'New posts loading... have you tried turning it off and on again?',
+  "The blog is empty but my terminal history isn't. That counts, right?",
+  "I promise I'm more interesting than this empty page suggests.",
+  'New posts loading... have you tried turning it off and on again?'
 ];
 
 function pick<T>(arr: T[]): T {
@@ -43,7 +43,7 @@ function formatRowDate(date: string) {
   return {
     mon: d.toLocaleDateString('en-US', { month: 'short' }),
     day: d.toLocaleDateString('en-US', { day: '2-digit' }),
-    year: d.toLocaleDateString('en-US', { year: 'numeric' }),
+    year: d.toLocaleDateString('en-US', { year: 'numeric' })
   };
 }
 
@@ -91,7 +91,9 @@ export function BlogList({ posts }: BlogListProps) {
                     {d.mon} {d.day}, {d.year}
                   </span>
                   <span className="hidden sm:inline-flex flex-col leading-[1.35]">
-                    <span>{d.mon} {d.day}</span>
+                    <span>
+                      {d.mon} {d.day}
+                    </span>
                     <span className="text-muted-foreground/40">{d.year}</span>
                   </span>
                 </time>
@@ -115,7 +117,10 @@ export function BlogList({ posts }: BlogListProps) {
                       </span>
                       {post.tags.length > 0 && (
                         <>
-                          <span aria-hidden className="text-muted-foreground/30">
+                          <span
+                            aria-hidden
+                            className="text-muted-foreground/30"
+                          >
                             ·
                           </span>
                           <span className="inline-flex flex-wrap gap-x-2">

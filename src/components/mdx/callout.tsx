@@ -2,7 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Info, Lightbulb, TriangleAlert, CircleAlert, Sparkles } from 'lucide-react';
+import {
+  Info,
+  Lightbulb,
+  TriangleAlert,
+  CircleAlert,
+  Sparkles
+} from 'lucide-react';
 import { motion, useInView, useReducedMotion } from 'motion/react';
 import { annotate } from '@/lib/vendor/rough-notation';
 import type { RoughAnnotation } from '@/lib/vendor/rough-notation';
@@ -15,12 +21,15 @@ interface CalloutProps {
   children: ReactNode;
 }
 
-const config: Record<CalloutType, { label: string; Icon: React.ComponentType<{ size?: number }> }> = {
-  note:      { label: 'Note',      Icon: Info },
-  tip:       { label: 'Tip',       Icon: Lightbulb },
+const config: Record<
+  CalloutType,
+  { label: string; Icon: React.ComponentType<{ size?: number }> }
+> = {
+  note: { label: 'Note', Icon: Info },
+  tip: { label: 'Tip', Icon: Lightbulb },
   important: { label: 'Important', Icon: Sparkles },
-  warning:   { label: 'Warning',   Icon: TriangleAlert },
-  caution:   { label: 'Caution',   Icon: CircleAlert },
+  warning: { label: 'Warning', Icon: TriangleAlert },
+  caution: { label: 'Caution', Icon: CircleAlert }
 };
 
 export function Callout({ type = 'note', title, children }: CalloutProps) {
@@ -41,7 +50,7 @@ export function Callout({ type = 'note', title, children }: CalloutProps) {
       animationDuration: reduced ? 0 : 500,
       animate: !reduced,
       padding: 0,
-      iterations: 1,
+      iterations: 1
     });
     annotationRef.current = annotation;
     return () => {
@@ -74,7 +83,12 @@ export function Callout({ type = 'note', title, children }: CalloutProps) {
           aria-hidden
           initial={{ scale: reduced ? 1 : 0.5, opacity: reduced ? 1 : 0 }}
           animate={inView ? { scale: 1, opacity: 1 } : undefined}
-          transition={{ type: 'spring', stiffness: 320, damping: 16, delay: 0.12 }}
+          transition={{
+            type: 'spring',
+            stiffness: 320,
+            damping: 16,
+            delay: 0.12
+          }}
         >
           <Icon size={15} />
         </motion.span>

@@ -1,56 +1,69 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Mail, Eye, Code, User, Users, Calendar, Paperclip } from "lucide-react"
-import type { EmailSummary, EmailBody } from "@/lib/email-header-parser"
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Mail,
+  Eye,
+  Code,
+  User,
+  Users,
+  Calendar,
+  Paperclip
+} from 'lucide-react';
+import type { EmailSummary, EmailBody } from '@/lib/email-header-parser';
 
 interface MessageViewerProps {
-  summary: EmailSummary
-  body: EmailBody | null
+  summary: EmailSummary;
+  body: EmailBody | null;
 }
 
 function formatEmailAddress(raw: string) {
-  const match = raw.match(/^(.*?)\s*<(.+?)>$/)
+  const match = raw.match(/^(.*?)\s*<(.+?)>$/);
   if (match) {
-    return { name: match[1].trim().replace(/^"|"$/g, ""), email: match[2] }
+    return { name: match[1].trim().replace(/^"|"$/g, ''), email: match[2] };
   }
-  return { name: null, email: raw.trim() }
+  return { name: null, email: raw.trim() };
 }
 
 function formatDate(raw: string) {
   try {
-    const date = new Date(raw)
-    if (isNaN(date.getTime())) return raw
+    const date = new Date(raw);
+    if (isNaN(date.getTime())) return raw;
     return date.toLocaleString(undefined, {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZoneName: "short",
-    })
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
   } catch {
-    return raw
+    return raw;
   }
 }
 
 function sanitizeHtml(html: string): string {
-  return html
-    // Strip external images (keep data: URIs)
-    .replace(/<img\s+[^>]*src\s*=\s*["']https?:\/\/[^"']*["'][^>]*\/?>/gi, "")
-    // Strip link/stylesheet tags that load external resources
-    .replace(/<link\s+[^>]*href\s*=\s*["']https?:\/\/[^"']*["'][^>]*\/?>/gi, "")
-    // Strip @import and @font-face in style blocks
-    .replace(/@import\s+url\([^)]*\)\s*;?/gi, "")
-    .replace(/@font-face\s*\{[^}]*\}/gi, "")
+  return (
+    html
+      // Strip external images (keep data: URIs)
+      .replace(/<img\s+[^>]*src\s*=\s*["']https?:\/\/[^"']*["'][^>]*\/?>/gi, '')
+      // Strip link/stylesheet tags that load external resources
+      .replace(
+        /<link\s+[^>]*href\s*=\s*["']https?:\/\/[^"']*["'][^>]*\/?>/gi,
+        ''
+      )
+      // Strip @import and @font-face in style blocks
+      .replace(/@import\s+url\([^)]*\)\s*;?/gi, '')
+      .replace(/@font-face\s*\{[^}]*\}/gi, '')
+  );
 }
 
 function SandboxedHtml({ html }: { html: string }) {
-  const cleanHtml = sanitizeHtml(html)
+  const cleanHtml = sanitizeHtml(html);
   const safeSrcdoc = `<!DOCTYPE html>
 <html>
 <head>
@@ -74,7 +87,7 @@ td, th { padding: 4px 8px; }
 </style>
 </head>
 <body>${cleanHtml}</body>
-</html>`
+</html>`;
 
   return (
     <iframe
@@ -82,18 +95,18 @@ td, th { padding: 4px 8px; }
       sandbox=""
       title="Email content preview"
       className="w-full rounded-md border bg-white"
-      style={{ height: "400px" }}
+      style={{ height: '400px' }}
     />
-  )
+  );
 }
 
 export function MessageViewer({ summary, body }: MessageViewerProps) {
-  const [viewMode, setViewMode] = useState<"rendered" | "plain" | "source">(
-    body?.html ? "rendered" : "plain"
-  )
+  const [viewMode, setViewMode] = useState<'rendered' | 'plain' | 'source'>(
+    body?.html ? 'rendered' : 'plain'
+  );
 
-  const from = summary.from ? formatEmailAddress(summary.from) : null
-  const to = summary.to ? formatEmailAddress(summary.to) : null
+  const from = summary.from ? formatEmailAddress(summary.from) : null;
+  const to = summary.to ? formatEmailAddress(summary.to) : null;
 
   return (
     <Card>
@@ -176,7 +189,7 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Type: </span>
                   <Badge variant="outline" className="font-mono text-[10px]">
-                    {summary.contentType.split(";")[0].trim()}
+                    {summary.contentType.split(';')[0].trim()}
                   </Badge>
                 </div>
               </div>
@@ -191,11 +204,11 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
             <div className="flex items-center gap-1.5">
               {body.html && (
                 <button
-                  onClick={() => setViewMode("rendered")}
+                  onClick={() => setViewMode('rendered')}
                   className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    viewMode === "rendered"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
+                    viewMode === 'rendered'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <Eye className="h-3 w-3" />
@@ -204,11 +217,11 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
               )}
               {body.plain && (
                 <button
-                  onClick={() => setViewMode("plain")}
+                  onClick={() => setViewMode('plain')}
                   className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                    viewMode === "plain"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
+                    viewMode === 'plain'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <Mail className="h-3 w-3" />
@@ -216,11 +229,11 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
                 </button>
               )}
               <button
-                onClick={() => setViewMode("source")}
+                onClick={() => setViewMode('source')}
                 className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                  viewMode === "source"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
+                  viewMode === 'source'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <Code className="h-3 w-3" />
@@ -229,7 +242,7 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
             </div>
 
             {/* Content display */}
-            {viewMode === "rendered" && body.html && (
+            {viewMode === 'rendered' && body.html && (
               <>
                 <p className="text-xs text-muted-foreground">
                   External images, fonts, and scripts are blocked for security.
@@ -238,7 +251,7 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
               </>
             )}
 
-            {viewMode === "plain" && body.plain && (
+            {viewMode === 'plain' && body.plain && (
               <div className="rounded-md border bg-muted/30 p-4">
                 <pre className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed">
                   {body.plain}
@@ -246,7 +259,7 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
               </div>
             )}
 
-            {viewMode === "source" && (
+            {viewMode === 'source' && (
               <div className="rounded-md border bg-muted/30 p-4">
                 <pre className="whitespace-pre-wrap break-all font-mono text-xs leading-relaxed text-muted-foreground">
                   {body.raw}
@@ -264,5 +277,5 @@ export function MessageViewer({ summary, body }: MessageViewerProps) {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

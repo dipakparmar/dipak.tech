@@ -11,7 +11,7 @@ export const hosts = {
   whois: siteConfig.whois.domain,
   goPkg: siteConfig.goPkg.domain,
   containerRegistry: siteConfig.containerRegistry.domain,
-  links: siteConfig.links.domain,
+  links: siteConfig.links.domain
 } as const;
 
 export type HostKey = keyof typeof hosts;
@@ -23,7 +23,7 @@ export const canonicalBaseUrls: Record<HostKey, string> = {
   whois: siteConfig.whois.baseUrl,
   goPkg: siteConfig.goPkg.baseUrl,
   containerRegistry: siteConfig.containerRegistry.baseUrl,
-  links: siteConfig.links.baseUrl,
+  links: siteConfig.links.baseUrl
 };
 
 // Route prefixes when accessed from the main portfolio site
@@ -34,7 +34,7 @@ export const routePrefixes: Record<HostKey, string> = {
   whois: '/tools/whois',
   goPkg: '/go-pkg',
   containerRegistry: '/container-registry',
-  links: '/links',
+  links: '/links'
 };
 
 // =============================================================================
@@ -79,7 +79,10 @@ export function isMainSite(host?: string | null): boolean {
  * Get the base path for a site based on current host
  * Returns empty string if on the site's own domain, otherwise returns the route prefix
  */
-export function getBasePath(hostKey: HostKey, currentHost?: string | null): string {
+export function getBasePath(
+  hostKey: HostKey,
+  currentHost?: string | null
+): string {
   return isHost(hostKey, currentHost) ? '' : routePrefixes[hostKey];
 }
 
@@ -115,7 +118,8 @@ export function getCanonicalBaseUrl(hostKey: HostKey): string {
  */
 export function buildCanonicalUrl(hostKey: HostKey, path = '/'): string {
   const baseUrl = getCanonicalBaseUrl(hostKey);
-  const normalizedPath = path === '/' ? '' : path.startsWith('/') ? path : `/${path}`;
+  const normalizedPath =
+    path === '/' ? '' : path.startsWith('/') ? path : `/${path}`;
   return `${baseUrl}${normalizedPath}`;
 }
 

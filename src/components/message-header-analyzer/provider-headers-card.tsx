@@ -1,36 +1,34 @@
-"use client"
+'use client';
 
-import { useMemo } from "react"
-import Image from "next/image"
-import { useTheme } from "next-themes"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useMemo } from 'react';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger
-} from "@/components/ui/accordion"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ExternalLink, Network, Info } from "lucide-react"
-import type { HeaderEntry } from "@/lib/email-header-parser"
-import { detectProviderHeaders } from "@/lib/provider-headers"
-import { getProviderLogoSrc } from "@/lib/provider-logos"
+} from '@/components/ui/accordion';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ExternalLink, Network, Info } from 'lucide-react';
+import type { HeaderEntry } from '@/lib/email-header-parser';
+import { detectProviderHeaders } from '@/lib/provider-headers';
+import { getProviderLogoSrc } from '@/lib/provider-logos';
 
 interface ProviderHeadersCardProps {
-  headers: HeaderEntry[]
+  headers: HeaderEntry[];
 }
 
-export function ProviderHeadersCard({
-  headers
-}: ProviderHeadersCardProps) {
-  const { resolvedTheme } = useTheme()
-  const matches = useMemo(() => detectProviderHeaders(headers), [headers])
-  const logoTheme = resolvedTheme === "dark" ? "dark" : "light"
+export function ProviderHeadersCard({ headers }: ProviderHeadersCardProps) {
+  const { resolvedTheme } = useTheme();
+  const matches = useMemo(() => detectProviderHeaders(headers), [headers]);
+  const logoTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
   const logoDevAttributionUrl =
-    "https://logo.dev?utm_source=dipak.tech&utm_medium=referral&utm_campaign=provider_logos"
+    'https://logo.dev?utm_source=dipak.tech&utm_medium=referral&utm_campaign=provider_logos';
 
-  if (matches.length === 0) return null
+  if (matches.length === 0) return null;
 
   return (
     <Card>
@@ -51,7 +49,9 @@ export function ProviderHeadersCard({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            These headers can help identify the delivery platform and correlate messages with provider-side logs. They are useful context, not proof that the visible sender is legitimate.
+            These headers can help identify the delivery platform and correlate
+            messages with provider-side logs. They are useful context, not proof
+            that the visible sender is legitimate.
           </AlertDescription>
         </Alert>
 
@@ -60,7 +60,7 @@ export function ProviderHeadersCard({
           defaultValue={matches.map((match) => match.providerId)}
         >
           {matches.map((match) => {
-            const logoSrc = getProviderLogoSrc(match.providerId, logoTheme)
+            const logoSrc = getProviderLogoSrc(match.providerId, logoTheme);
 
             return (
               <AccordionItem key={match.providerId} value={match.providerId}>
@@ -89,14 +89,13 @@ export function ProviderHeadersCard({
                       </div>
                     </div>
                     <Badge variant="secondary" className="font-mono shrink-0">
-                      {match.matchedHeaders.length} header{match.matchedHeaders.length === 1 ? "" : "s"}
+                      {match.matchedHeaders.length} header
+                      {match.matchedHeaders.length === 1 ? '' : 's'}
                     </Badge>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    {match.note}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{match.note}</p>
 
                   <div className="space-y-3">
                     {match.matchedHeaders.map((header, index) => (
@@ -140,12 +139,12 @@ export function ProviderHeadersCard({
                   </div>
                 </AccordionContent>
               </AccordionItem>
-            )
+            );
           })}
         </Accordion>
 
         <p className="text-xs text-muted-foreground">
-          Logos provided by{" "}
+          Logos provided by{' '}
           <a
             href={logoDevAttributionUrl}
             referrerPolicy="strict-origin-when-cross-origin"
@@ -156,5 +155,5 @@ export function ProviderHeadersCard({
         </p>
       </CardContent>
     </Card>
-  )
+  );
 }

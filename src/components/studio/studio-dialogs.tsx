@@ -1,31 +1,37 @@
-"use client"
+'use client';
 
-import { Download, FileUp, LayoutTemplate, Save, Trash2 } from "lucide-react"
-import { useRef, useState } from "react"
+import { Download, FileUp, LayoutTemplate, Save, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
 
-import { SliderField } from "@/components/studio/controls"
-import type { ExportOptions, StudioApi } from "@/components/studio/use-studio"
-import { Button } from "@/components/ui/button"
+import { SliderField } from '@/components/studio/controls';
+import type { ExportOptions, StudioApi } from '@/components/studio/use-studio';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { BUILTIN_TEMPLATES } from "@/lib/studio/templates"
+  DialogTrigger
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { BUILTIN_TEMPLATES } from '@/lib/studio/templates';
 
 export function TemplatesDialog({ studio }: { studio: StudioApi }) {
-  const [open, setOpen] = useState(false)
-  const [templateName, setTemplateName] = useState("")
-  const [message, setMessage] = useState<string | null>(null)
-  const importInputRef = useRef<HTMLInputElement>(null)
+  const [open, setOpen] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -39,7 +45,8 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
         <DialogHeader>
           <DialogTitle>Templates</DialogTitle>
           <DialogDescription>
-            Start from a preset layout, or save the current design as your own reusable template.
+            Start from a preset layout, or save the current design as your own
+            reusable template.
           </DialogDescription>
         </DialogHeader>
 
@@ -53,8 +60,8 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                     key={template.id}
                     type="button"
                     onClick={async () => {
-                      await studio.applyBuiltinTemplate(template.id)
-                      setOpen(false)
+                      await studio.applyBuiltinTemplate(template.id);
+                      setOpen(false);
                     }}
                     className="rounded-lg border p-3 text-left transition-colors hover:border-sky-500/40 hover:bg-muted/60"
                   >
@@ -66,12 +73,15 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">{template.description}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      {template.description}
+                    </span>
                   </button>
                 ))}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Applying a starter template replaces the current canvas (undo brings it back).
+                Applying a starter template replaces the current canvas (undo
+                brings it back).
               </p>
             </div>
 
@@ -91,15 +101,26 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                   size="sm"
                   disabled={!templateName.trim()}
                   onClick={() => {
-                    const ok = studio.saveCurrentAsTemplate(templateName.trim())
-                    setMessage(ok ? `Saved "${templateName.trim()}"` : "Could not save - browser storage is full")
-                    if (ok) setTemplateName("")
+                    const ok = studio.saveCurrentAsTemplate(
+                      templateName.trim()
+                    );
+                    setMessage(
+                      ok
+                        ? `Saved "${templateName.trim()}"`
+                        : 'Could not save - browser storage is full'
+                    );
+                    if (ok) setTemplateName('');
                   }}
                 >
                   <Save className="mr-1.5 h-3.5 w-3.5" />
                   Save current
                 </Button>
-                <Button type="button" size="sm" variant="outline" onClick={() => importInputRef.current?.click()}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => importInputRef.current?.click()}
+                >
                   <FileUp className="mr-1.5 h-3.5 w-3.5" />
                   Import
                 </Button>
@@ -109,30 +130,39 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                   accept="application/json"
                   className="hidden"
                   onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ""
-                    if (!file) return
-                    const ok = await studio.importTemplateFile(file)
-                    setMessage(ok ? "Template imported" : "That file doesn't look like a studio template")
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (!file) return;
+                    const ok = await studio.importTemplateFile(file);
+                    setMessage(
+                      ok
+                        ? 'Template imported'
+                        : "That file doesn't look like a studio template"
+                    );
                   }}
                 />
               </div>
-              {message && <p className="mb-2 text-xs text-muted-foreground">{message}</p>}
+              {message && (
+                <p className="mb-2 text-xs text-muted-foreground">{message}</p>
+              )}
               {studio.userTemplates.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  No saved templates yet. Design something you want to reuse - brand colors, handle, layout - then
-                  save it here.
+                  No saved templates yet. Design something you want to reuse -
+                  brand colors, handle, layout - then save it here.
                 </p>
               ) : (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {studio.userTemplates.map((template) => (
-                    <div key={template.id} className="group overflow-hidden rounded-lg border">
+                    <div
+                      key={template.id}
+                      className="group overflow-hidden rounded-lg border"
+                    >
                       <button
                         type="button"
                         className="block w-full"
                         onClick={async () => {
-                          await studio.applySavedTemplate(template)
-                          setOpen(false)
+                          await studio.applySavedTemplate(template);
+                          setOpen(false);
                         }}
                       >
                         {template.preview ? (
@@ -149,7 +179,9 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                         )}
                       </button>
                       <div className="flex items-center justify-between gap-1 border-t px-2 py-1">
-                        <span className="truncate text-xs font-medium">{template.name}</span>
+                        <span className="truncate text-xs font-medium">
+                          {template.name}
+                        </span>
                         <div className="flex shrink-0 items-center">
                           <Button
                             type="button"
@@ -167,7 +199,9 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                             size="icon"
                             className="h-6 w-6 text-muted-foreground"
                             aria-label="Delete template"
-                            onClick={() => studio.removeSavedTemplate(template.id)}
+                            onClick={() =>
+                              studio.removeSavedTemplate(template.id)
+                            }
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -182,19 +216,19 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
         </ScrollArea>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 export function ExportDialog({ studio }: { studio: StudioApi }) {
-  const [open, setOpen] = useState(false)
-  const [format, setFormat] = useState<ExportOptions["format"]>("png")
-  const [scale, setScale] = useState<ExportOptions["scale"]>(1)
-  const [quality, setQuality] = useState(0.92)
-  const [pagesMode, setPagesMode] = useState<ExportOptions["pages"]>("all")
-  const [exporting, setExporting] = useState(false)
+  const [open, setOpen] = useState(false);
+  const [format, setFormat] = useState<ExportOptions['format']>('png');
+  const [scale, setScale] = useState<ExportOptions['scale']>(1);
+  const [quality, setQuality] = useState(0.92);
+  const [pagesMode, setPagesMode] = useState<ExportOptions['pages']>('all');
+  const [exporting, setExporting] = useState(false);
 
-  const { width, height } = studio.preset
-  const pageCount = studio.pages.length
+  const { width, height } = studio.preset;
+  const pageCount = studio.pages.length;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -215,7 +249,10 @@ export function ExportDialog({ studio }: { studio: StudioApi }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Format</Label>
-              <Select value={format} onValueChange={(v) => setFormat(v as ExportOptions["format"])}>
+              <Select
+                value={format}
+                onValueChange={(v) => setFormat(v as ExportOptions['format'])}
+              >
                 <SelectTrigger className="h-8">
                   <SelectValue />
                 </SelectTrigger>
@@ -227,7 +264,12 @@ export function ExportDialog({ studio }: { studio: StudioApi }) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Size</Label>
-              <Select value={String(scale)} onValueChange={(v) => setScale(Number(v) as ExportOptions["scale"])}>
+              <Select
+                value={String(scale)}
+                onValueChange={(v) =>
+                  setScale(Number(v) as ExportOptions['scale'])
+                }
+              >
                 <SelectTrigger className="h-8">
                   <SelectValue />
                 </SelectTrigger>
@@ -244,18 +286,23 @@ export function ExportDialog({ studio }: { studio: StudioApi }) {
           {pageCount > 1 && (
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Pages</Label>
-              <Select value={pagesMode} onValueChange={(v) => setPagesMode(v as ExportOptions["pages"])}>
+              <Select
+                value={pagesMode}
+                onValueChange={(v) => setPagesMode(v as ExportOptions['pages'])}
+              >
                 <SelectTrigger className="h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All {pageCount} pages (zip of slides)</SelectItem>
+                  <SelectItem value="all">
+                    All {pageCount} pages (zip of slides)
+                  </SelectItem>
                   <SelectItem value="current">Current page only</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           )}
-          {format === "jpeg" && (
+          {format === 'jpeg' && (
             <SliderField
               label="JPEG quality"
               value={quality}
@@ -271,23 +318,28 @@ export function ExportDialog({ studio }: { studio: StudioApi }) {
             className="w-full"
             disabled={exporting}
             onClick={async () => {
-              setExporting(true)
+              setExporting(true);
               try {
-                await studio.exportImage({ format, scale, quality, pages: pagesMode })
+                await studio.exportImage({
+                  format,
+                  scale,
+                  quality,
+                  pages: pagesMode
+                });
               } finally {
-                setExporting(false)
+                setExporting(false);
               }
-              setOpen(false)
+              setOpen(false);
             }}
           >
             {exporting
-              ? "Exporting…"
-              : pageCount > 1 && pagesMode === "all"
+              ? 'Exporting…'
+              : pageCount > 1 && pagesMode === 'all'
                 ? `Download ${pageCount} slides (.zip)`
                 : `Download ${format.toUpperCase()}`}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

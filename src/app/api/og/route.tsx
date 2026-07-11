@@ -7,7 +7,7 @@ import {
   domains,
   gradients,
   siteConfig,
-  verifyOGRequest,
+  verifyOGRequest
 } from '@/lib/og-utils';
 
 import { NextRequest } from 'next/server';
@@ -17,7 +17,7 @@ function PortfolioOG({
   subtitle,
   icon,
   domain,
-  gradient,
+  gradient
 }: {
   title: string;
   subtitle: string;
@@ -33,7 +33,7 @@ function PortfolioOG({
           flexDirection: 'column',
           justifyContent: 'space-between',
           height: '100%',
-          padding: '60px 80px',
+          padding: '60px 80px'
         }}
       >
         {/* Header */}
@@ -42,12 +42,18 @@ function PortfolioOG({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            width: '100%',
+            width: '100%'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Avatar size={80} />
-            <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 28, fontWeight: 600 }}>
+            <span
+              style={{
+                color: 'rgba(255,255,255,0.9)',
+                fontSize: 28,
+                fontWeight: 600
+              }}
+            >
               Dipak Parmar
             </span>
           </div>
@@ -55,7 +61,14 @@ function PortfolioOG({
         </div>
 
         {/* Main content */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '900px' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            maxWidth: '900px'
+          }}
+        >
           <h1
             style={{
               fontSize: 72,
@@ -63,12 +76,19 @@ function PortfolioOG({
               color: 'white',
               lineHeight: 1.1,
               margin: 0,
-              textShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              textShadow: '0 4px 20px rgba(0,0,0,0.3)'
             }}
           >
             {title}
           </h1>
-          <p style={{ fontSize: 32, color: 'rgba(255,255,255,0.85)', margin: 0, lineHeight: 1.4 }}>
+          <p
+            style={{
+              fontSize: 32,
+              color: 'rgba(255,255,255,0.85)',
+              margin: 0,
+              lineHeight: 1.4
+            }}
+          >
             {subtitle}
           </p>
         </div>
@@ -79,19 +99,36 @@ function PortfolioOG({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            width: '100%',
+            width: '100%'
           }}
         >
-          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 24 }}>{domain}</span>
+          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 24 }}>
+            {domain}
+          </span>
           <div style={{ display: 'flex', gap: '8px' }}>
             <div
-              style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(255,255,255,0.4)' }}
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.4)'
+              }}
             />
             <div
-              style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(255,255,255,0.6)' }}
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.6)'
+              }}
             />
             <div
-              style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(255,255,255,0.8)' }}
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.8)'
+              }}
             />
           </div>
         </div>
@@ -120,12 +157,20 @@ export async function GET(request: NextRequest) {
   const allText = `${title}${subtitle}Dipak Parmar${domain}`;
 
   const element = (
-    <PortfolioOG title={title} subtitle={subtitle} icon={icon} domain={domain} gradient={gradient} />
+    <PortfolioOG
+      title={title}
+      subtitle={subtitle}
+      icon={icon}
+      domain={domain}
+      gradient={gradient}
+    />
   );
 
   try {
     return await createOGResponse(element, allText);
   } catch (e: unknown) {
-    return createErrorResponse(e instanceof Error ? e.message : 'Unknown error');
+    return createErrorResponse(
+      e instanceof Error ? e.message : 'Unknown error'
+    );
   }
 }

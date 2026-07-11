@@ -1,18 +1,18 @@
-"use client"
+'use client';
 
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { COLOR_SWATCHES } from "@/lib/studio/presets"
-import { cn } from "@/lib/utils"
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { COLOR_SWATCHES } from '@/lib/studio/presets';
+import { cn } from '@/lib/utils';
 
 export function ColorField({
   label,
   value,
-  onChange,
+  onChange
 }: {
-  label: string
-  value: string
-  onChange: (color: string) => void
+  label: string;
+  value: string;
+  onChange: (color: string) => void;
 }) {
   return (
     <div className="space-y-1.5">
@@ -25,8 +25,9 @@ export function ColorField({
             aria-label={`Set ${label.toLowerCase()} to ${swatch}`}
             onClick={() => onChange(swatch)}
             className={cn(
-              "h-6 w-6 rounded-full border transition-transform hover:scale-110",
-              value.toLowerCase() === swatch.toLowerCase() && "ring-2 ring-sky-500 ring-offset-2 ring-offset-background",
+              'h-6 w-6 rounded-full border transition-transform hover:scale-110',
+              value.toLowerCase() === swatch.toLowerCase() &&
+                'ring-2 ring-sky-500 ring-offset-2 ring-offset-background'
             )}
             style={{ backgroundColor: swatch }}
           />
@@ -34,7 +35,7 @@ export function ColorField({
         <label className="relative h-6 w-6 cursor-pointer overflow-hidden rounded-full border bg-[conic-gradient(red,yellow,lime,cyan,blue,magenta,red)]">
           <input
             type="color"
-            value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#ffffff"}
+            value={/^#[0-9a-f]{6}$/i.test(value) ? value : '#ffffff'}
             onChange={(e) => onChange(e.target.value)}
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             aria-label={`Custom ${label.toLowerCase()}`}
@@ -42,7 +43,7 @@ export function ColorField({
         </label>
       </div>
     </div>
-  )
+  );
 }
 
 export function SliderField({
@@ -52,23 +53,31 @@ export function SliderField({
   max,
   step = 1,
   format,
-  onChange,
+  onChange
 }: {
-  label: string
-  value: number
-  min: number
-  max: number
-  step?: number
-  format?: (value: number) => string
-  onChange: (value: number) => void
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  format?: (value: number) => string;
+  onChange: (value: number) => void;
 }) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <Label className="text-xs text-muted-foreground">{label}</Label>
-        <span className="text-xs tabular-nums text-muted-foreground">{format ? format(value) : Math.round(value)}</span>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {format ? format(value) : Math.round(value)}
+        </span>
       </div>
-      <Slider value={[value]} min={min} max={max} step={step} onValueChange={([v]) => onChange(v)} />
+      <Slider
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={([v]) => onChange(v)}
+      />
     </div>
-  )
+  );
 }

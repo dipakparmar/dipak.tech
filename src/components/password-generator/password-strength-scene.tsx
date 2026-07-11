@@ -32,7 +32,17 @@ function smoothNoise(t: number, seed: number): number {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type ParticleType = 'mote' | 'petal' | 'butterfly' | 'wisp' | 'firefly' | 'raindrop' | 'cloud' | 'leaf' | 'snowflake' | 'star';
+type ParticleType =
+  | 'mote'
+  | 'petal'
+  | 'butterfly'
+  | 'wisp'
+  | 'firefly'
+  | 'raindrop'
+  | 'cloud'
+  | 'leaf'
+  | 'snowflake'
+  | 'star';
 
 interface SpawnConfig {
   type: ParticleType;
@@ -58,9 +68,12 @@ interface SceneTheme {
 const GROUND_Y = 0.96; // ground level as ratio of canvas height
 
 const themes: Record<number, SceneTheme> = {
-  0: { // Spring meadow - petals + butterflies
-    bgGradient: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(129,212,250,0.12) 0%, rgba(200,230,201,0.08) 40%, transparent 70%)',
-    bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(79,195,247,0.15) 0%, rgba(165,214,167,0.06) 40%, transparent 70%)',
+  0: {
+    // Spring meadow - petals + butterflies
+    bgGradient:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(129,212,250,0.12) 0%, rgba(200,230,201,0.08) 40%, transparent 70%)',
+    bgGradientDark:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(79,195,247,0.15) 0%, rgba(165,214,167,0.06) 40%, transparent 70%)',
     glowColor: 'rgba(244,143,177,0.15)',
     glowColorDark: 'rgba(244,143,177,0.08)',
     gravity: 15,
@@ -69,38 +82,43 @@ const themes: Record<number, SceneTheme> = {
     turbulence: 0.5,
     spawns: [
       { type: 'petal', rate: 4, max: 45, settles: true },
-      { type: 'butterfly', rate: 0.2, max: 3, settles: false },
-    ],
+      { type: 'butterfly', rate: 0.2, max: 3, settles: false }
+    ]
   },
-  1: { // Sunset - warm wisps
-    bgGradient: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(255,138,101,0.15) 0%, rgba(255,204,128,0.08) 40%, transparent 70%)',
-    bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(230,81,0,0.18) 0%, rgba(255,143,0,0.08) 40%, transparent 70%)',
+  1: {
+    // Sunset - warm wisps
+    bgGradient:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(255,138,101,0.15) 0%, rgba(255,204,128,0.08) 40%, transparent 70%)',
+    bgGradientDark:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(230,81,0,0.18) 0%, rgba(255,143,0,0.08) 40%, transparent 70%)',
     glowColor: 'rgba(255,112,67,0.15)',
     glowColorDark: 'rgba(255,112,67,0.1)',
     gravity: -3,
     windBase: 10,
     windGust: 18,
     turbulence: 0.6,
-    spawns: [
-      { type: 'wisp', rate: 2, max: 25, settles: false },
-    ],
+    spawns: [{ type: 'wisp', rate: 2, max: 25, settles: false }]
   },
-  2: { // Night - wandering fireflies
-    bgGradient: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(13,27,42,0.12) 0%, rgba(27,40,56,0.08) 40%, transparent 70%)',
-    bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(13,27,42,0.3) 0%, rgba(27,40,56,0.15) 40%, transparent 70%)',
+  2: {
+    // Night - wandering fireflies
+    bgGradient:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(13,27,42,0.12) 0%, rgba(27,40,56,0.08) 40%, transparent 70%)',
+    bgGradientDark:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(13,27,42,0.3) 0%, rgba(27,40,56,0.15) 40%, transparent 70%)',
     glowColor: 'rgba(255,255,141,0.1)',
     glowColorDark: 'rgba(255,255,141,0.06)',
     gravity: 0,
     windBase: 0,
     windGust: 0,
     turbulence: 1.5,
-    spawns: [
-      { type: 'firefly', rate: 1.5, max: 30, settles: false },
-    ],
+    spawns: [{ type: 'firefly', rate: 1.5, max: 30, settles: false }]
   },
-  3: { // Storm - rain + clouds
-    bgGradient: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(120,144,156,0.12) 0%, rgba(176,190,197,0.06) 40%, transparent 70%)',
-    bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(84,110,122,0.2) 0%, rgba(120,144,156,0.1) 40%, transparent 70%)',
+  3: {
+    // Storm - rain + clouds
+    bgGradient:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(120,144,156,0.12) 0%, rgba(176,190,197,0.06) 40%, transparent 70%)',
+    bgGradientDark:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(84,110,122,0.2) 0%, rgba(120,144,156,0.1) 40%, transparent 70%)',
     glowColor: 'rgba(144,202,249,0.12)',
     glowColorDark: 'rgba(144,202,249,0.07)',
     gravity: 420,
@@ -109,62 +127,65 @@ const themes: Record<number, SceneTheme> = {
     turbulence: 0.2,
     spawns: [
       { type: 'raindrop', rate: 35, max: 200, settles: false },
-      { type: 'cloud', rate: 0.15, max: 4, settles: false },
-    ],
+      { type: 'cloud', rate: 0.15, max: 4, settles: false }
+    ]
   },
-  4: { // Autumn - tumbling leaves
-    bgGradient: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(230,81,0,0.1) 0%, rgba(255,143,0,0.05) 40%, transparent 70%)',
-    bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(191,54,12,0.16) 0%, rgba(230,81,0,0.08) 40%, transparent 70%)',
+  4: {
+    // Autumn - tumbling leaves
+    bgGradient:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(230,81,0,0.1) 0%, rgba(255,143,0,0.05) 40%, transparent 70%)',
+    bgGradientDark:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(191,54,12,0.16) 0%, rgba(230,81,0,0.08) 40%, transparent 70%)',
     glowColor: 'rgba(255,109,0,0.1)',
     glowColorDark: 'rgba(255,109,0,0.06)',
     gravity: 80,
     windBase: 20,
     windGust: 45,
     turbulence: 0.8,
-    spawns: [
-      { type: 'leaf', rate: 3.5, max: 35, settles: true },
-    ],
+    spawns: [{ type: 'leaf', rate: 3.5, max: 35, settles: true }]
   },
-  5: { // Winter - drifting snow
-    bgGradient: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(236,239,241,0.15) 0%, rgba(207,216,220,0.08) 40%, transparent 70%)',
-    bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(176,190,197,0.15) 0%, rgba(144,164,174,0.08) 40%, transparent 70%)',
+  5: {
+    // Winter - drifting snow
+    bgGradient:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(236,239,241,0.15) 0%, rgba(207,216,220,0.08) 40%, transparent 70%)',
+    bgGradientDark:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(176,190,197,0.15) 0%, rgba(144,164,174,0.08) 40%, transparent 70%)',
     glowColor: 'rgba(255,255,255,0.12)',
     glowColorDark: 'rgba(176,190,197,0.08)',
     gravity: 55,
     windBase: 10,
     windGust: 35,
     turbulence: 1.0,
-    spawns: [
-      { type: 'snowflake', rate: 10, max: 100, settles: true },
-    ],
+    spawns: [{ type: 'snowflake', rate: 10, max: 100, settles: true }]
   },
-  6: { // Cosmic - twinkling stars
-    bgGradient: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(26,0,48,0.15) 0%, rgba(206,147,216,0.08) 40%, transparent 70%)',
-    bgGradientDark: 'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(10,0,21,0.35) 0%, rgba(206,147,216,0.12) 40%, transparent 70%)',
+  6: {
+    // Cosmic - twinkling stars
+    bgGradient:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(26,0,48,0.15) 0%, rgba(206,147,216,0.08) 40%, transparent 70%)',
+    bgGradientDark:
+      'radial-gradient(ellipse 130% 80% at 50% 0%, rgba(10,0,21,0.35) 0%, rgba(206,147,216,0.12) 40%, transparent 70%)',
     glowColor: 'rgba(206,147,216,0.15)',
     glowColorDark: 'rgba(206,147,216,0.1)',
     gravity: 0,
     windBase: 0,
     windGust: 0,
     turbulence: 0.3,
-    spawns: [
-      { type: 'star', rate: 4, max: 60, settles: false },
-    ],
-  },
+    spawns: [{ type: 'star', rate: 4, max: 60, settles: false }]
+  }
 };
 
 // ─── Particle Colors ─────────────────────────────────────────────────────────
 
 const COLORS: Record<string, string[]> = {
-  petal:      ['#FFB7C5', '#FFC1CC', '#FF9EAF', '#FFD1DC', '#FADADD', '#F8BBD0'],
-  butterfly:  ['#FF6B6B', '#4ECDC4', '#FFE66D', '#A78BFA', '#F38181', '#6C5CE7'],
-  wisp:       ['#FFCC80', '#FFE0B2', '#FF8A65', '#FFAB91'],
-  firefly:    ['#FFFF8D', '#FFF9C4', '#FFF176'],
-  raindrop:   ['#90CAF9', '#BBDEFB', '#E3F2FD'],
-  cloud:      ['#B0BEC5', '#90A4AE', '#CFD8DC'],
-  leaf:       ['#FF6D00', '#FF8F00', '#D84315', '#FDD835', '#E65100', '#BF360C'],
-  snowflake:  ['#FFFFFF', '#ECEFF1', '#F5F5F5', '#E0E0E0'],
-  star:       ['#CE93D8', '#E1BEE7', '#64B5F6', '#F3E5F5', '#B39DDB'],
+  petal: ['#FFB7C5', '#FFC1CC', '#FF9EAF', '#FFD1DC', '#FADADD', '#F8BBD0'],
+  butterfly: ['#FF6B6B', '#4ECDC4', '#FFE66D', '#A78BFA', '#F38181', '#6C5CE7'],
+  wisp: ['#FFCC80', '#FFE0B2', '#FF8A65', '#FFAB91'],
+  firefly: ['#FFFF8D', '#FFF9C4', '#FFF176'],
+  raindrop: ['#90CAF9', '#BBDEFB', '#E3F2FD'],
+  cloud: ['#B0BEC5', '#90A4AE', '#CFD8DC'],
+  leaf: ['#FF6D00', '#FF8F00', '#D84315', '#FDD835', '#E65100', '#BF360C'],
+  snowflake: ['#FFFFFF', '#ECEFF1', '#F5F5F5', '#E0E0E0'],
+  star: ['#CE93D8', '#E1BEE7', '#64B5F6', '#F3E5F5', '#B39DDB']
 };
 
 // ─── Particle ────────────────────────────────────────────────────────────────
@@ -196,7 +217,12 @@ interface Particle {
   wingPhase: number;
 }
 
-function createParticle(type: ParticleType, w: number, h: number, colors: string[]): Particle {
+function createParticle(
+  type: ParticleType,
+  w: number,
+  h: number,
+  colors: string[]
+): Particle {
   const color = colors[Math.floor(Math.random() * colors.length)];
   const seed = Math.random() * 1000;
   const groundY = h * GROUND_Y;
@@ -205,17 +231,24 @@ function createParticle(type: ParticleType, w: number, h: number, colors: string
     type,
     x: Math.random() * w,
     y: -10,
-    vx: 0, vy: 0,
+    vx: 0,
+    vy: 0,
     size: 2 + Math.random() * 3,
     life: 0,
     maxLife: 6 + Math.random() * 8,
-    color, seed,
-    rotation: 0, rotSpeed: 0,
+    color,
+    seed,
+    rotation: 0,
+    rotSpeed: 0,
     phase: Math.random() * Math.PI * 2,
     glowFreq: 0.5 + Math.random() * 1.5,
-    splashing: false, splashTime: 0, splashX: 0, splashY: 0,
-    settled: false, settledTime: 0,
-    wingPhase: Math.random() * Math.PI * 2,
+    splashing: false,
+    splashTime: 0,
+    splashX: 0,
+    splashY: 0,
+    settled: false,
+    settledTime: 0,
+    wingPhase: Math.random() * Math.PI * 2
   };
 
   switch (type) {
@@ -280,7 +313,11 @@ function createParticle(type: ParticleType, w: number, h: number, colors: string
 
 // ─── Particle Drawing ────────────────────────────────────────────────────────
 
-function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) {
+function drawParticle(
+  ctx: CanvasRenderingContext2D,
+  p: Particle,
+  time: number
+) {
   const fadeIn = Math.min(1, p.life * 2);
   const fadeOut = Math.min(1, (p.maxLife - p.life) * 2);
   let alpha = fadeIn * fadeOut;
@@ -306,7 +343,15 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
       // Subtle center highlight
       ctx.globalAlpha = alpha * 0.2;
       ctx.beginPath();
-      ctx.ellipse(p.size * 0.15, 0, p.size * 0.3, p.size * 0.15, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        p.size * 0.15,
+        0,
+        p.size * 0.3,
+        p.size * 0.15,
+        0,
+        0,
+        Math.PI * 2
+      );
       ctx.fillStyle = '#FFFFFF';
       ctx.fill();
       break;
@@ -325,13 +370,29 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
       ctx.save();
       ctx.scale(wingScale, 1);
       ctx.beginPath();
-      ctx.ellipse(-p.size * 1.2, -p.size * 0.3, p.size * 1.3, p.size * 0.9, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(
+        -p.size * 1.2,
+        -p.size * 0.3,
+        p.size * 1.3,
+        p.size * 0.9,
+        -0.2,
+        0,
+        Math.PI * 2
+      );
       ctx.fillStyle = p.color;
       ctx.fill();
       // Wing detail
       ctx.globalAlpha = alpha * 0.3;
       ctx.beginPath();
-      ctx.ellipse(-p.size * 1.1, -p.size * 0.3, p.size * 0.6, p.size * 0.4, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(
+        -p.size * 1.1,
+        -p.size * 0.3,
+        p.size * 0.6,
+        p.size * 0.4,
+        -0.2,
+        0,
+        Math.PI * 2
+      );
       ctx.fillStyle = '#FFFFFF';
       ctx.fill();
       ctx.restore();
@@ -340,12 +401,28 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
       ctx.scale(wingScale, 1);
       ctx.globalAlpha = alpha * 0.7;
       ctx.beginPath();
-      ctx.ellipse(p.size * 1.2, -p.size * 0.3, p.size * 1.3, p.size * 0.9, 0.2, 0, Math.PI * 2);
+      ctx.ellipse(
+        p.size * 1.2,
+        -p.size * 0.3,
+        p.size * 1.3,
+        p.size * 0.9,
+        0.2,
+        0,
+        Math.PI * 2
+      );
       ctx.fillStyle = p.color;
       ctx.fill();
       ctx.globalAlpha = alpha * 0.3;
       ctx.beginPath();
-      ctx.ellipse(p.size * 1.1, -p.size * 0.3, p.size * 0.6, p.size * 0.4, 0.2, 0, Math.PI * 2);
+      ctx.ellipse(
+        p.size * 1.1,
+        -p.size * 0.3,
+        p.size * 0.6,
+        p.size * 0.4,
+        0.2,
+        0,
+        Math.PI * 2
+      );
       ctx.fillStyle = '#FFFFFF';
       ctx.fill();
       ctx.restore();
@@ -353,16 +430,27 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
       ctx.globalAlpha = alpha * 0.5;
       ctx.beginPath();
       ctx.moveTo(-0.5, -p.size * 0.6);
-      ctx.quadraticCurveTo(-p.size * 0.6, -p.size * 1.5, -p.size * 0.8, -p.size * 1.6);
+      ctx.quadraticCurveTo(
+        -p.size * 0.6,
+        -p.size * 1.5,
+        -p.size * 0.8,
+        -p.size * 1.6
+      );
       ctx.moveTo(0.5, -p.size * 0.6);
-      ctx.quadraticCurveTo(p.size * 0.6, -p.size * 1.5, p.size * 0.8, -p.size * 1.6);
+      ctx.quadraticCurveTo(
+        p.size * 0.6,
+        -p.size * 1.5,
+        p.size * 0.8,
+        -p.size * 1.6
+      );
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 0.4;
       ctx.stroke();
       break;
     }
     case 'mote': {
-      const glow = 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(time * p.glowFreq + p.phase));
+      const glow =
+        0.3 + 0.7 * (0.5 + 0.5 * Math.sin(time * p.glowFreq + p.phase));
       ctx.globalAlpha = alpha * glow * 0.5;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
@@ -423,7 +511,9 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
           ctx.arc(
             p.splashX + Math.cos(angle) * dist,
             p.splashY - dist * 0.5 + dy,
-            0.8, 0, Math.PI * 2,
+            0.8,
+            0,
+            Math.PI * 2
           );
           ctx.fillStyle = p.color;
           ctx.fill();
@@ -463,8 +553,22 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
       // Leaf shape
       ctx.beginPath();
       ctx.moveTo(0, -p.size);
-      ctx.bezierCurveTo(p.size * 0.8, -p.size * 0.3, p.size * 0.8, p.size * 0.3, 0, p.size);
-      ctx.bezierCurveTo(-p.size * 0.8, p.size * 0.3, -p.size * 0.8, -p.size * 0.3, 0, -p.size);
+      ctx.bezierCurveTo(
+        p.size * 0.8,
+        -p.size * 0.3,
+        p.size * 0.8,
+        p.size * 0.3,
+        0,
+        p.size
+      );
+      ctx.bezierCurveTo(
+        -p.size * 0.8,
+        p.size * 0.3,
+        -p.size * 0.8,
+        -p.size * 0.3,
+        0,
+        -p.size
+      );
       ctx.fillStyle = p.color;
       ctx.fill();
       // Center vein
@@ -509,7 +613,9 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
       break;
     }
     case 'star': {
-      const twinkle = 0.2 + 0.8 * Math.pow(0.5 + 0.5 * Math.sin(time * p.glowFreq + p.phase), 3);
+      const twinkle =
+        0.2 +
+        0.8 * Math.pow(0.5 + 0.5 * Math.sin(time * p.glowFreq + p.phase), 3);
       ctx.globalAlpha = alpha * twinkle * 0.15;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * 4, 0, Math.PI * 2);
@@ -540,13 +646,21 @@ function drawParticle(ctx: CanvasRenderingContext2D, p: Particle, time: number) 
 // ─── Scene Ground Drawing ────────────────────────────────────────────────────
 
 // Helper: draw an organic undulating terrain edge using noise
-function drawTerrainPath(ctx: CanvasRenderingContext2D, w: number, h: number, baseY: number, amplitude: number, seed: number) {
+function drawTerrainPath(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  baseY: number,
+  amplitude: number,
+  seed: number
+) {
   ctx.beginPath();
   ctx.moveTo(0, h);
   for (let x = 0; x <= w; x += 4) {
     const ratio = x / w;
-    const undulation = smoothNoise(ratio * 5, seed) * amplitude
-      + smoothNoise(ratio * 12, seed + 50) * (amplitude * 0.4);
+    const undulation =
+      smoothNoise(ratio * 5, seed) * amplitude +
+      smoothNoise(ratio * 12, seed + 50) * (amplitude * 0.4);
     ctx.lineTo(x, baseY + undulation);
   }
   ctx.lineTo(w, h);
@@ -554,9 +668,15 @@ function drawTerrainPath(ctx: CanvasRenderingContext2D, w: number, h: number, ba
 }
 
 function drawTree(
-  ctx: CanvasRenderingContext2D, x: number, groundY: number,
-  trunkH: number, canopyR: number, trunkColor: string, canopyColors: string[],
-  sway: number, op: number,
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  groundY: number,
+  trunkH: number,
+  canopyR: number,
+  trunkColor: string,
+  canopyColors: string[],
+  sway: number,
+  op: number
 ) {
   // Trunk
   ctx.globalAlpha = 0.22 * op;
@@ -564,9 +684,19 @@ function drawTree(
   const tw = trunkH * 0.12;
   ctx.beginPath();
   ctx.moveTo(x - tw, groundY);
-  ctx.quadraticCurveTo(x - tw * 0.6 + sway * 0.3, groundY - trunkH * 0.5, x - tw * 0.4 + sway, groundY - trunkH);
+  ctx.quadraticCurveTo(
+    x - tw * 0.6 + sway * 0.3,
+    groundY - trunkH * 0.5,
+    x - tw * 0.4 + sway,
+    groundY - trunkH
+  );
   ctx.lineTo(x + tw * 0.4 + sway, groundY - trunkH);
-  ctx.quadraticCurveTo(x + tw * 0.6 + sway * 0.3, groundY - trunkH * 0.5, x + tw, groundY);
+  ctx.quadraticCurveTo(
+    x + tw * 0.6 + sway * 0.3,
+    groundY - trunkH * 0.5,
+    x + tw,
+    groundY
+  );
   ctx.closePath();
   ctx.fill();
   // Canopy clusters
@@ -577,7 +707,13 @@ function drawTree(
     const a = (c / canopyColors.length) * Math.PI * 2 + 0.3;
     const dist = canopyR * 0.35;
     ctx.beginPath();
-    ctx.arc(cx + Math.cos(a) * dist, cy + Math.sin(a) * dist * 0.6, canopyR * 0.65, 0, Math.PI * 2);
+    ctx.arc(
+      cx + Math.cos(a) * dist,
+      cy + Math.sin(a) * dist * 0.6,
+      canopyR * 0.65,
+      0,
+      Math.PI * 2
+    );
     ctx.fillStyle = canopyColors[c];
     ctx.fill();
   }
@@ -588,12 +724,20 @@ function drawTree(
   ctx.fill();
 }
 
-function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number, h: number, t: number, dark: boolean) {
+function drawSceneGround(
+  ctx: CanvasRenderingContext2D,
+  level: number,
+  w: number,
+  h: number,
+  t: number,
+  dark: boolean
+) {
   const groundY = h * GROUND_Y;
   const op = dark ? 1.4 : 1;
 
   switch (level) {
-    case 0: { // Spring - rolling green hills with grass, flowers, and trees
+    case 0: {
+      // Spring - rolling green hills with grass, flowers, and trees
       // Back hill
       ctx.globalAlpha = 0.12 * op;
       ctx.fillStyle = dark ? '#2E7D32' : '#A5D6A7';
@@ -611,25 +755,51 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
         ? ['#2E7D32', '#388E3C', '#43A047', '#1B5E20']
         : ['#66BB6A', '#81C784', '#A5D6A7', '#4CAF50'];
       for (let i = 0; i < 5; i++) {
-        const tx = w * 0.08 + (i / 5) * w * 0.84 + pseudoNoise(i, 0, 200) * (w * 0.06);
+        const tx =
+          w * 0.08 + (i / 5) * w * 0.84 + pseudoNoise(i, 0, 200) * (w * 0.06);
         const th = 30 + Math.abs(pseudoNoise(i, 1, 210)) * 25;
         const cr = 14 + Math.abs(pseudoNoise(i, 2, 220)) * 10;
         const sway = Math.sin(t * 0.4 + i * 1.7) * 2;
-        drawTree(ctx, tx, groundY, th, cr, dark ? '#5D4037' : '#8D6E63', springCanopy, sway, op);
+        drawTree(
+          ctx,
+          tx,
+          groundY,
+          th,
+          cr,
+          dark ? '#5D4037' : '#8D6E63',
+          springCanopy,
+          sway,
+          op
+        );
       }
 
       // Tall grass blades
       for (let i = 0; i < 80; i++) {
         const gx = (i / 80) * w;
         const ratio = gx / w;
-        const ty = groundY + smoothNoise(ratio * 5, 7) * 5 + smoothNoise(ratio * 12, 57) * 2;
+        const ty =
+          groundY +
+          smoothNoise(ratio * 5, 7) * 5 +
+          smoothNoise(ratio * 12, 57) * 2;
         const gh = 12 + Math.abs(pseudoNoise(i, 1, 13)) * 18;
-        const lean = pseudoNoise(i, 2, 17) * 4 + Math.sin(t * 0.8 + i * 0.5) * 2.5;
+        const lean =
+          pseudoNoise(i, 2, 17) * 4 + Math.sin(t * 0.8 + i * 0.5) * 2.5;
         ctx.globalAlpha = (dark ? 0.16 : 0.15) * op;
         ctx.beginPath();
         ctx.moveTo(gx, ty);
-        ctx.quadraticCurveTo(gx + lean, ty - gh * 0.6, gx + lean * 1.5, ty - gh);
-        ctx.strokeStyle = dark ? (i % 3 === 0 ? '#4CAF50' : '#66BB6A') : (i % 3 === 0 ? '#4CAF50' : '#81C784');
+        ctx.quadraticCurveTo(
+          gx + lean,
+          ty - gh * 0.6,
+          gx + lean * 1.5,
+          ty - gh
+        );
+        ctx.strokeStyle = dark
+          ? i % 3 === 0
+            ? '#4CAF50'
+            : '#66BB6A'
+          : i % 3 === 0
+            ? '#4CAF50'
+            : '#81C784';
         ctx.lineWidth = 1.2;
         ctx.stroke();
       }
@@ -642,7 +812,10 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
       for (let i = 0; i < 22; i++) {
         const fx = (i / 22) * w + pseudoNoise(i, 2, 21) * 30;
         const ratio = fx / w;
-        const ty = groundY + smoothNoise(ratio * 5, 7) * 5 + smoothNoise(ratio * 12, 57) * 2;
+        const ty =
+          groundY +
+          smoothNoise(ratio * 5, 7) * 5 +
+          smoothNoise(ratio * 12, 57) * 2;
         const fy = ty - 4 - Math.abs(pseudoNoise(i, 3, 31)) * 8;
         const fc = flowerColors[i % flowerColors.length];
         const fr = 2.5 + Math.abs(pseudoNoise(i, 4, 41)) * 2.5;
@@ -659,7 +832,13 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
         for (let p = 0; p < 5; p++) {
           const angle = (p / 5) * Math.PI * 2 + i;
           ctx.beginPath();
-          ctx.arc(fx + Math.cos(angle) * fr * 0.55, fy + Math.sin(angle) * fr * 0.55, fr * 0.45, 0, Math.PI * 2);
+          ctx.arc(
+            fx + Math.cos(angle) * fr * 0.55,
+            fy + Math.sin(angle) * fr * 0.55,
+            fr * 0.45,
+            0,
+            Math.PI * 2
+          );
           ctx.fillStyle = fc;
           ctx.fill();
         }
@@ -670,7 +849,8 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
       }
       break;
     }
-    case 3: { // Rain - wet ground with puddles
+    case 3: {
+      // Rain - wet ground with puddles
       ctx.globalAlpha = 0.12 * op;
       ctx.fillStyle = dark ? '#37474F' : '#78909C';
       drawTerrainPath(ctx, w, h, groundY, 5, 55);
@@ -685,7 +865,10 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
       for (let i = 0; i < 6; i++) {
         const px = w * 0.08 + (i / 6) * w * 0.84;
         const ratio = px / w;
-        const ty = groundY + smoothNoise(ratio * 5, 55) * 5 + smoothNoise(ratio * 12, 105) * 2;
+        const ty =
+          groundY +
+          smoothNoise(ratio * 5, 55) * 5 +
+          smoothNoise(ratio * 12, 105) * 2;
         const pw = 20 + Math.abs(pseudoNoise(i, 0, 55)) * 40;
         ctx.globalAlpha = 0.12 * op;
         ctx.beginPath();
@@ -705,7 +888,8 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
       }
       break;
     }
-    case 4: { // Autumn - earthy ground with leaf piles and bare trees
+    case 4: {
+      // Autumn - earthy ground with leaf piles and bare trees
       // Back layer
       ctx.globalAlpha = 0.1 * op;
       ctx.fillStyle = dark ? '#4E342E' : '#A1887F';
@@ -723,11 +907,22 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
         ? ['#E65100', '#F57F17', '#BF360C', '#DD2C00']
         : ['#FF8F00', '#FFB300', '#E65100', '#FF6D00'];
       for (let i = 0; i < 4; i++) {
-        const tx = w * 0.1 + (i / 4) * w * 0.8 + pseudoNoise(i, 0, 300) * (w * 0.08);
+        const tx =
+          w * 0.1 + (i / 4) * w * 0.8 + pseudoNoise(i, 0, 300) * (w * 0.08);
         const th = 35 + Math.abs(pseudoNoise(i, 1, 310)) * 20;
         const cr = 12 + Math.abs(pseudoNoise(i, 2, 320)) * 8;
         const sway = Math.sin(t * 0.3 + i * 2.1) * 1.5;
-        drawTree(ctx, tx, groundY, th, cr, dark ? '#4E342E' : '#6D4C41', autumnCanopy, sway, op);
+        drawTree(
+          ctx,
+          tx,
+          groundY,
+          th,
+          cr,
+          dark ? '#4E342E' : '#6D4C41',
+          autumnCanopy,
+          sway,
+          op
+        );
       }
 
       // Leaf piles - bigger
@@ -738,11 +933,16 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
       for (let i = 0; i < 10; i++) {
         const px = (i / 10) * w + pseudoNoise(i, 0, 77) * 40;
         const ratio = px / w;
-        const ty = groundY + smoothNoise(ratio * 5, 77) * 5 + smoothNoise(ratio * 12, 127) * 2;
+        const ty =
+          groundY +
+          smoothNoise(ratio * 5, 77) * 5 +
+          smoothNoise(ratio * 12, 127) * 2;
         const pr = 10 + Math.abs(pseudoNoise(i, 1, 88)) * 18;
         for (let j = 0; j < 4; j++) {
-          const ox = px + (j - 1.5) * pr * 0.35 + pseudoNoise(i * 4 + j, 2, 99) * 5;
-          const or2 = pr * (0.4 + Math.abs(pseudoNoise(i * 4 + j, 3, 111)) * 0.5);
+          const ox =
+            px + (j - 1.5) * pr * 0.35 + pseudoNoise(i * 4 + j, 2, 99) * 5;
+          const or2 =
+            pr * (0.4 + Math.abs(pseudoNoise(i * 4 + j, 3, 111)) * 0.5);
           ctx.beginPath();
           ctx.arc(ox, ty + 1, or2, Math.PI, 0);
           ctx.fillStyle = pileColors[(i + j) % pileColors.length];
@@ -751,7 +951,8 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
       }
       break;
     }
-    case 5: { // Winter - snow drifts with bare trees
+    case 5: {
+      // Winter - snow drifts with bare trees
       // Back snow
       ctx.globalAlpha = 0.1 * op;
       ctx.fillStyle = dark ? '#546E7A' : '#CFD8DC';
@@ -766,7 +967,8 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
 
       // Bare winter trees (no canopy, just branches)
       for (let i = 0; i < 3; i++) {
-        const tx = w * 0.15 + (i / 3) * w * 0.7 + pseudoNoise(i, 0, 400) * (w * 0.06);
+        const tx =
+          w * 0.15 + (i / 3) * w * 0.7 + pseudoNoise(i, 0, 400) * (w * 0.06);
         const th = 35 + Math.abs(pseudoNoise(i, 1, 410)) * 20;
         const tw = th * 0.1;
         const sway = Math.sin(t * 0.25 + i * 1.9) * 1;
@@ -775,9 +977,19 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
         ctx.fillStyle = dark ? '#455A64' : '#78909C';
         ctx.beginPath();
         ctx.moveTo(tx - tw, groundY);
-        ctx.quadraticCurveTo(tx - tw * 0.5 + sway * 0.3, groundY - th * 0.5, tx - tw * 0.3 + sway, groundY - th);
+        ctx.quadraticCurveTo(
+          tx - tw * 0.5 + sway * 0.3,
+          groundY - th * 0.5,
+          tx - tw * 0.3 + sway,
+          groundY - th
+        );
         ctx.lineTo(tx + tw * 0.3 + sway, groundY - th);
-        ctx.quadraticCurveTo(tx + tw * 0.5 + sway * 0.3, groundY - th * 0.5, tx + tw, groundY);
+        ctx.quadraticCurveTo(
+          tx + tw * 0.5 + sway * 0.3,
+          groundY - th * 0.5,
+          tx + tw,
+          groundY
+        );
         ctx.closePath();
         ctx.fill();
         // Branches
@@ -791,7 +1003,12 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
           const blen = 10 + Math.abs(pseudoNoise(i * 4 + b, 3, 420)) * 12;
           ctx.beginPath();
           ctx.moveTo(bx, by);
-          ctx.quadraticCurveTo(bx + dir * blen * 0.6, by - blen * 0.3, bx + dir * blen, by - blen * 0.15);
+          ctx.quadraticCurveTo(
+            bx + dir * blen * 0.6,
+            by - blen * 0.3,
+            bx + dir * blen,
+            by - blen * 0.15
+          );
           ctx.stroke();
         }
         // Snow on branches
@@ -811,11 +1028,20 @@ function drawSceneGround(ctx: CanvasRenderingContext2D, level: number, w: number
       for (let i = 0; i < 12; i++) {
         const sx = (i / 12) * w + pseudoNoise(i, 0, 99) * 30;
         const ratio = sx / w;
-        const ty = groundY + smoothNoise(ratio * 5, 99) * 5 + smoothNoise(ratio * 12, 149) * 2;
+        const ty =
+          groundY +
+          smoothNoise(ratio * 5, 99) * 5 +
+          smoothNoise(ratio * 12, 149) * 2;
         const sr = 12 + Math.abs(pseudoNoise(i, 1, 109)) * 18;
         ctx.beginPath();
         ctx.arc(sx, ty - 1, sr, Math.PI * 0.85, Math.PI * 0.15);
-        ctx.fillStyle = dark ? (i % 2 === 0 ? '#90A4AE' : '#78909C') : (i % 2 === 0 ? '#FFFFFF' : '#F5F5F5');
+        ctx.fillStyle = dark
+          ? i % 2 === 0
+            ? '#90A4AE'
+            : '#78909C'
+          : i % 2 === 0
+            ? '#FFFFFF'
+            : '#F5F5F5';
         ctx.fill();
       }
 
@@ -907,7 +1133,9 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
         accs[key] += spawn.rate * dt;
 
         const colors = COLORS[spawn.type] || COLORS.petal;
-        const currentCount = particlesRef.current.filter(p => p.type === key && !p.settled).length;
+        const currentCount = particlesRef.current.filter(
+          (p) => p.type === key && !p.settled
+        ).length;
 
         while (accs[key] >= 1 && currentCount < spawn.max) {
           accs[key] -= 1;
@@ -917,7 +1145,7 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
       }
 
       // Track settled count
-      let settledCount = particlesRef.current.filter(p => p.settled).length;
+      let settledCount = particlesRef.current.filter((p) => p.settled).length;
 
       // Update & draw
       const alive: Particle[] = [];
@@ -946,7 +1174,8 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
 
         // Noise-driven turbulence
         const nx = smoothNoise(t * 0.5 + p.seed, p.seed) * cfg.turbulence;
-        const ny = smoothNoise(t * 0.5 + p.seed + 100, p.seed + 50) * cfg.turbulence;
+        const ny =
+          smoothNoise(t * 0.5 + p.seed + 100, p.seed + 50) * cfg.turbulence;
 
         // Per-type physics
         switch (p.type) {
@@ -962,7 +1191,8 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
           case 'butterfly': {
             // Organic figure-8 wandering
             const targetVx = smoothNoise(t * 0.3 + p.seed, p.seed * 2) * 30;
-            const targetVy = smoothNoise(t * 0.25 + p.seed + 200, p.seed * 3) * 20;
+            const targetVy =
+              smoothNoise(t * 0.25 + p.seed + 200, p.seed * 3) * 20;
             p.vx += (targetVx - p.vx) * 1.2 * dt;
             p.vy += (targetVy - p.vy) * 1.2 * dt;
             // Slight upward bias
@@ -980,7 +1210,8 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
             break;
           case 'firefly': {
             const targetVx = smoothNoise(t * 0.4 + p.seed, p.seed * 2) * 25;
-            const targetVy = smoothNoise(t * 0.4 + p.seed + 200, p.seed * 3) * 20;
+            const targetVy =
+              smoothNoise(t * 0.4 + p.seed + 200, p.seed * 3) * 20;
             p.vx += (targetVx - p.vx) * 1.5 * dt;
             p.vy += (targetVy - p.vy) * 1.5 * dt;
             break;
@@ -998,7 +1229,7 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
             break;
           case 'cloud':
             // Clouds just drift slowly
-            p.vx += (wind * 0.05) * dt;
+            p.vx += wind * 0.05 * dt;
             p.vx *= 0.999;
             break;
           case 'leaf':
@@ -1060,7 +1291,12 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
         if (p.type !== 'star' && !p.settled && p.y > h + 20) continue;
 
         // Petals also settle
-        if (p.type === 'petal' && p.y >= groundY && !p.settled && settledCount < MAX_SETTLED) {
+        if (
+          p.type === 'petal' &&
+          p.y >= groundY &&
+          !p.settled &&
+          settledCount < MAX_SETTLED
+        ) {
           p.settled = true;
           p.settledTime = 0;
           p.y = groundY - Math.random() * 2;
@@ -1084,7 +1320,10 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-1 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div
+      className="fixed inset-0 z-1 overflow-hidden pointer-events-none"
+      aria-hidden="true"
+    >
       {/* CSS gradient wash - light */}
       <div
         className="absolute inset-0 transition-all duration-[1.5s] ease-out dark:opacity-0"
@@ -1107,10 +1346,7 @@ export function ScenePageBackground({ entropy }: { entropy: EntropyResult }) {
       />
 
       {/* Canvas particle layer */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 h-full w-full"
-      />
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
     </div>
   );
 }
@@ -1128,20 +1364,61 @@ function PandaBody({ level }: { level: number }) {
     <g>
       {/* Tail */}
       <g className={level === 0 ? 'ps-tail-wag' : ''}>
-        <ellipse cx="80" cy="86" rx="6" ry="5" fill={dark} className="pst" transform="rotate(-20, 80, 86)" />
+        <ellipse
+          cx="80"
+          cy="86"
+          rx="6"
+          ry="5"
+          fill={dark}
+          className="pst"
+          transform="rotate(-20, 80, 86)"
+        />
       </g>
-      <ellipse cx="50" cy="72" rx="26" ry="28" fill={fur} stroke={furStroke} strokeWidth="0.6" className="pst" />
-      <ellipse cx="50" cy="74" rx="18" ry="20" fill={fur} opacity={0.6} className="pst" />
+      <ellipse
+        cx="50"
+        cy="72"
+        rx="26"
+        ry="28"
+        fill={fur}
+        stroke={furStroke}
+        strokeWidth="0.6"
+        className="pst"
+      />
+      <ellipse
+        cx="50"
+        cy="74"
+        rx="18"
+        ry="20"
+        fill={fur}
+        opacity={0.6}
+        className="pst"
+      />
 
       <g className={level === 0 ? 'ps-wave-arm' : ''}>
-        <ellipse cx="22" cy="66" rx="10" ry="14" fill={dark} className="pst" transform="rotate(15, 22, 66)" />
+        <ellipse
+          cx="22"
+          cy="66"
+          rx="10"
+          ry="14"
+          fill={dark}
+          className="pst"
+          transform="rotate(15, 22, 66)"
+        />
         <circle cx="18" cy="76" r="5" fill={darkInner} className="pst" />
         <circle cx="16" cy="74" r="1.5" fill="#5D4037" opacity={0.4} />
         <circle cx="20" cy="73" r="1.5" fill="#5D4037" opacity={0.4} />
         <circle cx="18" cy="78" r="2" fill="#5D4037" opacity={0.3} />
       </g>
 
-      <ellipse cx="78" cy="66" rx="10" ry="14" fill={dark} className="pst" transform="rotate(-15, 78, 66)" />
+      <ellipse
+        cx="78"
+        cy="66"
+        rx="10"
+        ry="14"
+        fill={dark}
+        className="pst"
+        transform="rotate(-15, 78, 66)"
+      />
       <circle cx="82" cy="76" r="5" fill={darkInner} className="pst" />
       <circle cx="80" cy="74" r="1.5" fill="#5D4037" opacity={0.4} />
       <circle cx="84" cy="73" r="1.5" fill="#5D4037" opacity={0.4} />
@@ -1150,32 +1427,116 @@ function PandaBody({ level }: { level: number }) {
       <ellipse cx="36" cy="96" rx="12" ry="8" fill={dark} className="pst" />
       <ellipse cx="64" cy="96" rx="12" ry="8" fill={dark} className="pst" />
       {[33, 36, 39].map((x, i) => (
-        <circle key={`lt${i}`} cx={x} cy={100} r={1.8} fill="#5D4037" opacity={0.3} />
+        <circle
+          key={`lt${i}`}
+          cx={x}
+          cy={100}
+          r={1.8}
+          fill="#5D4037"
+          opacity={0.3}
+        />
       ))}
       {[61, 64, 67].map((x, i) => (
-        <circle key={`rt${i}`} cx={x} cy={100} r={1.8} fill="#5D4037" opacity={0.3} />
+        <circle
+          key={`rt${i}`}
+          cx={x}
+          cy={100}
+          r={1.8}
+          fill="#5D4037"
+          opacity={0.3}
+        />
       ))}
 
-      <circle cx="50" cy="30" r="26" fill={fur} stroke={furStroke} strokeWidth="0.6" className="pst" />
+      <circle
+        cx="50"
+        cy="30"
+        r="26"
+        fill={fur}
+        stroke={furStroke}
+        strokeWidth="0.6"
+        className="pst"
+      />
 
       <g className="ps-ear-twitch">
         <circle cx="26" cy="8" r="11" fill={dark} className="pst" />
-        <circle cx="26" cy="8" r="6" fill="#F48FB1" opacity={0.25} className="pst" />
+        <circle
+          cx="26"
+          cy="8"
+          r="6"
+          fill="#F48FB1"
+          opacity={0.25}
+          className="pst"
+        />
       </g>
       <g className="ps-ear-twitch-r">
         <circle cx="74" cy="8" r="11" fill={dark} className="pst" />
-        <circle cx="74" cy="8" r="6" fill="#F48FB1" opacity={0.25} className="pst" />
+        <circle
+          cx="74"
+          cy="8"
+          r="6"
+          fill="#F48FB1"
+          opacity={0.25}
+          className="pst"
+        />
       </g>
 
-      <ellipse cx="37" cy="28" rx="11" ry="9.5" fill={dark} transform="rotate(-6, 37, 28)" className="pst" />
-      <ellipse cx="63" cy="28" rx="11" ry="9.5" fill={dark} transform="rotate(6, 63, 28)" className="pst" />
+      <ellipse
+        cx="37"
+        cy="28"
+        rx="11"
+        ry="9.5"
+        fill={dark}
+        transform="rotate(-6, 37, 28)"
+        className="pst"
+      />
+      <ellipse
+        cx="63"
+        cy="28"
+        rx="11"
+        ry="9.5"
+        fill={dark}
+        transform="rotate(6, 63, 28)"
+        className="pst"
+      />
 
       <ellipse cx="50" cy="38" rx="5" ry="3.5" fill="#1A1A1A" className="pst" />
-      <ellipse cx="48.5" cy="37" rx="2.2" ry="1.2" fill="#333" className="pst" />
-      <line x1="50" y1="41" x2="50" y2="44" stroke="#1A1A1A" strokeWidth="1" strokeLinecap="round" className="pst" />
+      <ellipse
+        cx="48.5"
+        cy="37"
+        rx="2.2"
+        ry="1.2"
+        fill="#333"
+        className="pst"
+      />
+      <line
+        x1="50"
+        y1="41"
+        x2="50"
+        y2="44"
+        stroke="#1A1A1A"
+        strokeWidth="1"
+        strokeLinecap="round"
+        className="pst"
+      />
 
-      <ellipse cx="28" cy="38" rx="5" ry="3.5" fill={cheek} opacity={0.35} className="pst" />
-      <ellipse cx="72" cy="38" rx="5" ry="3.5" fill={cheek} opacity={0.35} className="pst" />
+      <ellipse
+        cx="28"
+        cy="38"
+        rx="5"
+        ry="3.5"
+        fill={cheek}
+        opacity={0.35}
+        className="pst"
+      />
+      <ellipse
+        cx="72"
+        cy="38"
+        rx="5"
+        ry="3.5"
+        fill={cheek}
+        opacity={0.35}
+        className="pst"
+      />
     </g>
   );
 }
@@ -1208,8 +1569,26 @@ function PandaEyes({ level }: { level: number }) {
           <circle cx="37" cy="26.5" r="0.9" fill="white" />
           <circle cx="63" cy="26.5" r="0.9" fill="white" />
         </g>
-        <line x1="30" y1="19" x2="42" y2="21.5" stroke="#FFF3E0" strokeWidth="2.2" strokeLinecap="round" className="pst" />
-        <line x1="70" y1="19" x2="58" y2="21.5" stroke="#FFF3E0" strokeWidth="2.2" strokeLinecap="round" className="pst" />
+        <line
+          x1="30"
+          y1="19"
+          x2="42"
+          y2="21.5"
+          stroke="#FFF3E0"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          className="pst"
+        />
+        <line
+          x1="70"
+          y1="19"
+          x2="58"
+          y2="21.5"
+          stroke="#FFF3E0"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          className="pst"
+        />
       </g>
     );
   }
@@ -1220,10 +1599,38 @@ function PandaEyes({ level }: { level: number }) {
         <circle cx="63" cy="27" r="4" fill="white" className="pst" />
         <circle cx="37" cy="28.5" r="2" fill="#111" className="pst" />
         <circle cx="63" cy="28.5" r="2" fill="#111" className="pst" />
-        <path d="M31 24 Q37 21 43 24 L43 26 Q37 23 31 26 Z" fill="#1A1A1A" className="pst" />
-        <path d="M57 24 Q63 21 69 24 L69 26 Q63 23 57 26 Z" fill="#1A1A1A" className="pst" />
-        <text x="78" y="14" fill="currentColor" opacity={0.15} fontSize="8" fontFamily="monospace" className="ps-zzz">z</text>
-        <text x="84" y="8" fill="currentColor" opacity={0.1} fontSize="6" fontFamily="monospace" className="ps-zzz2">z</text>
+        <path
+          d="M31 24 Q37 21 43 24 L43 26 Q37 23 31 26 Z"
+          fill="#1A1A1A"
+          className="pst"
+        />
+        <path
+          d="M57 24 Q63 21 69 24 L69 26 Q63 23 57 26 Z"
+          fill="#1A1A1A"
+          className="pst"
+        />
+        <text
+          x="78"
+          y="14"
+          fill="currentColor"
+          opacity={0.15}
+          fontSize="8"
+          fontFamily="monospace"
+          className="ps-zzz"
+        >
+          z
+        </text>
+        <text
+          x="84"
+          y="8"
+          fill="currentColor"
+          opacity={0.1}
+          fontSize="6"
+          fontFamily="monospace"
+          className="ps-zzz2"
+        >
+          z
+        </text>
       </g>
     );
   }
@@ -1244,23 +1651,105 @@ function PandaEyes({ level }: { level: number }) {
   if (level === 4) {
     return (
       <g className="ps-squint-happy">
-        <path d="M30 29 Q37 22 44 29" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" className="pst" />
-        <path d="M56 29 Q63 22 70 29" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" className="pst" />
+        <path
+          d="M30 29 Q37 22 44 29"
+          fill="none"
+          stroke="white"
+          strokeWidth="2.8"
+          strokeLinecap="round"
+          className="pst"
+        />
+        <path
+          d="M56 29 Q63 22 70 29"
+          fill="none"
+          stroke="white"
+          strokeWidth="2.8"
+          strokeLinecap="round"
+          className="pst"
+        />
       </g>
     );
   }
   if (level === 5) {
     return (
       <g>
-        <line x1="34" y1="27" x2="40" y2="27" stroke="white" strokeWidth="2" strokeLinecap="round" className="pst" />
-        <line x1="60" y1="27" x2="66" y2="27" stroke="white" strokeWidth="2" strokeLinecap="round" className="pst" />
-        <circle cx="37" cy="27" r="8.5" fill="none" stroke="#6D4C41" strokeWidth="1.4" className="pst" />
-        <circle cx="63" cy="27" r="8.5" fill="none" stroke="#6D4C41" strokeWidth="1.4" className="pst" />
-        <path d="M45.5 26 Q50 23 54.5 26" fill="none" stroke="#6D4C41" strokeWidth="1.2" className="pst" />
-        <line x1="28.5" y1="26" x2="20" y2="22" stroke="#6D4C41" strokeWidth="1.2" className="pst" />
-        <line x1="71.5" y1="26" x2="80" y2="22" stroke="#6D4C41" strokeWidth="1.2" className="pst" />
-        <path d="M33 23 Q34 22 35 23" fill="none" stroke="white" strokeWidth="0.6" opacity={0.35} />
-        <path d="M59 23 Q60 22 61 23" fill="none" stroke="white" strokeWidth="0.6" opacity={0.35} />
+        <line
+          x1="34"
+          y1="27"
+          x2="40"
+          y2="27"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="pst"
+        />
+        <line
+          x1="60"
+          y1="27"
+          x2="66"
+          y2="27"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+          className="pst"
+        />
+        <circle
+          cx="37"
+          cy="27"
+          r="8.5"
+          fill="none"
+          stroke="#6D4C41"
+          strokeWidth="1.4"
+          className="pst"
+        />
+        <circle
+          cx="63"
+          cy="27"
+          r="8.5"
+          fill="none"
+          stroke="#6D4C41"
+          strokeWidth="1.4"
+          className="pst"
+        />
+        <path
+          d="M45.5 26 Q50 23 54.5 26"
+          fill="none"
+          stroke="#6D4C41"
+          strokeWidth="1.2"
+          className="pst"
+        />
+        <line
+          x1="28.5"
+          y1="26"
+          x2="20"
+          y2="22"
+          stroke="#6D4C41"
+          strokeWidth="1.2"
+          className="pst"
+        />
+        <line
+          x1="71.5"
+          y1="26"
+          x2="80"
+          y2="22"
+          stroke="#6D4C41"
+          strokeWidth="1.2"
+          className="pst"
+        />
+        <path
+          d="M33 23 Q34 22 35 23"
+          fill="none"
+          stroke="white"
+          strokeWidth="0.6"
+          opacity={0.35}
+        />
+        <path
+          d="M59 23 Q60 22 61 23"
+          fill="none"
+          stroke="white"
+          strokeWidth="0.6"
+          opacity={0.35}
+        />
       </g>
     );
   }
@@ -1271,23 +1760,81 @@ function PandaMouth({ level }: { level: number }) {
   if (level === 0) {
     return (
       <g>
-        <path d="M43 45 Q50 52 57 45" fill="none" stroke="#333" strokeWidth="1.4" strokeLinecap="round" className="pst" />
-        <ellipse cx="50" cy="47.5" rx="3" ry="2" fill="#EF9A9A" opacity={0.5} className="pst" />
+        <path
+          d="M43 45 Q50 52 57 45"
+          fill="none"
+          stroke="#333"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          className="pst"
+        />
+        <ellipse
+          cx="50"
+          cy="47.5"
+          rx="3"
+          ry="2"
+          fill="#EF9A9A"
+          opacity={0.5}
+          className="pst"
+        />
       </g>
     );
   }
-  if (level === 1) return <ellipse cx="50" cy="45" rx="3" ry="2.5" fill="#333" className="pst" />;
+  if (level === 1)
+    return (
+      <ellipse cx="50" cy="45" rx="3" ry="2.5" fill="#333" className="pst" />
+    );
   if (level === 2) {
     return (
       <g>
         <ellipse cx="50" cy="46" rx="4" ry="4.5" fill="#333" className="pst" />
-        <ellipse cx="50" cy="48.5" rx="3" ry="2" fill="#EF9A9A" opacity={0.4} className="pst" />
+        <ellipse
+          cx="50"
+          cy="48.5"
+          rx="3"
+          ry="2"
+          fill="#EF9A9A"
+          opacity={0.4}
+          className="pst"
+        />
       </g>
     );
   }
-  if (level === 3) return <line x1="44" y1="45" x2="56" y2="45" stroke="#333" strokeWidth="1.2" strokeLinecap="round" className="pst" />;
-  if (level === 4) return <path d="M44 44 Q50 49 56 44" fill="none" stroke="#333" strokeWidth="1.3" strokeLinecap="round" className="pst" />;
-  if (level === 5) return <path d="M46 45 Q50 47 54 45" fill="none" stroke="#555" strokeWidth="1" strokeLinecap="round" className="pst" />;
+  if (level === 3)
+    return (
+      <line
+        x1="44"
+        y1="45"
+        x2="56"
+        y2="45"
+        stroke="#333"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        className="pst"
+      />
+    );
+  if (level === 4)
+    return (
+      <path
+        d="M44 44 Q50 49 56 44"
+        fill="none"
+        stroke="#333"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+        className="pst"
+      />
+    );
+  if (level === 5)
+    return (
+      <path
+        d="M46 45 Q50 47 54 45"
+        fill="none"
+        stroke="#555"
+        strokeWidth="1"
+        strokeLinecap="round"
+        className="pst"
+      />
+    );
   return null;
 }
 
@@ -1295,9 +1842,27 @@ function PandaAccessories({ level }: { level: number }) {
   if (level === 3) {
     return (
       <g className="pst">
-        <line x1="50" y1="-8" x2="50" y2="28" stroke="#5D4037" strokeWidth="2.2" />
-        <path d="M50 28 Q50 34 46 34" fill="none" stroke="#5D4037" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M26 -4 Q50 -30 74 -4" fill="#EF5350" stroke="#C62828" strokeWidth="1" />
+        <line
+          x1="50"
+          y1="-8"
+          x2="50"
+          y2="28"
+          stroke="#5D4037"
+          strokeWidth="2.2"
+        />
+        <path
+          d="M50 28 Q50 34 46 34"
+          fill="none"
+          stroke="#5D4037"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <path
+          d="M26 -4 Q50 -30 74 -4"
+          fill="#EF5350"
+          stroke="#C62828"
+          strokeWidth="1"
+        />
         <path d="M26 -4 Q38 -18 50 -4" fill="#E53935" opacity={0.25} />
         <path d="M50 -4 Q62 -18 74 -4" fill="#D32F2F" opacity={0.15} />
         <circle cx="50" cy="-26" r="1.5" fill="#C62828" />
@@ -1307,12 +1872,38 @@ function PandaAccessories({ level }: { level: number }) {
   if (level === 4) {
     return (
       <g className="pst">
-        <path d="M30 52 Q50 48 70 52 Q72 52 72 54 Q50 50 30 54 Q28 54 30 52" fill="#E53935" />
+        <path
+          d="M30 52 Q50 48 70 52 Q72 52 72 54 Q50 50 30 54 Q28 54 30 52"
+          fill="#E53935"
+        />
         <rect x="64" y="52" width="9" height="18" rx="3" fill="#C62828" />
-        <rect x="66" y="58" width="5" height="2" rx="1" fill="#EF5350" opacity={0.35} />
-        <rect x="66" y="63" width="5" height="2" rx="1" fill="#EF5350" opacity={0.35} />
+        <rect
+          x="66"
+          y="58"
+          width="5"
+          height="2"
+          rx="1"
+          fill="#EF5350"
+          opacity={0.35}
+        />
+        <rect
+          x="66"
+          y="63"
+          width="5"
+          height="2"
+          rx="1"
+          fill="#EF5350"
+          opacity={0.35}
+        />
         {[36, 44, 52, 60].map((x, i) => (
-          <circle key={i} cx={x} cy={52} r={1.2} fill="#FFCDD2" opacity={0.25} />
+          <circle
+            key={i}
+            cx={x}
+            cy={52}
+            r={1.2}
+            fill="#FFCDD2"
+            opacity={0.25}
+          />
         ))}
       </g>
     );
@@ -1320,12 +1911,52 @@ function PandaAccessories({ level }: { level: number }) {
   if (level === 5) {
     return (
       <g className="pst">
-        <path d="M14 100 Q50 114 86 100" fill="none" stroke="#6D4C41" strokeWidth="3" strokeLinecap="round" />
-        <line x1="20" y1="100" x2="24" y2="68" stroke="#6D4C41" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="80" y1="100" x2="76" y2="68" stroke="#6D4C41" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="28" y1="70" x2="72" y2="70" stroke="#6D4C41" strokeWidth="2" />
-        <line x1="26" y1="78" x2="74" y2="78" stroke="#6D4C41" strokeWidth="2" />
-        <path d="M28 82 Q50 92 72 82 L70 98 Q50 106 30 98 Z" fill="#7E57C2" opacity={0.45} />
+        <path
+          d="M14 100 Q50 114 86 100"
+          fill="none"
+          stroke="#6D4C41"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <line
+          x1="20"
+          y1="100"
+          x2="24"
+          y2="68"
+          stroke="#6D4C41"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="80"
+          y1="100"
+          x2="76"
+          y2="68"
+          stroke="#6D4C41"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="28"
+          y1="70"
+          x2="72"
+          y2="70"
+          stroke="#6D4C41"
+          strokeWidth="2"
+        />
+        <line
+          x1="26"
+          y1="78"
+          x2="74"
+          y2="78"
+          stroke="#6D4C41"
+          strokeWidth="2"
+        />
+        <path
+          d="M28 82 Q50 92 72 82 L70 98 Q50 106 30 98 Z"
+          fill="#7E57C2"
+          opacity={0.45}
+        />
       </g>
     );
   }
@@ -1341,21 +1972,93 @@ function GhostPanda() {
           <stop offset="100%" stopColor="#CE93D8" stopOpacity={0} />
         </radialGradient>
       </defs>
-      <circle cx="50" cy="50" r="50" fill="url(#ps-ghost-aura)" className="ps-breathe" />
-      <ellipse cx="50" cy="-2" rx="18" ry="5" fill="none" stroke="#FFD54F" strokeWidth="2.5" opacity={0.6} />
+      <circle
+        cx="50"
+        cy="50"
+        r="50"
+        fill="url(#ps-ghost-aura)"
+        className="ps-breathe"
+      />
+      <ellipse
+        cx="50"
+        cy="-2"
+        rx="18"
+        ry="5"
+        fill="none"
+        stroke="#FFD54F"
+        strokeWidth="2.5"
+        opacity={0.6}
+      />
       <ellipse cx="50" cy="-2" rx="14" ry="3.5" fill="#FFD54F" opacity={0.1} />
       <path
         d="M28 30 Q28 4 50 4 Q72 4 72 30 L72 78 Q65 72 58 78 Q52 84 50 78 Q44 84 42 78 Q35 72 28 78 Z"
-        fill="white" opacity={0.15} stroke="white" strokeWidth="0.8" strokeOpacity={0.3}
+        fill="white"
+        opacity={0.15}
+        stroke="white"
+        strokeWidth="0.8"
+        strokeOpacity={0.3}
       />
-      <ellipse cx="38" cy="30" rx="10" ry="8" fill="white" opacity={0.1} transform="rotate(-5, 38, 30)" />
-      <ellipse cx="62" cy="30" rx="10" ry="8" fill="white" opacity={0.1} transform="rotate(5, 62, 30)" />
-      <circle cx="38" cy="28" r="5.5" fill="none" stroke="white" strokeWidth="1.2" opacity={0.4} />
-      <circle cx="62" cy="28" r="5.5" fill="none" stroke="white" strokeWidth="1.2" opacity={0.4} />
-      <circle cx="38" cy="28" r="2" fill="#CE93D8" opacity={0.35} className="ps-glow-eye" />
-      <circle cx="62" cy="28" r="2" fill="#CE93D8" opacity={0.35} className="ps-glow-eye2" />
+      <ellipse
+        cx="38"
+        cy="30"
+        rx="10"
+        ry="8"
+        fill="white"
+        opacity={0.1}
+        transform="rotate(-5, 38, 30)"
+      />
+      <ellipse
+        cx="62"
+        cy="30"
+        rx="10"
+        ry="8"
+        fill="white"
+        opacity={0.1}
+        transform="rotate(5, 62, 30)"
+      />
+      <circle
+        cx="38"
+        cy="28"
+        r="5.5"
+        fill="none"
+        stroke="white"
+        strokeWidth="1.2"
+        opacity={0.4}
+      />
+      <circle
+        cx="62"
+        cy="28"
+        r="5.5"
+        fill="none"
+        stroke="white"
+        strokeWidth="1.2"
+        opacity={0.4}
+      />
+      <circle
+        cx="38"
+        cy="28"
+        r="2"
+        fill="#CE93D8"
+        opacity={0.35}
+        className="ps-glow-eye"
+      />
+      <circle
+        cx="62"
+        cy="28"
+        r="2"
+        fill="#CE93D8"
+        opacity={0.35}
+        className="ps-glow-eye2"
+      />
       <ellipse cx="50" cy="37" rx="3" ry="2.2" fill="white" opacity={0.15} />
-      <path d="M43 42 Q50 46 57 42" fill="none" stroke="white" strokeWidth="1" opacity={0.2} strokeLinecap="round" />
+      <path
+        d="M43 42 Q50 46 57 42"
+        fill="none"
+        stroke="white"
+        strokeWidth="1"
+        opacity={0.2}
+        strokeLinecap="round"
+      />
     </g>
   );
 }
@@ -1364,14 +2067,15 @@ export function ScenePanda({ entropy }: { entropy: EntropyResult }) {
   const level = useMemo(() => getLevel(entropy.crackTime), [entropy.crackTime]);
 
   // Level-specific body class for idle animations
-  const bodyClass = [
-    'ps-body-bounce',  // 0: happy bounce
-    'ps-body-sway',    // 1: gentle sway
-    'ps-body-bob',     // 2: sleepy bob
-    'ps-body-shudder', // 3: rain shudder
-    'ps-body-bob',     // 4: content bob
-    'ps-body-shiver',  // 5: cold shiver
-  ][level] ?? '';
+  const bodyClass =
+    [
+      'ps-body-bounce', // 0: happy bounce
+      'ps-body-sway', // 1: gentle sway
+      'ps-body-bob', // 2: sleepy bob
+      'ps-body-shudder', // 3: rain shudder
+      'ps-body-bob', // 4: content bob
+      'ps-body-shiver' // 5: cold shiver
+    ][level] ?? '';
 
   return (
     <svg
@@ -1451,19 +2155,37 @@ export function ScenePanda({ entropy }: { entropy: EntropyResult }) {
         `}</style>
       </defs>
 
-      {level === 6 ? <GhostPanda /> : (
+      {level === 6 ? (
+        <GhostPanda />
+      ) : (
         <g className={bodyClass}>
           <g className="ps-breathe-body">
             <PandaBody level={level} />
           </g>
-          <g className={level === 2 ? 'ps-head-droop' : level === 3 ? 'ps-head-look-up' : ''}>
+          <g
+            className={
+              level === 2
+                ? 'ps-head-droop'
+                : level === 3
+                  ? 'ps-head-look-up'
+                  : ''
+            }
+          >
             <PandaEyes level={level} />
           </g>
           <PandaMouth level={level} />
           <PandaAccessories level={level} />
           {/* Cold breath puff for level 5 */}
           {level === 5 && (
-            <ellipse cx="50" cy="46" rx="4" ry="2.5" fill="white" opacity={0} className="ps-cold-breath" />
+            <ellipse
+              cx="50"
+              cy="46"
+              rx="4"
+              ry="2.5"
+              fill="white"
+              opacity={0}
+              className="ps-cold-breath"
+            />
           )}
         </g>
       )}

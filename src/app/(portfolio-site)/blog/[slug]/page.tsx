@@ -23,20 +23,23 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({
-  params,
+  params
 }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
   try {
     const { meta } = await getPostBySlug(slug);
     const headersList = await headers();
     const host = headersList.get('host') ?? 'dipak.tech';
-    const proto = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https';
+    const proto =
+      host.startsWith('localhost') || host.startsWith('127.0.0.1')
+        ? 'http'
+        : 'https';
     const currentBaseUrl = `${proto}://${host}`;
     return {
       title: `${meta.title} | Dipak Parmar`,
       description: meta.description,
       alternates: {
-        canonical: `https://dipak.tech/blog/${slug}`,
+        canonical: `https://dipak.tech/blog/${slug}`
       },
       openGraph: {
         title: meta.title,
@@ -52,10 +55,10 @@ export async function generateMetadata({
             tags: meta.tags.join(','),
             date: meta.date,
             readingTime: String(meta.readingTime),
-            baseUrl: currentBaseUrl,
-          }),
-        ],
-      },
+            baseUrl: currentBaseUrl
+          })
+        ]
+      }
     };
   } catch {
     return {};
@@ -84,7 +87,7 @@ export default async function PostPage({ params }: PostPageProps) {
     author: personReference,
     url: `https://dipak.tech/blog/${slug}`,
     keywords: meta.tags,
-    ...(meta.image && { image: meta.image }),
+    ...(meta.image && { image: meta.image })
   };
 
   return (
@@ -98,7 +101,10 @@ export default async function PostPage({ params }: PostPageProps) {
             href="/blog"
             className="group inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.08em] text-muted-foreground/55 hover:text-foreground transition-colors duration-150 mb-8"
           >
-            <ArrowLeft className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5" strokeWidth={1.5} />
+            <ArrowLeft
+              className="size-3 transition-transform duration-200 group-hover:-translate-x-0.5"
+              strokeWidth={1.5}
+            />
             <span>Writing</span>
           </Link>
           <h1 className="text-[28px] sm:text-[34px] md:text-[40px] font-medium tracking-[-0.035em] md:tracking-[-0.04em] leading-[1.1] text-foreground mb-5 text-balance break-words hyphens-auto">
@@ -109,20 +115,24 @@ export default async function PostPage({ params }: PostPageProps) {
               {new Date(meta.date).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
-                day: '2-digit',
+                day: '2-digit'
               })}
             </time>
-            <span aria-hidden className="text-muted-foreground/30">·</span>
+            <span aria-hidden className="text-muted-foreground/30">
+              ·
+            </span>
             <span>{meta.readingTime} min read</span>
             {meta.updated && (
               <>
-                <span aria-hidden className="text-muted-foreground/30">·</span>
+                <span aria-hidden className="text-muted-foreground/30">
+                  ·
+                </span>
                 <span>
                   Updated{' '}
                   {new Date(meta.updated).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
-                    day: '2-digit',
+                    day: '2-digit'
                   })}
                 </span>
               </>

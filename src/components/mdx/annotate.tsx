@@ -7,7 +7,7 @@ import { annotate, type RoughAnnotation } from '@/lib/vendor/rough-notation';
 import {
   ScribbleArrow,
   ScribbleCircle,
-  ScribbleHighlight,
+  ScribbleHighlight
 } from '@/components/scribble';
 
 type AnnotateType = 'circle' | 'underline' | 'arrow' | 'highlight';
@@ -24,7 +24,7 @@ const UNDERLINE_DURATION_MS = 800;
 
 function UnderlineAnnotate({
   color,
-  children,
+  children
 }: {
   color?: string;
   children: ReactNode;
@@ -47,7 +47,7 @@ function UnderlineAnnotate({
       iterations: 2,
       // multiline lets the scribble wrap across line breaks correctly.
       multiline: true,
-      padding: 1,
+      padding: 1
     });
     annotationRef.current = annotation;
 
@@ -75,7 +75,7 @@ function UnderlineAnnotate({
 export function Annotate({
   type = 'underline',
   color,
-  children,
+  children
 }: AnnotateProps) {
   if (type === 'circle') {
     return (
@@ -109,7 +109,10 @@ export function Annotate({
           aria-hidden
           className="inline-block w-[28px] h-[14px] translate-y-[1px]"
         >
-          <ScribbleArrow color={color} className="w-full h-full overflow-visible" />
+          <ScribbleArrow
+            color={color}
+            className="w-full h-full overflow-visible"
+          />
         </span>
       </span>
     );

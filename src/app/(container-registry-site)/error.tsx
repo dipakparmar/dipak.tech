@@ -10,6 +10,10 @@ export default function ContainerRegistryError({
   reset: () => void;
 }) {
   return (
-    <ErrorBoundary error={error} reset={reset} routeGroup="container-registry" />
+    <ErrorBoundary
+      error={error}
+      reset={reset}
+      routeGroup="container-registry"
+    />
   );
 }

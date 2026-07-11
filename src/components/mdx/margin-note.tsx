@@ -6,7 +6,7 @@ import { useInView, useReducedMotion } from 'motion/react';
 import {
   annotate,
   type BracketType,
-  type RoughAnnotation,
+  type RoughAnnotation
 } from '@/lib/vendor/rough-notation';
 
 type MarginNoteColor = 'info' | 'tip' | 'warning' | 'danger' | 'purple';
@@ -96,7 +96,7 @@ function RoughBracket({ brackets, targetRef, className }: RoughBracketProps) {
       // Inherit colour from the surrounding handwritten-note styling so
       // theme switches (light/dark) just work without prop drilling.
       color: 'currentColor',
-      iterations: 1,
+      iterations: 1
     });
     annotationRef.current = annotation;
 
@@ -119,7 +119,13 @@ function RoughBracket({ brackets, targetRef, className }: RoughBracketProps) {
   return <span ref={hostRef} aria-hidden className={className} />;
 }
 
-export function MarginNote({ children, text, color, bracketDesktop, bracketMobile }: MarginNoteProps) {
+export function MarginNote({
+  children,
+  text,
+  color,
+  bracketDesktop,
+  bracketMobile
+}: MarginNoteProps) {
   const isDesktop = useIsDesktop();
 
   if (text) {
@@ -153,7 +159,7 @@ function StandaloneMarginNote({
   color,
   isDesktop,
   bracketDesktop,
-  bracketMobile,
+  bracketMobile
 }: {
   children: ReactNode;
   color?: MarginNoteColor;
@@ -165,8 +171,12 @@ function StandaloneMarginNote({
   const defaultDesktop: BracketType[] = ['right'];
   const defaultMobile: BracketType[] = ['bottom'];
   const brackets: BracketType[] = isDesktop
-    ? (bracketDesktop ? ([] as BracketType[]).concat(bracketDesktop) : defaultDesktop)
-    : (bracketMobile  ? ([] as BracketType[]).concat(bracketMobile)  : defaultMobile);
+    ? bracketDesktop
+      ? ([] as BracketType[]).concat(bracketDesktop)
+      : defaultDesktop
+    : bracketMobile
+      ? ([] as BracketType[]).concat(bracketMobile)
+      : defaultMobile;
 
   return (
     <span className="mdx-margin-note" data-color={color} role="note">
@@ -188,7 +198,7 @@ function EnclosureMarginNote({
   color,
   isDesktop,
   bracketDesktop,
-  bracketMobile,
+  bracketMobile
 }: {
   children: ReactNode;
   text: ReactNode;
@@ -201,8 +211,12 @@ function EnclosureMarginNote({
   const defaultDesktop: BracketType[] = ['left'];
   const defaultMobile: BracketType[] = ['bottom'];
   const brackets: BracketType[] = isDesktop
-    ? (bracketDesktop ? ([] as BracketType[]).concat(bracketDesktop) : defaultDesktop)
-    : (bracketMobile  ? ([] as BracketType[]).concat(bracketMobile)  : defaultMobile);
+    ? bracketDesktop
+      ? ([] as BracketType[]).concat(bracketDesktop)
+      : defaultDesktop
+    : bracketMobile
+      ? ([] as BracketType[]).concat(bracketMobile)
+      : defaultMobile;
 
   return (
     <div className="mdx-margin-enclose" data-color={color}>

@@ -1,143 +1,162 @@
-"use client"
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   parseEmailHeaders,
   formatDelay,
-  SAMPLE_HEADERS,
-} from "@/lib/email-header-parser"
-import type { ParsedHeaders } from "@/lib/email-header-parser"
-import { SummaryCard } from "./summary-card"
-import { RoutingTimeline } from "./routing-timeline"
-import { AuthResults } from "./auth-results"
-import { ProviderHeadersCard } from "./provider-headers-card"
-import { HeaderTable } from "./header-table"
-import { MessageViewer } from "./message-viewer"
-import { AnnotationProvider, useAnnotation } from "./annotation-provider"
-import { DesktopCommentCards, MobileCommentSheet, ConnectorLines } from "./annotation-components"
-import { FileText, AlertCircle, Clipboard, Trash2, ChevronDown, Share2, Check } from "lucide-react"
-import { useHaptics } from "@/hooks/use-haptics"
+  SAMPLE_HEADERS
+} from '@/lib/email-header-parser';
+import type { ParsedHeaders } from '@/lib/email-header-parser';
+import { SummaryCard } from './summary-card';
+import { RoutingTimeline } from './routing-timeline';
+import { AuthResults } from './auth-results';
+import { ProviderHeadersCard } from './provider-headers-card';
+import { HeaderTable } from './header-table';
+import { MessageViewer } from './message-viewer';
+import { AnnotationProvider, useAnnotation } from './annotation-provider';
+import {
+  DesktopCommentCards,
+  MobileCommentSheet,
+  ConnectorLines
+} from './annotation-components';
+import {
+  FileText,
+  AlertCircle,
+  Clipboard,
+  Trash2,
+  ChevronDown,
+  Share2,
+  Check
+} from 'lucide-react';
+import { useHaptics } from '@/hooks/use-haptics';
 
 function encodeHeaders(raw: string): string {
-  const bytes = new TextEncoder().encode(raw)
-  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("")
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+  const bytes = new TextEncoder().encode(raw);
+  const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join('');
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 function decodeHeaders(encoded: string): string | null {
   try {
-    const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/")
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4)
-    const binary = atob(padded)
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
-    return new TextDecoder().decode(bytes)
+    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
   } catch {
-    return null
+    return null;
   }
 }
 
 function getInitialHeaderState() {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return {
-      rawHeaders: "",
+      rawHeaders: '',
       parsed: null as ParsedHeaders | null,
-      collapsed: false,
-    }
+      collapsed: false
+    };
   }
 
-  const hash = window.location.hash.slice(1)
+  const hash = window.location.hash.slice(1);
   if (!hash) {
     return {
-      rawHeaders: "",
+      rawHeaders: '',
       parsed: null as ParsedHeaders | null,
-      collapsed: false,
-    }
+      collapsed: false
+    };
   }
 
-  const decoded = decodeHeaders(hash)
+  const decoded = decodeHeaders(hash);
   if (!decoded) {
     return {
-      rawHeaders: "",
+      rawHeaders: '',
       parsed: null as ParsedHeaders | null,
-      collapsed: false,
-    }
+      collapsed: false
+    };
   }
 
-  const result = parseEmailHeaders(decoded)
+  const result = parseEmailHeaders(decoded);
   return {
     rawHeaders: decoded,
     parsed: result.headers.length > 0 ? result : null,
-    collapsed: result.headers.length > 0,
-  }
+    collapsed: result.headers.length > 0
+  };
 }
 
 function HeaderAnalyzerInner() {
-  const [initialState] = useState(getInitialHeaderState)
-  const [rawHeaders, setRawHeaders] = useState(initialState.rawHeaders)
-  const [parsed, setParsed] = useState<ParsedHeaders | null>(initialState.parsed)
-  const [error, setError] = useState<string | null>(null)
-  const [collapsed, setCollapsed] = useState(initialState.collapsed)
-  const [copied, setCopied] = useState(false)
-  const { trigger: hapticTrigger } = useHaptics()
-  const containerRef = useRef<HTMLDivElement>(null)
-  const { setContainerEl } = useAnnotation()
+  const [initialState] = useState(getInitialHeaderState);
+  const [rawHeaders, setRawHeaders] = useState(initialState.rawHeaders);
+  const [parsed, setParsed] = useState<ParsedHeaders | null>(
+    initialState.parsed
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(initialState.collapsed);
+  const [copied, setCopied] = useState(false);
+  const { trigger: hapticTrigger } = useHaptics();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { setContainerEl } = useAnnotation();
 
   // Set container ref for connector line positioning
   useEffect(() => {
-    if (containerRef.current) setContainerEl(containerRef.current)
-    return () => setContainerEl(null)
-  }, [parsed, setContainerEl])
+    if (containerRef.current) setContainerEl(containerRef.current);
+    return () => setContainerEl(null);
+  }, [parsed, setContainerEl]);
 
   const updateHash = useCallback((raw: string) => {
-    const encoded = encodeHeaders(raw)
-    window.history.replaceState(null, "", `#${encoded}`)
-  }, [])
+    const encoded = encodeHeaders(raw);
+    window.history.replaceState(null, '', `#${encoded}`);
+  }, []);
 
   const handleAnalyze = () => {
     if (!rawHeaders.trim()) {
-      setError("Please paste email headers to analyze.")
-      hapticTrigger("error")
-      return
+      setError('Please paste email headers to analyze.');
+      hapticTrigger('error');
+      return;
     }
-    const result = parseEmailHeaders(rawHeaders)
+    const result = parseEmailHeaders(rawHeaders);
 
     if (result.headers.length === 0) {
-      setError("Could not parse any valid headers from the input. Make sure you are pasting raw email headers.")
-      hapticTrigger("error")
-      return
+      setError(
+        'Could not parse any valid headers from the input. Make sure you are pasting raw email headers.'
+      );
+      hapticTrigger('error');
+      return;
     }
 
-    setError(null)
-    setParsed(result)
-    setCollapsed(true)
-    updateHash(rawHeaders)
-    hapticTrigger("success")
-  }
+    setError(null);
+    setParsed(result);
+    setCollapsed(true);
+    updateHash(rawHeaders);
+    hapticTrigger('success');
+  };
 
   const handlePasteSample = () => {
-    setRawHeaders(SAMPLE_HEADERS)
-    hapticTrigger("light")
-  }
+    setRawHeaders(SAMPLE_HEADERS);
+    hapticTrigger('light');
+  };
 
   const handleClear = () => {
-    setRawHeaders("")
-    setParsed(null)
-    setError(null)
-    setCollapsed(false)
-    window.history.replaceState(null, "", window.location.pathname)
-    hapticTrigger("light")
-  }
+    setRawHeaders('');
+    setParsed(null);
+    setError(null);
+    setCollapsed(false);
+    window.history.replaceState(null, '', window.location.pathname);
+    hapticTrigger('light');
+  };
 
   const handleShare = async () => {
-    await navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
-    hapticTrigger("success")
-    setTimeout(() => setCopied(false), 2000)
-  }
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    hapticTrigger('success');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-8">
@@ -196,7 +215,10 @@ function HeaderAnalyzerInner() {
 
         {/* Error display */}
         {error && (
-          <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-1">
+          <Alert
+            variant="destructive"
+            className="animate-in fade-in slide-in-from-top-1"
+          >
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -232,10 +254,7 @@ function HeaderAnalyzerInner() {
           </div>
 
           {parsed.body && (
-            <MessageViewer
-              summary={parsed.summary}
-              body={parsed.body}
-            />
+            <MessageViewer summary={parsed.summary} body={parsed.body} />
           )}
 
           <SummaryCard
@@ -269,7 +288,7 @@ function HeaderAnalyzerInner() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 export function HeaderAnalyzer() {
@@ -277,5 +296,5 @@ export function HeaderAnalyzer() {
     <AnnotationProvider>
       <HeaderAnalyzerInner />
     </AnnotationProvider>
-  )
+  );
 }

@@ -35,7 +35,7 @@ const description =
 const ogImageUrl = ogUrls.portfolio({
   title: 'Dipak Parmar',
   subtitle: 'DevSecOps Engineer & Open Source Developer',
-  site: 'portfolio',
+  site: 'portfolio'
 });
 
 export const metadata: Metadata = {
@@ -110,14 +110,14 @@ export default function RootLayout({
       className={cn(fontInter.variable, fontReenie.variable)}
     >
       <head>
-        {process.env.NEXT_PUBLIC_REACT_GRAB === "1" && (
+        {process.env.NEXT_PUBLIC_REACT_GRAB === '1' && (
           <script
             src="//unpkg.com/react-grab/dist/index.global.js"
             crossOrigin="anonymous"
             async
           />
         )}
-        {process.env.NEXT_PUBLIC_REACT_GRAB === "1" && (
+        {process.env.NEXT_PUBLIC_REACT_GRAB === '1' && (
           <script
             src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
             async

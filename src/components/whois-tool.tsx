@@ -1,119 +1,130 @@
-"use client"
+'use client';
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle, ArrowRight, Check, Globe, Hash, Network, Search, Share2 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertCircle,
+  ArrowRight,
+  Check,
+  Globe,
+  Hash,
+  Network,
+  Search,
+  Share2
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { HapticButton as Button } from "@/components/haptic-wrappers"
-import { Input } from "@/components/ui/input"
-import type React from "react"
-import { Spinner } from "@/components/ui/spinner"
-import { WhoisResults } from "@/components/whois-results"
-import { useHaptics } from "@/hooks/use-haptics"
+import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { Input } from '@/components/ui/input';
+import type React from 'react';
+import { Spinner } from '@/components/ui/spinner';
+import { WhoisResults } from '@/components/whois-results';
+import { useHaptics } from '@/hooks/use-haptics';
 
 const EXAMPLE_QUERIES = [
-  { label: "google.com", icon: Globe, type: "domain" },
-  { label: "8.8.8.8", icon: Network, type: "ip" },
-  { label: "AS15169", icon: Hash, type: "asn" },
-]
+  { label: 'google.com', icon: Globe, type: 'domain' },
+  { label: '8.8.8.8', icon: Network, type: 'ip' },
+  { label: 'AS15169', icon: Hash, type: 'asn' }
+];
 
-type WhoisLookupResponse = Record<string, unknown>
+type WhoisLookupResponse = Record<string, unknown>;
 
 export function WhoisTool() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-  const { trigger: hapticTrigger } = useHaptics()
-  const initialQuery = searchParams.get("q") || ""
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { trigger: hapticTrigger } = useHaptics();
+  const initialQuery = searchParams.get('q') || '';
 
-  const [query, setQuery] = useState(initialQuery)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [rdapData, setRdapData] = useState<WhoisLookupResponse | null>(null)
-  const [copied, setCopied] = useState(false)
-  const hasAutoSearched = useRef(false)
-  const prevUrlQuery = useRef(initialQuery)
+  const [query, setQuery] = useState(initialQuery);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rdapData, setRdapData] = useState<WhoisLookupResponse | null>(null);
+  const [copied, setCopied] = useState(false);
+  const hasAutoSearched = useRef(false);
+  const prevUrlQuery = useRef(initialQuery);
 
   const handleShare = useCallback(async () => {
-    await navigator.clipboard.writeText(window.location.href)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [])
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
 
   const performLookup = useCallback(
     async (searchQuery: string, updateUrl = true) => {
       if (!searchQuery.trim()) {
-        setError("Please enter a domain, IP address, or ASN")
-        return
+        setError('Please enter a domain, IP address, or ASN');
+        return;
       }
 
-      setLoading(true)
-      setError(null)
-      setRdapData(null)
+      setLoading(true);
+      setError(null);
+      setRdapData(null);
 
       if (updateUrl) {
-        const trimmedQuery = searchQuery.trim()
-        const params = new URLSearchParams(searchParams.toString())
-        params.set("q", trimmedQuery)
-        prevUrlQuery.current = trimmedQuery
-        router.push(`${pathname}?${params.toString()}`)
+        const trimmedQuery = searchQuery.trim();
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('q', trimmedQuery);
+        prevUrlQuery.current = trimmedQuery;
+        router.push(`${pathname}?${params.toString()}`);
       }
 
       try {
-        const trimmed = searchQuery.trim()
-        const response = await fetch(`/api/whois?query=${encodeURIComponent(trimmed)}`)
-        const result = await response.json()
+        const trimmed = searchQuery.trim();
+        const response = await fetch(
+          `/api/whois?query=${encodeURIComponent(trimmed)}`
+        );
+        const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.error || "Failed to fetch WHOIS information")
+          throw new Error(result.error || 'Failed to fetch WHOIS information');
         }
 
-        setRdapData(result)
-        hapticTrigger("success")
+        setRdapData(result);
+        hapticTrigger('success');
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred")
-        hapticTrigger("error")
+        setError(err instanceof Error ? err.message : 'An error occurred');
+        hapticTrigger('error');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     },
     [pathname, router, searchParams, hapticTrigger]
-  )
+  );
 
   useEffect(() => {
-    const urlQuery = searchParams.get("q") || ""
+    const urlQuery = searchParams.get('q') || '';
 
     if (urlQuery && !hasAutoSearched.current) {
-      hasAutoSearched.current = true
-      prevUrlQuery.current = urlQuery
-      setQuery(urlQuery)
-      performLookup(urlQuery, false)
+      hasAutoSearched.current = true;
+      prevUrlQuery.current = urlQuery;
+      setQuery(urlQuery);
+      performLookup(urlQuery, false);
     } else if (urlQuery !== prevUrlQuery.current) {
-      prevUrlQuery.current = urlQuery
-      setQuery(urlQuery)
+      prevUrlQuery.current = urlQuery;
+      setQuery(urlQuery);
       if (urlQuery) {
-        performLookup(urlQuery, false)
+        performLookup(urlQuery, false);
       } else {
-        setRdapData(null)
-        setError(null)
+        setRdapData(null);
+        setError(null);
       }
     }
-  }, [searchParams, performLookup])
+  }, [searchParams, performLookup]);
 
   const handleLookup = async (e?: React.FormEvent, queryOverride?: string) => {
-    e?.preventDefault()
-    const searchQuery = queryOverride || query
+    e?.preventDefault();
+    const searchQuery = queryOverride || query;
     if (queryOverride) {
-      setQuery(queryOverride)
+      setQuery(queryOverride);
     }
-    performLookup(searchQuery)
-  }
+    performLookup(searchQuery);
+  };
 
   const handleExampleClick = (example: string) => {
-    setQuery(example)
-    performLookup(example)
-  }
+    setQuery(example);
+    performLookup(example);
+  };
 
   return (
     <div className="space-y-8">
@@ -174,7 +185,10 @@ export function WhoisTool() {
 
         {/* Error Display */}
         {error && (
-          <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-1">
+          <Alert
+            variant="destructive"
+            className="animate-in fade-in slide-in-from-top-1"
+          >
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -208,5 +222,5 @@ export function WhoisTool() {
         </div>
       )}
     </div>
-  )
+  );
 }

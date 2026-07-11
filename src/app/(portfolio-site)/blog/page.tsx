@@ -7,10 +7,11 @@ import { BlogList } from './blog-list';
 
 export const metadata: Metadata = {
   title: 'Blog | Dipak Parmar',
-  description: 'Writings on software engineering, infrastructure, and DevSecOps.',
+  description:
+    'Writings on software engineering, infrastructure, and DevSecOps.',
   alternates: {
-    canonical: 'https://dipak.tech/blog',
-  },
+    canonical: 'https://dipak.tech/blog'
+  }
 };
 
 const pageSchema: WithContext<CollectionPage> = {
@@ -19,8 +20,9 @@ const pageSchema: WithContext<CollectionPage> = {
   '@id': 'https://dipak.tech/blog#page',
   url: 'https://dipak.tech/blog',
   name: 'Blog | Dipak Parmar',
-  description: 'Writings on software engineering, infrastructure, and DevSecOps.',
-  author: personReference,
+  description:
+    'Writings on software engineering, infrastructure, and DevSecOps.',
+  author: personReference
 };
 
 export default function BlogPage() {

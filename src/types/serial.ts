@@ -71,14 +71,14 @@ export const DEFAULT_SERIAL_SETTINGS: SerialSettings = {
   dataBits: 8,
   stopBits: 1,
   parity: 'none',
-  flowControl: 'none',
+  flowControl: 'none'
 };
 
 /**
  * Default WebSocket settings
  */
 export const DEFAULT_WEBSOCKET_SETTINGS: WebSocketSettings = {
-  url: 'ws://localhost:8080',
+  url: 'ws://localhost:8080'
 };
 
 /**
@@ -88,7 +88,7 @@ export const DEFAULT_SSH_SETTINGS: SSHSettings = {
   proxyUrl: 'ws://localhost:8022',
   host: 'localhost',
   port: 22,
-  username: 'root',
+  username: 'root'
 };
 
 /**
@@ -97,7 +97,7 @@ export const DEFAULT_SSH_SETTINGS: SSHSettings = {
 export const DEFAULT_TELNET_SETTINGS: TelnetSettings = {
   proxyUrl: 'ws://localhost:8023',
   host: 'localhost',
-  port: 23,
+  port: 23
 };
 
 /**
@@ -108,7 +108,7 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   lineEnding: 'lf',
   hexView: false,
   timestamps: false,
-  autoScroll: true,
+  autoScroll: true
 };
 
 /**
@@ -129,12 +129,15 @@ export interface TabState {
 /**
  * Create a new tab with default settings
  */
-export function createDefaultTab(id: string, connectionType: ConnectionType = 'serial'): TabState {
+export function createDefaultTab(
+  id: string,
+  connectionType: ConnectionType = 'serial'
+): TabState {
   const typeLabels: Record<ConnectionType, string> = {
     serial: 'Serial',
     websocket: 'WebSocket',
     ssh: 'SSH',
-    telnet: 'Telnet',
+    telnet: 'Telnet'
   };
 
   return {
@@ -146,6 +149,6 @@ export function createDefaultTab(id: string, connectionType: ConnectionType = 's
     wsSettings: { ...DEFAULT_WEBSOCKET_SETTINGS },
     sshSettings: { ...DEFAULT_SSH_SETTINGS },
     telnetSettings: { ...DEFAULT_TELNET_SETTINGS },
-    sessionLog: [],
+    sessionLog: []
   };
 }

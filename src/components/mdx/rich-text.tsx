@@ -31,7 +31,12 @@ export function parseInline(line: string): RichSeg[] {
 
   const flush = () => {
     if (!buf) return;
-    segs.push({ text: buf, bold: bTag > 0 || bMd, italic: iTag > 0 || iMd, underline: uTag > 0 });
+    segs.push({
+      text: buf,
+      bold: bTag > 0 || bMd,
+      italic: iTag > 0 || iMd,
+      underline: uTag > 0
+    });
     buf = '';
   };
 
@@ -72,7 +77,9 @@ export function parseInline(line: string): RichSeg[] {
     i += 1;
   }
   flush();
-  return segs.length ? segs : [{ text: '', bold: false, italic: false, underline: false }];
+  return segs.length
+    ? segs
+    : [{ text: '', bold: false, italic: false, underline: false }];
 }
 
 /** Split a string into lines on <br>, then into styled segments per line. */

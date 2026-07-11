@@ -74,7 +74,10 @@ export function captureAPIError(
 
       if (context.rateLimitStatus) {
         scope.setContext('rate_limit', context.rateLimitStatus);
-        scope.setTag('rate_limit.hit', (!context.rateLimitStatus.allowed).toString());
+        scope.setTag(
+          'rate_limit.hit',
+          (!context.rateLimitStatus.allowed).toString()
+        );
       }
 
       if (context.operation) {

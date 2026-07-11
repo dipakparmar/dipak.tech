@@ -1,55 +1,65 @@
-import { ArrowLeft, Cpu, Lock, Music4 } from "lucide-react"
+import { ArrowLeft, Cpu, Lock, Music4 } from 'lucide-react';
 
-import { BlurFade } from "@/components/magicui/blur-fade"
-import Link from "next/link"
-import { StemSplitter } from "@/components/stem-splitter/stem-splitter"
-import { buildHref } from "@/lib/host-routing"
-import { headers } from "next/headers"
-import { ogUrls } from "@/lib/og-config"
+import { BlurFade } from '@/components/magicui/blur-fade';
+import Link from 'next/link';
+import { StemSplitter } from '@/components/stem-splitter/stem-splitter';
+import { buildHref } from '@/lib/host-routing';
+import { headers } from 'next/headers';
+import { ogUrls } from '@/lib/og-config';
 
 const ogImageUrl = ogUrls.tools({
-  tool: "Vocal Remover",
-  description: "Remove vocals or split any song into stems, free and in your browser",
-  category: "vocal-remover",
-})
+  tool: 'Vocal Remover',
+  description:
+    'Remove vocals or split any song into stems, free and in your browser',
+  category: 'vocal-remover'
+});
 
 export const metadata = {
-  title: "Vocal Remover & Stem Splitter | Dipak Parmar",
+  title: 'Vocal Remover & Stem Splitter | Dipak Parmar',
   description:
-    "Free AI vocal remover. Remove vocals from any song or isolate vocals, drums, and bass to make karaoke, instrumentals, or acapellas. Powered by HTDemucs, runs 100% in your browser with WebGPU. Your audio never leaves your device.",
+    'Free AI vocal remover. Remove vocals from any song or isolate vocals, drums, and bass to make karaoke, instrumentals, or acapellas. Powered by HTDemucs, runs 100% in your browser with WebGPU. Your audio never leaves your device.',
   keywords: [
-    "vocal remover",
-    "remove vocals from song",
-    "isolate vocals",
-    "stem splitter",
-    "acapella extractor",
-    "karaoke maker",
-    "instrumental maker",
-    "split song into stems",
+    'vocal remover',
+    'remove vocals from song',
+    'isolate vocals',
+    'stem splitter',
+    'acapella extractor',
+    'karaoke maker',
+    'instrumental maker',
+    'split song into stems'
   ],
   openGraph: {
-    title: "Free Vocal Remover & Stem Splitter",
-    description: "Remove vocals or split any song into vocals, drums, bass, and other stems. Free, in your browser.",
-    url: "https://tools.dipak.io/music/vocal-remover",
-    siteName: "tools.dipak.io",
-    type: "website",
-    images: [{ url: ogImageUrl, width: 1200, height: 630, alt: "Vocal Remover & Stem Splitter" }],
+    title: 'Free Vocal Remover & Stem Splitter',
+    description:
+      'Remove vocals or split any song into vocals, drums, bass, and other stems. Free, in your browser.',
+    url: 'https://tools.dipak.io/music/vocal-remover',
+    siteName: 'tools.dipak.io',
+    type: 'website',
+    images: [
+      {
+        url: ogImageUrl,
+        width: 1200,
+        height: 630,
+        alt: 'Vocal Remover & Stem Splitter'
+      }
+    ]
   },
   twitter: {
-    card: "summary_large_image" as const,
-    title: "Free Vocal Remover & Stem Splitter | Dipak Parmar",
-    description: "Remove vocals or split any song into stems. Free, in your browser.",
-    images: [ogImageUrl],
+    card: 'summary_large_image' as const,
+    title: 'Free Vocal Remover & Stem Splitter | Dipak Parmar',
+    description:
+      'Remove vocals or split any song into stems. Free, in your browser.',
+    images: [ogImageUrl]
   },
-  alternates: { canonical: "https://tools.dipak.io/music/vocal-remover" },
-}
+  alternates: { canonical: 'https://tools.dipak.io/music/vocal-remover' }
+};
 
-const BLUR_FADE_DELAY = 0.04
+const BLUR_FADE_DELAY = 0.04;
 
 export default async function VocalRemoverPage() {
-  const headersList = await headers()
-  const host = headersList.get("host") || ""
-  const musicHref = buildHref("tools", "music", host)
+  const headersList = await headers();
+  const host = headersList.get('host') || '';
+  const musicHref = buildHref('tools', 'music', host);
   return (
     <main className="min-h-screen overflow-x-clip bg-background">
       <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]">
@@ -74,14 +84,20 @@ export default async function VocalRemoverPage() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-500 opacity-75" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
                 </span>
-                <span className="text-sm font-medium">Vocal Remover &amp; Stem Splitter</span>
+                <span className="text-sm font-medium">
+                  Vocal Remover &amp; Stem Splitter
+                </span>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Vocal Remover</h1>
+              <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Vocal Remover
+              </h1>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Remove vocals from any song, or split it into four stems (vocals, drums, bass, and
-                other) to make karaoke tracks, instrumentals, or acapellas. Powered by the HTDemucs AI
-                model running right in your browser. The first run downloads the model once (~180 MB),
-                then it&apos;s cached. Your audio never leaves your device.
+                Remove vocals from any song, or split it into four stems
+                (vocals, drums, bass, and other) to make karaoke tracks,
+                instrumentals, or acapellas. Powered by the HTDemucs AI model
+                running right in your browser. The first run downloads the model
+                once (~180 MB), then it&apos;s cached. Your audio never leaves
+                your device.
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <div className="flex items-center gap-2 rounded-full bg-muted/50 px-3 py-1.5 text-sm text-muted-foreground">
@@ -106,5 +122,5 @@ export default async function VocalRemoverPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }

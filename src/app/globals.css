@@ -1,6 +1,6 @@
 @import 'tailwindcss';
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @source "../node_modules/streamdown/dist/*.js";
 
@@ -112,7 +112,9 @@
   .leaflet-div-icon {
     @apply !bg-transparent !border-none;
   }
-  .leaflet-popup-content-wrapper, .leaflet-popup-content, .leaflet-popup-content p {
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-content,
+  .leaflet-popup-content p {
     @apply ![all:unset];
   }
   .leaflet-popup {
@@ -121,7 +123,8 @@
   .leaflet-popup-close-button {
     @apply ring-offset-background focus:ring-ring bg-secondary rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:outline-hidden;
   }
-  .leaflet-tooltip, .leaflet-draw-tooltip {
+  .leaflet-tooltip,
+  .leaflet-draw-tooltip {
     @apply !bg-foreground !text-background !animate-none !rounded-md !border-none !p-0 !px-3 !py-1.5 !shadow-none;
   }
   .leaflet-draw-tooltip:before {
@@ -136,7 +139,11 @@
   .leaflet-draw-tooltip-subtext {
     @apply !text-background;
   }
-  .leaflet-popup-tip-container, .leaflet-tooltip-top:before, .leaflet-tooltip-bottom:before, .leaflet-tooltip-left:before, .leaflet-tooltip-right:before {
+  .leaflet-popup-tip-container,
+  .leaflet-tooltip-top:before,
+  .leaflet-tooltip-bottom:before,
+  .leaflet-tooltip-left:before,
+  .leaflet-tooltip-right:before {
     @apply hidden;
   }
   .leaflet-control-attribution {
@@ -396,7 +403,7 @@
    Sits below the ReadingProgress bar (z-50) so the progress hairline stays
    on top. */
 .blog-layout:before {
-  content: "";
+  content: '';
   position: fixed;
   top: 0;
   left: 0;
@@ -477,7 +484,7 @@
 }
 
 .blog-prose a:before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -576,58 +583,58 @@
   color: var(--color-foreground);
 }
 .blog-prose .mdx-quote__author::before {
-  content: "— ";
+  content: '— ';
 }
 .blog-prose .mdx-quote__source::before {
-  content: ", ";
+  content: ', ';
 }
-.blog-prose .mdx-quote[data-align="right"] .mdx-quote__attribution {
+.blog-prose .mdx-quote[data-align='right'] .mdx-quote__attribution {
   text-align: right;
 }
 
 /* The decorative glyph, shared; variants override size/position/color. */
 .blog-prose .mdx-quote::before {
-  content: "\201C";
+  content: '\201C';
   position: absolute;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Georgia, 'Times New Roman', serif;
   line-height: 1;
   pointer-events: none;
 }
 
 /* 1 — editorial: large accent mark hanging in a left gutter */
-.blog-prose .mdx-quote[data-variant="editorial"] {
+.blog-prose .mdx-quote[data-variant='editorial'] {
   padding-left: 3.25rem;
 }
-.blog-prose .mdx-quote[data-variant="editorial"]::before {
+.blog-prose .mdx-quote[data-variant='editorial']::before {
   left: 0;
   top: -0.35em;
   font-size: 4.5rem;
   color: var(--color-primary);
   opacity: 0.85;
 }
-.blog-prose .mdx-quote[data-variant="editorial"] .mdx-quote__body {
+.blog-prose .mdx-quote[data-variant='editorial'] .mdx-quote__body {
   font-size: 1.3em;
   font-style: italic;
   line-height: 1.5;
 }
 
 /* 2 — magazine: centered, hairline rules, always center-aligned */
-.blog-prose .mdx-quote[data-variant="magazine"] {
+.blog-prose .mdx-quote[data-variant='magazine'] {
   text-align: center;
   padding: 1.6em 0;
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
 }
-.blog-prose .mdx-quote[data-variant="magazine"]::before {
+.blog-prose .mdx-quote[data-variant='magazine']::before {
   content: none;
 }
-.blog-prose .mdx-quote[data-variant="magazine"] .mdx-quote__body {
+.blog-prose .mdx-quote[data-variant='magazine'] .mdx-quote__body {
   font-size: 1.45em;
   font-weight: 500;
   line-height: 1.45;
   letter-spacing: -0.01em;
 }
-.blog-prose .mdx-quote[data-variant="magazine"] .mdx-quote__attribution {
+.blog-prose .mdx-quote[data-variant='magazine'] .mdx-quote__attribution {
   text-align: center;
   font-size: 0.78em;
   letter-spacing: 0.1em;
@@ -635,55 +642,55 @@
 }
 
 /* 3 — gutter: smaller accent mark in a left gutter, italic body */
-.blog-prose .mdx-quote[data-variant="gutter"] {
+.blog-prose .mdx-quote[data-variant='gutter'] {
   padding-left: 3.25rem;
 }
-.blog-prose .mdx-quote[data-variant="gutter"]::before {
+.blog-prose .mdx-quote[data-variant='gutter']::before {
   left: 0;
   top: -0.1em;
   font-size: 3.4rem;
   color: var(--color-primary);
 }
-.blog-prose .mdx-quote[data-variant="gutter"] .mdx-quote__body {
+.blog-prose .mdx-quote[data-variant='gutter'] .mdx-quote__body {
   font-size: 1.2em;
   font-style: italic;
   line-height: 1.55;
 }
 
 /* 4 — watermark: faint foreground mark behind a bolder, upright body */
-.blog-prose .mdx-quote[data-variant="watermark"] {
+.blog-prose .mdx-quote[data-variant='watermark'] {
   padding-top: 1.5rem;
 }
-.blog-prose .mdx-quote[data-variant="watermark"]::before {
+.blog-prose .mdx-quote[data-variant='watermark']::before {
   top: -0.6rem;
   left: -0.6rem;
   font-size: 7rem;
   color: var(--color-foreground);
   opacity: 0.07;
 }
-.blog-prose .mdx-quote[data-variant="watermark"] .mdx-quote__body,
-.blog-prose .mdx-quote[data-variant="watermark"] .mdx-quote__attribution {
+.blog-prose .mdx-quote[data-variant='watermark'] .mdx-quote__body,
+.blog-prose .mdx-quote[data-variant='watermark'] .mdx-quote__attribution {
   position: relative;
   z-index: 1;
 }
-.blog-prose .mdx-quote[data-variant="watermark"] .mdx-quote__body {
+.blog-prose .mdx-quote[data-variant='watermark'] .mdx-quote__body {
   font-size: 1.3em;
   font-weight: 500;
   line-height: 1.5;
 }
 
 /* 3+4 — hybrid: accent gutter glyph + borderless italic body (default) */
-.blog-prose .mdx-quote[data-variant="hybrid"] {
+.blog-prose .mdx-quote[data-variant='hybrid'] {
   padding-left: 3.5rem;
 }
-.blog-prose .mdx-quote[data-variant="hybrid"]::before {
+.blog-prose .mdx-quote[data-variant='hybrid']::before {
   left: -0.2rem;
   top: -1.4rem;
   font-size: 5.5rem;
   color: var(--color-primary);
   opacity: 0.9;
 }
-.blog-prose .mdx-quote[data-variant="hybrid"] .mdx-quote__body {
+.blog-prose .mdx-quote[data-variant='hybrid'] .mdx-quote__body {
   font-size: 1.25em;
   font-style: italic;
   line-height: 1.55;
@@ -694,28 +701,46 @@
    glyph has from the start of the text. Attached to the last paragraph's inline
    end (MDX wraps the body in <p>), so it stays on the same line as the text.
    Gutter-style variants only. */
-.blog-prose .mdx-quote[data-variant="editorial"] .mdx-quote__body > :last-child::after,
-.blog-prose .mdx-quote[data-variant="gutter"] .mdx-quote__body > :last-child::after,
-.blog-prose .mdx-quote[data-variant="hybrid"] .mdx-quote__body > :last-child::after {
-  content: "\201D";
+.blog-prose
+  .mdx-quote[data-variant='editorial']
+  .mdx-quote__body
+  > :last-child::after,
+.blog-prose
+  .mdx-quote[data-variant='gutter']
+  .mdx-quote__body
+  > :last-child::after,
+.blog-prose
+  .mdx-quote[data-variant='hybrid']
+  .mdx-quote__body
+  > :last-child::after {
+  content: '\201D';
   display: inline-block;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: Georgia, 'Times New Roman', serif;
   line-height: 0;
   color: var(--color-primary);
   pointer-events: none;
 }
-.blog-prose .mdx-quote[data-variant="editorial"] .mdx-quote__body > :last-child::after {
+.blog-prose
+  .mdx-quote[data-variant='editorial']
+  .mdx-quote__body
+  > :last-child::after {
   font-size: 4.5rem;
   opacity: 0.85;
   vertical-align: -0.62em;
   margin-left: 0.72rem;
 }
-.blog-prose .mdx-quote[data-variant="gutter"] .mdx-quote__body > :last-child::after {
+.blog-prose
+  .mdx-quote[data-variant='gutter']
+  .mdx-quote__body
+  > :last-child::after {
   font-size: 3.4rem;
   vertical-align: -0.55em;
   margin-left: 0.65rem;
 }
-.blog-prose .mdx-quote[data-variant="hybrid"] .mdx-quote__body > :last-child::after {
+.blog-prose
+  .mdx-quote[data-variant='hybrid']
+  .mdx-quote__body
+  > :last-child::after {
   font-size: 5.5rem;
   opacity: 0.9;
   vertical-align: -0.72em;
@@ -791,7 +816,11 @@
   color: inherit;
   font-weight: 400;
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--color-muted-foreground) 45%, transparent);
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--color-muted-foreground) 45%,
+    transparent
+  );
   text-underline-offset: 0.18em;
 }
 
@@ -811,7 +840,7 @@
   vertical-align: super;
   color: color-mix(in srgb, var(--color-muted-foreground) 50%, transparent);
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+  font-feature-settings: 'tnum';
   letter-spacing: -0.005em;
   scroll-margin-top: 6rem;
 }
@@ -819,16 +848,21 @@
 .blog-prose .mdx-cite a {
   color: inherit;
   text-decoration: none;
-  transition: color 0.15s ease, text-shadow 0.15s ease;
+  transition:
+    color 0.15s ease,
+    text-shadow 0.15s ease;
 }
 
 .blog-prose .mdx-cite a:hover {
   color: var(--color-foreground);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--color-foreground) 40%, transparent);
+  text-shadow: 0 0 8px
+    color-mix(in srgb, var(--color-foreground) 40%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .blog-prose .mdx-cite a { transition: none; }
+  .blog-prose .mdx-cite a {
+    transition: none;
+  }
 }
 
 .blog-prose .mdx-cite:target {
@@ -875,7 +909,7 @@
 }
 
 .blog-prose .mdx-references-section:before {
-  content: "";
+  content: '';
   display: block;
   width: 3.125rem;
   height: 1px;
@@ -913,7 +947,7 @@
 }
 
 .blog-prose ol.mdx-references > li::marker {
-  content: "";
+  content: '';
   display: none;
 }
 
@@ -954,7 +988,9 @@
   margin-left: 0.5em;
   color: color-mix(in srgb, var(--color-muted-foreground) 60%, transparent);
   opacity: 0.6;
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
 }
 
 .blog-prose ol.mdx-references .mdx-references-backref:hover {
@@ -972,25 +1008,41 @@
   stroke-dashoffset: 0;
 }
 
-.blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-hook {
+.blog-prose
+  ol.mdx-references
+  .mdx-references-backref:hover
+  .mdx-references-backref-hook {
   animation: mdx-backref-draw 0.26s ease;
 }
 
-.blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-head {
+.blog-prose
+  ol.mdx-references
+  .mdx-references-backref:hover
+  .mdx-references-backref-head {
   animation: mdx-backref-draw 0.16s ease 0.24s backwards;
 }
 
 @keyframes mdx-backref-draw {
-  from { stroke-dashoffset: 1; }
-  to { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .blog-prose ol.mdx-references .mdx-references-backref {
     transition: none;
   }
-  .blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-hook,
-  .blog-prose ol.mdx-references .mdx-references-backref:hover .mdx-references-backref-head {
+  .blog-prose
+    ol.mdx-references
+    .mdx-references-backref:hover
+    .mdx-references-backref-hook,
+  .blog-prose
+    ol.mdx-references
+    .mdx-references-backref:hover
+    .mdx-references-backref-head {
     animation: none;
   }
 }
@@ -1053,60 +1105,90 @@
   --mn-color: color-mix(in srgb, var(--color-foreground) 78%, transparent);
 }
 
-.mdx-margin-note[data-color="info"],
-.mdx-margin-enclose[data-color="info"],
-.mdx-highlighter[data-color="info"],
-.flow-diagram [data-color="info"] {
+.mdx-margin-note[data-color='info'],
+.mdx-margin-enclose[data-color='info'],
+.mdx-highlighter[data-color='info'],
+.flow-diagram [data-color='info'] {
   --mn-color: oklch(50% 0.18 250);
-  --ac-fill:  oklch(78% 0.18 250 / 0.18);
-  :is(.dark *) & { --mn-color: oklch(68% 0.18 250); --ac-fill: oklch(68% 0.18 250 / 0.22); }
+  --ac-fill: oklch(78% 0.18 250 / 0.18);
+  :is(.dark *) & {
+    --mn-color: oklch(68% 0.18 250);
+    --ac-fill: oklch(68% 0.18 250 / 0.22);
+  }
 }
-.mdx-margin-note[data-color="tip"],
-.mdx-margin-enclose[data-color="tip"],
-.mdx-highlighter[data-color="tip"],
-.flow-diagram [data-color="tip"] {
+.mdx-margin-note[data-color='tip'],
+.mdx-margin-enclose[data-color='tip'],
+.mdx-highlighter[data-color='tip'],
+.flow-diagram [data-color='tip'] {
   --mn-color: oklch(48% 0.17 155);
-  --ac-fill:  oklch(76% 0.17 155 / 0.18);
-  :is(.dark *) & { --mn-color: oklch(65% 0.17 155); --ac-fill: oklch(65% 0.17 155 / 0.22); }
+  --ac-fill: oklch(76% 0.17 155 / 0.18);
+  :is(.dark *) & {
+    --mn-color: oklch(65% 0.17 155);
+    --ac-fill: oklch(65% 0.17 155 / 0.22);
+  }
 }
-.mdx-margin-note[data-color="warning"],
-.mdx-margin-enclose[data-color="warning"],
-.mdx-highlighter[data-color="warning"],
-.flow-diagram [data-color="warning"] {
+.mdx-margin-note[data-color='warning'],
+.mdx-margin-enclose[data-color='warning'],
+.mdx-highlighter[data-color='warning'],
+.flow-diagram [data-color='warning'] {
   --mn-color: oklch(58% 0.16 75);
-  --ac-fill:  oklch(82% 0.16 75 / 0.22);
-  :is(.dark *) & { --mn-color: oklch(74% 0.16 75); --ac-fill: oklch(74% 0.16 75 / 0.28); }
+  --ac-fill: oklch(82% 0.16 75 / 0.22);
+  :is(.dark *) & {
+    --mn-color: oklch(74% 0.16 75);
+    --ac-fill: oklch(74% 0.16 75 / 0.28);
+  }
 }
-.mdx-margin-note[data-color="danger"],
-.mdx-margin-enclose[data-color="danger"],
-.mdx-highlighter[data-color="danger"],
-.flow-diagram [data-color="danger"] {
+.mdx-margin-note[data-color='danger'],
+.mdx-margin-enclose[data-color='danger'],
+.mdx-highlighter[data-color='danger'],
+.flow-diagram [data-color='danger'] {
   --mn-color: oklch(50% 0.22 25);
-  --ac-fill:  oklch(76% 0.22 25 / 0.18);
-  :is(.dark *) & { --mn-color: oklch(68% 0.22 25); --ac-fill: oklch(68% 0.22 25 / 0.22); }
+  --ac-fill: oklch(76% 0.22 25 / 0.18);
+  :is(.dark *) & {
+    --mn-color: oklch(68% 0.22 25);
+    --ac-fill: oklch(68% 0.22 25 / 0.22);
+  }
 }
-.mdx-margin-note[data-color="purple"],
-.mdx-margin-enclose[data-color="purple"],
-.mdx-highlighter[data-color="purple"],
-.flow-diagram [data-color="purple"] {
+.mdx-margin-note[data-color='purple'],
+.mdx-margin-enclose[data-color='purple'],
+.mdx-highlighter[data-color='purple'],
+.flow-diagram [data-color='purple'] {
   --mn-color: oklch(50% 0.22 300);
-  --ac-fill:  oklch(78% 0.22 300 / 0.18);
-  :is(.dark *) & { --mn-color: oklch(68% 0.22 300); --ac-fill: oklch(68% 0.22 300 / 0.22); }
+  --ac-fill: oklch(78% 0.22 300 / 0.18);
+  :is(.dark *) & {
+    --mn-color: oklch(68% 0.22 300);
+    --ac-fill: oklch(68% 0.22 300 / 0.22);
+  }
 }
-.mdx-margin-note[data-color="neutral"],
-.mdx-margin-enclose[data-color="neutral"],
-.mdx-highlighter[data-color="neutral"],
-.flow-diagram [data-color="neutral"] {
+.mdx-margin-note[data-color='neutral'],
+.mdx-margin-enclose[data-color='neutral'],
+.mdx-highlighter[data-color='neutral'],
+.flow-diagram [data-color='neutral'] {
   --mn-color: var(--muted-foreground);
-  --ac-fill:  color-mix(in oklab, var(--muted-foreground) 12%, transparent);
+  --ac-fill: color-mix(in oklab, var(--muted-foreground) 12%, transparent);
 }
 
 /* Flow-diagram-only color keys: cycle through the chart palette by default. */
-.flow-diagram [data-color="chart-1"] { --mn-color: var(--chart-1); --ac-fill: color-mix(in oklab, var(--chart-1) 18%, transparent); }
-.flow-diagram [data-color="chart-2"] { --mn-color: var(--chart-2); --ac-fill: color-mix(in oklab, var(--chart-2) 18%, transparent); }
-.flow-diagram [data-color="chart-3"] { --mn-color: var(--chart-3); --ac-fill: color-mix(in oklab, var(--chart-3) 18%, transparent); }
-.flow-diagram [data-color="chart-4"] { --mn-color: var(--chart-4); --ac-fill: color-mix(in oklab, var(--chart-4) 18%, transparent); }
-.flow-diagram [data-color="chart-5"] { --mn-color: var(--chart-5); --ac-fill: color-mix(in oklab, var(--chart-5) 18%, transparent); }
+.flow-diagram [data-color='chart-1'] {
+  --mn-color: var(--chart-1);
+  --ac-fill: color-mix(in oklab, var(--chart-1) 18%, transparent);
+}
+.flow-diagram [data-color='chart-2'] {
+  --mn-color: var(--chart-2);
+  --ac-fill: color-mix(in oklab, var(--chart-2) 18%, transparent);
+}
+.flow-diagram [data-color='chart-3'] {
+  --mn-color: var(--chart-3);
+  --ac-fill: color-mix(in oklab, var(--chart-3) 18%, transparent);
+}
+.flow-diagram [data-color='chart-4'] {
+  --mn-color: var(--chart-4);
+  --ac-fill: color-mix(in oklab, var(--chart-4) 18%, transparent);
+}
+.flow-diagram [data-color='chart-5'] {
+  --mn-color: var(--chart-5);
+  --ac-fill: color-mix(in oklab, var(--chart-5) 18%, transparent);
+}
 
 /* Inline accent — colour only, no font change. Falls back to inherited colour
    when no data-color is set (var() on an undefined custom property resolves to
@@ -1232,11 +1314,11 @@
 
 .mdx-callout {
   --co-color: oklch(50% 0.18 250);
-  --co-bg:    oklch(50% 0.18 250 / 0.07);
+  --co-bg: oklch(50% 0.18 250 / 0.07);
 
   position: relative;
-  color: var(--co-color);     /* currentColor for rough-notation SVG stroke */
-  background:  var(--co-bg);
+  color: var(--co-color); /* currentColor for rough-notation SVG stroke */
+  background: var(--co-bg);
   border-radius: 0.25rem;
   padding: 0.875rem 1.125rem;
   margin: 1.5rem 0;
@@ -1253,30 +1335,45 @@
 }
 
 /* Variant colours */
-.mdx-callout[data-type="note"] {
+.mdx-callout[data-type='note'] {
   --co-color: oklch(50% 0.18 250);
-  --co-bg:    oklch(50% 0.18 250 / 0.07);
-  :is(.dark *) & { --co-color: oklch(68% 0.18 250); --co-bg: oklch(68% 0.18 250 / 0.08); }
+  --co-bg: oklch(50% 0.18 250 / 0.07);
+  :is(.dark *) & {
+    --co-color: oklch(68% 0.18 250);
+    --co-bg: oklch(68% 0.18 250 / 0.08);
+  }
 }
-.mdx-callout[data-type="tip"] {
+.mdx-callout[data-type='tip'] {
   --co-color: oklch(48% 0.17 155);
-  --co-bg:    oklch(48% 0.17 155 / 0.07);
-  :is(.dark *) & { --co-color: oklch(65% 0.17 155); --co-bg: oklch(65% 0.17 155 / 0.08); }
+  --co-bg: oklch(48% 0.17 155 / 0.07);
+  :is(.dark *) & {
+    --co-color: oklch(65% 0.17 155);
+    --co-bg: oklch(65% 0.17 155 / 0.08);
+  }
 }
-.mdx-callout[data-type="important"] {
+.mdx-callout[data-type='important'] {
   --co-color: oklch(50% 0.22 300);
-  --co-bg:    oklch(50% 0.22 300 / 0.07);
-  :is(.dark *) & { --co-color: oklch(68% 0.22 300); --co-bg: oklch(68% 0.22 300 / 0.08); }
+  --co-bg: oklch(50% 0.22 300 / 0.07);
+  :is(.dark *) & {
+    --co-color: oklch(68% 0.22 300);
+    --co-bg: oklch(68% 0.22 300 / 0.08);
+  }
 }
-.mdx-callout[data-type="warning"] {
+.mdx-callout[data-type='warning'] {
   --co-color: oklch(58% 0.16 75);
-  --co-bg:    oklch(58% 0.16 75 / 0.07);
-  :is(.dark *) & { --co-color: oklch(74% 0.16 75); --co-bg: oklch(74% 0.16 75 / 0.08); }
+  --co-bg: oklch(58% 0.16 75 / 0.07);
+  :is(.dark *) & {
+    --co-color: oklch(74% 0.16 75);
+    --co-bg: oklch(74% 0.16 75 / 0.08);
+  }
 }
-.mdx-callout[data-type="caution"] {
+.mdx-callout[data-type='caution'] {
   --co-color: oklch(50% 0.22 25);
-  --co-bg:    oklch(50% 0.22 25 / 0.07);
-  :is(.dark *) & { --co-color: oklch(68% 0.22 25); --co-bg: oklch(68% 0.22 25 / 0.08); }
+  --co-bg: oklch(50% 0.22 25 / 0.07);
+  :is(.dark *) & {
+    --co-color: oklch(68% 0.22 25);
+    --co-bg: oklch(68% 0.22 25 / 0.08);
+  }
 }
 
 .mdx-callout__header {
@@ -1301,8 +1398,12 @@
 }
 
 /* Strip margin from first/last children so the block stays tight */
-.mdx-callout__body > :first-child { margin-top: 0; }
-.mdx-callout__body > :last-child  { margin-bottom: 0; }
+.mdx-callout__body > :first-child {
+  margin-top: 0;
+}
+.mdx-callout__body > :last-child {
+  margin-bottom: 0;
+}
 
 /* Shiki dual theme support */
 /* Light mode: use inline color/background as-is (set by Shiki) */
@@ -1325,7 +1426,7 @@
    has no margin (only the now-irrelevant nested `.shiki-wrapper pre` does),
    so without this the next paragraph hugs the code block directly. */
 .blog-prose .shiki-wrapper {
-  margin: 1.0em 0;
+  margin: 1em 0;
 }
 
 .shiki-header {
@@ -1374,12 +1475,12 @@
 }
 
 /* Terminal/shell $ prompt */
-.shiki-wrapper[data-lang="shell"] .line[data-line-type="command"]::before,
-.shiki-wrapper[data-lang="bash"] .line[data-line-type="command"]::before,
-.shiki-wrapper[data-lang="sh"] .line[data-line-type="command"]::before,
-.shiki-wrapper[data-lang="zsh"] .line[data-line-type="command"]::before,
-.shiki-wrapper[data-lang="terminal"] .line[data-line-type="command"]::before {
-  content: "$ ";
+.shiki-wrapper[data-lang='shell'] .line[data-line-type='command']::before,
+.shiki-wrapper[data-lang='bash'] .line[data-line-type='command']::before,
+.shiki-wrapper[data-lang='sh'] .line[data-line-type='command']::before,
+.shiki-wrapper[data-lang='zsh'] .line[data-line-type='command']::before,
+.shiki-wrapper[data-lang='terminal'] .line[data-line-type='command']::before {
+  content: '$ ';
   color: var(--color-muted-foreground);
   opacity: 0.5;
   user-select: none;
