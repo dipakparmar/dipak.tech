@@ -67,6 +67,7 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           build-args: |
             NEXT_PUBLIC_GRAPHQL_ENDPOINT=${{ vars.NEXT_PUBLIC_GRAPHQL_ENDPOINT }}
+            OG_SECRET=${{ secrets.OG_SECRET }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: mode=max
