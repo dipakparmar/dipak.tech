@@ -415,9 +415,7 @@ export function useStudio(
       selectionBorderColor: '#38bdf8',
       selectionLineWidth: 1.5,
       backgroundColor: '#ffffff',
-      // Right-click selects the object under the cursor and opens our menu
-      // instead of the browser's.
-      fireRightClick: true,
+      // Suppress the browser menu so our own right-click menu can take over.
       stopContextMenu: true
     });
     canvasRef.current = canvas;
@@ -458,14 +456,12 @@ export function useStudio(
       history.commit();
       markChanged();
     });
-    canvas.on('mouse:down', (opt) => {
-      const e = opt.e;
-      // Right mouse button only (native MouseEvent.button: 2 = right).
-      if (!('button' in e) || e.button !== 2) return;
+    canvas.on('contextmenu', (opt) => {
       const target = opt.target as StudioObject | undefined;
       if (target && !target.locked) canvas.setActiveObject(target);
       else canvas.discardActiveObject();
       canvas.requestRenderAll();
+      const e = opt.e as MouseEvent;
       setContextMenu(target ? { x: e.clientX, y: e.clientY } : null);
     });
 
