@@ -17,7 +17,7 @@ import {
   Upload
 } from 'lucide-react';
 import { FabricImage, Group, IText, Textbox, filters } from 'fabric';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -360,6 +360,7 @@ function ShapeProperties({
 
 function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
   const isActive = studio.selected.includes(obj);
+  const [editing, setEditing] = useState(false);
   const {
     attributes,
     listeners,
@@ -403,16 +404,40 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
           <EyeOff className="h-3.5 w-3.5" />
         )}
       </Button>
-      <button
-        type="button"
-        className={cn(
-          'min-w-0 flex-1 truncate text-left',
-          obj.locked && 'text-muted-foreground'
-        )}
-        onClick={() => studio.selectObject(obj)}
-      >
-        {getObjectLabel(obj)}
-      </button>
+      {editing ? (
+        <input
+          autoFocus
+          defaultValue={getObjectLabel(obj)}
+          className="min-w-0 flex-1 rounded border bg-background px-1 py-0.5 text-sm outline-none focus:border-sky-500"
+          onFocus={(e) => e.target.select()}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => {
+            studio.renameObject(obj, e.target.value);
+            setEditing(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              studio.renameObject(obj, e.currentTarget.value);
+              setEditing(false);
+            } else if (e.key === 'Escape') {
+              setEditing(false);
+            }
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          className={cn(
+            'min-w-0 flex-1 truncate text-left',
+            obj.locked && 'text-muted-foreground'
+          )}
+          onClick={() => studio.selectObject(obj)}
+          onDoubleClick={() => setEditing(true)}
+          title="Double-click to rename"
+        >
+          {getObjectLabel(obj)}
+        </button>
+      )}
       <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
         <Button
           type="button"

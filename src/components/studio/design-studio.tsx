@@ -14,6 +14,7 @@ import {
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 
+import { CanvasContextMenu } from '@/components/studio/canvas-context-menu';
 import { PagesStrip } from '@/components/studio/pages-strip';
 import { RightPanel } from '@/components/studio/right-panel';
 import {
@@ -254,6 +255,8 @@ export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
           <RightPanel studio={studio} />
         </aside>
       </div>
+
+      <CanvasContextMenu studio={studio} />
 
       {/* Animation timeline */}
       {studio.animateMode && <Timeline studio={studio} />}

@@ -287,6 +287,10 @@ export function useStudio(
   const [presetId, setPresetIdState] = useState(DEFAULT_PRESET_ID);
   const [zoom, setZoomState] = useState(1);
   const [selected, setSelected] = useState<StudioObject[]>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const [drawMode, setDrawModeState] = useState<DrawMode>('off');
   const [drawColor, setDrawColor] = useState('#FFE066');
   const [drawWidth, setDrawWidth] = useState(8);
@@ -410,7 +414,11 @@ export function useStudio(
       selectionColor: 'rgba(56,189,248,0.12)',
       selectionBorderColor: '#38bdf8',
       selectionLineWidth: 1.5,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      // Right-click selects the object under the cursor and opens our menu
+      // instead of the browser's.
+      fireRightClick: true,
+      stopContextMenu: true
     });
     canvasRef.current = canvas;
     if (process.env.NODE_ENV === 'development') {
@@ -449,6 +457,16 @@ export function useStudio(
       if (previewingRef.current) return;
       history.commit();
       markChanged();
+    });
+    canvas.on('mouse:down', (opt) => {
+      const e = opt.e;
+      // Right mouse button only (native MouseEvent.button: 2 = right).
+      if (!('button' in e) || e.button !== 2) return;
+      const target = opt.target as StudioObject | undefined;
+      if (target && !target.locked) canvas.setActiveObject(target);
+      else canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      setContextMenu(target ? { x: e.clientX, y: e.clientY } : null);
     });
 
     let cancelled = false;
@@ -953,6 +971,28 @@ export function useStudio(
       if (direction === 'up') canvas.bringObjectForward(obj);
       else canvas.sendObjectBackwards(obj);
       canvas.requestRenderAll();
+      historyRef.current?.commit();
+      markChanged();
+    },
+    [markChanged]
+  );
+
+  const stackTo = useCallback(
+    (obj: StudioObject, edge: 'front' | 'back') => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      if (edge === 'front') canvas.bringObjectToFront(obj);
+      else canvas.sendObjectToBack(obj);
+      canvas.requestRenderAll();
+      historyRef.current?.commit();
+      markChanged();
+    },
+    [markChanged]
+  );
+
+  const renameObject = useCallback(
+    (obj: StudioObject, name: string) => {
+      obj.set({ name: name.trim() || undefined });
       historyRef.current?.commit();
       markChanged();
     },
@@ -1778,6 +1818,10 @@ export function useStudio(
     removeObject,
     moveLayer,
     reorderLayers,
+    stackTo,
+    renameObject,
+    contextMenu,
+    closeContextMenu: () => setContextMenu(null),
     updateObjects,
     setImageAdjust,
     newDesign,
