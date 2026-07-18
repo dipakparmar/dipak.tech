@@ -62,6 +62,7 @@ import {
   loadAutosave,
   loadTemplates,
   saveTemplate,
+  urlToImageDataUrl,
   writeAutosave,
   type SavedTemplate
 } from '@/lib/studio/storage';
@@ -806,6 +807,30 @@ export function useStudio(
         left: (width - image.width * scale) / 2,
         top: (height - image.height * scale) / 2,
         name: file.name.replace(/\.[^.]+$/, '') || 'Photo'
+      });
+      addAndSelect(image);
+    },
+    [addAndSelect]
+  );
+
+  const addPhotoFromUrl = useCallback(
+    async (url: string, name?: string) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dataUrl = await urlToImageDataUrl(url);
+      const image = await FabricImage.fromURL(dataUrl);
+      const { width, height } = presetRef.current;
+      const scale = Math.min(
+        (width * 0.85) / image.width,
+        (height * 0.85) / image.height,
+        1
+      );
+      image.set({
+        scaleX: scale,
+        scaleY: scale,
+        left: (width - image.width * scale) / 2,
+        top: (height - image.height * scale) / 2,
+        name: name || 'Photo'
       });
       addAndSelect(image);
     },
@@ -1715,6 +1740,7 @@ export function useStudio(
     addShape,
     addOverlay,
     addPhoto,
+    addPhotoFromUrl,
     fitPhotoAsBackground,
     setBackgroundColor,
     backgroundColor,

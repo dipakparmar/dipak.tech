@@ -4,6 +4,7 @@ import {
   Circle,
   Highlighter,
   ImagePlus,
+  Images,
   Layers2,
   MousePointer2,
   PaintBucket,
@@ -15,6 +16,7 @@ import {
 import { useRef, useState } from 'react';
 
 import { ColorField, SliderField } from '@/components/studio/controls';
+import { UnsplashPanel } from '@/components/studio/unsplash-panel';
 import type {
   DrawMode,
   StudioApi,
@@ -125,6 +127,7 @@ export function ToolRail({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [shapeColor, setShapeColor] = useState('#FFE066');
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [unsplashOpen, setUnsplashOpen] = useState(false);
 
   const selectedImage =
     studio.selected.length === 1 && studio.selected[0].isType('image');
@@ -313,6 +316,23 @@ export function ToolRail({
           <p className="text-xs text-muted-foreground">
             Photos stay in your browser - nothing is uploaded to a server.
           </p>
+        </PopoverContent>
+      </Popover>
+
+      {/* Stock photos (Unsplash) */}
+      <Popover open={unsplashOpen} onOpenChange={setUnsplashOpen}>
+        <PopoverTrigger asChild>
+          <span>
+            <RailButton label="Stock photos">
+              <Images className="h-5 w-5" />
+            </RailButton>
+          </span>
+        </PopoverTrigger>
+        <PopoverContent side="right" align="start" className="w-72 p-3">
+          <UnsplashPanel
+            studio={studio}
+            onInserted={() => setUnsplashOpen(false)}
+          />
         </PopoverContent>
       </Popover>
 

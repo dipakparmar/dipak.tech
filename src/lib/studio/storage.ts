@@ -159,6 +159,37 @@ export async function downloadImagesAsZip(
 }
 
 /**
+ * Load a cross-origin image (e.g. an Unsplash CDN URL), downscale it, and
+ * return a data URL. crossOrigin='anonymous' keeps the canvas untainted so
+ * exports still work, and embedding as a data URL keeps the design
+ * self-contained (no dependency on the CDN URL staying alive).
+ */
+export function urlToImageDataUrl(
+  url: string,
+  maxEdge = 2400
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.onload = () => {
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Could not process image'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.9));
+    };
+    img.src = url;
+  });
+}
+
+/**
  * Read an image file, downscale it so the longest edge is at most `maxEdge`,
  * and return a data URL. Data URLs (vs blob URLs) survive JSON serialization,
  * which keeps autosave and saved templates self-contained.
