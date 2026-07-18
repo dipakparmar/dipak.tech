@@ -959,6 +959,27 @@ export function useStudio(
     [markChanged]
   );
 
+  /** Drag-reorder in the layers panel. Indices are in displayed (top-first) order. */
+  const reorderLayers = useCallback(
+    (from: number, to: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas || from === to) return;
+      const display = [...canvas.getObjects()].reverse(); // top layer first
+      if (from < 0 || to < 0 || from >= display.length || to >= display.length)
+        return;
+      const [moved] = display.splice(from, 1);
+      display.splice(to, 0, moved);
+      // Canvas stacking is bottom-first, the reverse of the displayed order.
+      display
+        .reverse()
+        .forEach((obj, index) => canvas.moveObjectTo(obj, index));
+      canvas.requestRenderAll();
+      historyRef.current?.commit();
+      markChanged();
+    },
+    [markChanged]
+  );
+
   /** Mutate the current selection (or a specific object) and refresh/commit. */
   const updateObjects = useCallback(
     (mutate: (obj: StudioObject) => void, target?: StudioObject) => {
@@ -1756,6 +1777,7 @@ export function useStudio(
     toggleVisible,
     removeObject,
     moveLayer,
+    reorderLayers,
     updateObjects,
     setImageAdjust,
     newDesign,

@@ -10,6 +10,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  GripVertical,
   Lock,
   LockOpen,
   Trash2,
@@ -17,6 +18,22 @@ import {
 } from 'lucide-react';
 import { FabricImage, Group, IText, Textbox, filters } from 'fabric';
 import { useRef } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import { ColorField, SliderField } from '@/components/studio/controls';
 import {
@@ -44,6 +61,19 @@ function isTextLike(
   obj: StudioObject
 ): obj is (Textbox | IText) & StudioObject {
   return obj instanceof Textbox || obj instanceof IText;
+}
+
+// Stable sortable id per Fabric object (same instance across renders/reorders).
+// A WeakMap avoids mutating objects and lets ids GC when objects are replaced.
+const layerIds = new WeakMap<object, string>();
+let layerIdSeq = 0;
+function layerId(obj: object): string {
+  let id = layerIds.get(obj);
+  if (!id) {
+    id = `layer-${(layerIdSeq += 1)}`;
+    layerIds.set(obj, id);
+  }
+  return id;
 }
 
 function readImageAdjust(image: FabricImage) {
@@ -330,13 +360,35 @@ function ShapeProperties({
 
 function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
   const isActive = studio.selected.includes(obj);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: layerId(obj) });
+
   return (
     <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'group flex items-center gap-1 rounded-md border border-transparent px-1.5 py-1 text-sm transition-colors',
-        isActive ? 'border-sky-500/40 bg-sky-500/10' : 'hover:bg-muted/60'
+        'group flex items-center gap-0.5 rounded-md border border-transparent px-1 py-1 text-sm transition-colors',
+        isActive ? 'border-sky-500/40 bg-sky-500/10' : 'hover:bg-muted/60',
+        isDragging && 'z-10 opacity-70 shadow-md'
       )}
     >
+      {/* Drag handle - listeners live here so the row's buttons stay clickable */}
+      <button
+        type="button"
+        aria-label="Drag to reorder layer"
+        className="shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
       <Button
         type="button"
         variant="ghost"
@@ -416,6 +468,20 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
 
 export function RightPanel({ studio }: { studio: StudioApi }) {
   const single = studio.selected.length === 1 ? studio.selected[0] : null;
+  const sensors = useSensors(
+    // Small distance so a click on a layer's buttons doesn't start a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const onLayerDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = studio.layers.map((o) => layerId(o));
+    const from = ids.indexOf(active.id as string);
+    const to = ids.indexOf(over.id as string);
+    if (from !== -1 && to !== -1) studio.reorderLayers(from, to);
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -491,13 +557,22 @@ export function RightPanel({ studio }: { studio: StudioApi }) {
             wrapper shrink-to-fits to the widest row, so long layer names break
             truncate and overflow the panel. */}
         <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1">
-          {studio.layers.map((obj, index) => (
-            <LayerRow
-              key={`${index}-${getObjectLabel(obj)}`}
-              studio={studio}
-              obj={obj}
-            />
-          ))}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onLayerDragEnd}
+          >
+            <SortableContext
+              items={studio.layers.map((o) => layerId(o))}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="flex flex-col gap-0.5">
+                {studio.layers.map((obj) => (
+                  <LayerRow key={layerId(obj)} studio={studio} obj={obj} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
           {!studio.layers.length && (
             <p className="text-xs text-muted-foreground">
               The canvas is empty.
