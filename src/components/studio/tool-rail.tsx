@@ -1,7 +1,11 @@
 'use client';
 
 import {
+  ArrowRight,
+  ArrowUpRight,
   Circle,
+  CircleDashed,
+  Heart,
   Highlighter,
   ImagePlus,
   Images,
@@ -11,7 +15,10 @@ import {
   PenLine,
   Shapes,
   Sparkles,
-  Type
+  Square,
+  Star,
+  Type,
+  Underline
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 
@@ -40,8 +47,23 @@ import {
   FONT_MARKER
 } from '@/lib/studio/fonts';
 import { OVERLAY_LABELS } from '@/lib/studio/overlays';
-import { ROUGH_SHAPE_LABELS } from '@/lib/studio/rough-shapes';
+import {
+  ROUGH_SHAPE_LABELS,
+  type RoughShapeKind
+} from '@/lib/studio/rough-shapes';
 import { cn } from '@/lib/utils';
+
+const SHAPE_ICONS: Record<RoughShapeKind, typeof Circle> = {
+  rectangle: Square,
+  ellipse: Circle,
+  arrow: ArrowRight,
+  star: Star,
+  heart: Heart,
+  'scribble-circle': CircleDashed,
+  'scribble-underline': Underline,
+  'scribble-arrow': ArrowUpRight,
+  'scribble-highlight': Highlighter
+};
 
 const TEXT_BUTTONS: {
   kind: TextKind;
@@ -186,24 +208,27 @@ export function ToolRail({
           className="w-64 space-y-3 p-3"
         >
           <div className="grid grid-cols-3 gap-1.5">
-            {ROUGH_SHAPE_LABELS.map((shape) => (
-              <button
-                key={shape.kind}
-                type="button"
-                onClick={() =>
-                  studio.addShape(shape.kind, {
-                    stroke: shapeColor,
-                    strokeWidth: 3
-                  })
-                }
-                className="flex h-16 flex-col items-center justify-center gap-1 rounded-md border text-center transition-colors hover:bg-muted"
-              >
-                <Circle className="h-4 w-4 opacity-60" />
-                <span className="text-[10px] leading-tight text-muted-foreground">
-                  {shape.label}
-                </span>
-              </button>
-            ))}
+            {ROUGH_SHAPE_LABELS.map((shape) => {
+              const Icon = SHAPE_ICONS[shape.kind];
+              return (
+                <button
+                  key={shape.kind}
+                  type="button"
+                  onClick={() =>
+                    studio.addShape(shape.kind, {
+                      stroke: shapeColor,
+                      strokeWidth: 3
+                    })
+                  }
+                  className="flex h-16 flex-col items-center justify-center gap-1 rounded-md border text-center transition-colors hover:bg-muted"
+                >
+                  <Icon className="h-4 w-4 opacity-60" />
+                  <span className="text-[10px] leading-tight text-muted-foreground">
+                    {shape.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <ColorField
             label="Shape color"
