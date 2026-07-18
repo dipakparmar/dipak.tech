@@ -11,20 +11,37 @@ import {
   InteractiveFabricObject,
   Path,
   PencilBrush,
+  Point,
   Rect,
   Shadow,
   StaticCanvas,
+  type TMat2D,
   Textbox,
   filters
 } from 'fabric';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 import {
+  type AnimationPreset,
+  type Keyframe,
+  animationDuration,
+  applyAnimationAtTime,
+  getKeyframes,
+  hasAnimation,
+  presetKeyframes,
+  readPose,
+  removeKeyframeAt,
+  upsertKeyframe
+} from '@/lib/studio/animation';
+import {
   FONT_BODY,
   FONT_DISPLAY,
   FONT_HANDWRITING,
   FONT_MARKER,
-  ensureFontLoaded
+  STUDIO_FONTS,
+  type StudioFont,
+  ensureFontLoaded,
+  registerCustomFont
 } from '@/lib/studio/fonts';
 import { StudioHistory } from '@/lib/studio/history';
 import { createOverlay, type OverlayKind } from '@/lib/studio/overlays';
@@ -37,6 +54,7 @@ import {
 import {
   clearAutosave,
   deleteTemplate,
+  downloadBlob,
   downloadDataUrl,
   downloadImagesAsZip,
   downloadJson,
@@ -48,6 +66,20 @@ import {
   type SavedTemplate
 } from '@/lib/studio/storage';
 import { BUILTIN_TEMPLATES } from '@/lib/studio/templates';
+import {
+  type VideoFormat,
+  recordPageVideo,
+  supportedVideoFormats
+} from '@/lib/studio/video';
+import {
+  type AudioClip,
+  clampClip,
+  clipEnd,
+  createClip,
+  decodeAudioFile,
+  mixClips,
+  splitClip
+} from '@/lib/studio/audio-clips';
 
 export type StudioObject = FabricObject & { name?: string; locked?: boolean };
 
@@ -102,6 +134,47 @@ async function renderPageJson(
   } finally {
     void offscreen.dispose();
   }
+}
+
+const IDENTITY_VPT: TMat2D = [1, 0, 0, 1, 0, 0];
+
+/**
+ * Export the page region [0,0,width,height] at a multiplier, independent of the
+ * current pan/zoom. The live canvas uses a viewport transform for panning, so we
+ * temporarily reset it (offscreen - toDataURL renders to its own canvas, so this
+ * never flashes on screen) and restore it.
+ */
+function pageDataUrl(
+  canvas: Canvas | StaticCanvas,
+  width: number,
+  height: number,
+  opts: { multiplier: number; format?: 'png' | 'jpeg'; quality?: number }
+): string {
+  const saved = canvas.viewportTransform.slice() as TMat2D;
+  canvas.viewportTransform = IDENTITY_VPT;
+  const url = canvas.toDataURL({
+    left: 0,
+    top: 0,
+    width,
+    height,
+    multiplier: opts.multiplier,
+    format: opts.format ?? 'jpeg',
+    quality: opts.quality ?? 0.7,
+    enableRetinaScaling: false
+  });
+  canvas.viewportTransform = saved;
+  return url;
+}
+
+/** Clip the canvas to the page rectangle so the workspace reads as a page card. */
+function ensurePageClip(canvas: Canvas, width: number, height: number): void {
+  canvas.clipPath = new Rect({
+    left: 0,
+    top: 0,
+    width,
+    height,
+    absolutePositioned: true
+  });
 }
 
 const TEXT_PRESETS: Record<
@@ -211,8 +284,7 @@ export function useStudio(
 
   const [ready, setReady] = useState(false);
   const [presetId, setPresetIdState] = useState(DEFAULT_PRESET_ID);
-  const [zoomFactor, setZoomFactor] = useState(1);
-  const [fitZoom, setFitZoom] = useState(0.3);
+  const [zoom, setZoomState] = useState(1);
   const [selected, setSelected] = useState<StudioObject[]>([]);
   const [drawMode, setDrawModeState] = useState<DrawMode>('off');
   const [drawColor, setDrawColor] = useState('#FFE066');
@@ -229,6 +301,26 @@ export function useStudio(
   const [pages, setPages] = useState<StudioPage[]>([]);
   const [activePageIndex, setActivePageIndex] = useState(0);
 
+  // ---- Animation --------------------------------------------------------
+  const [animateMode, setAnimateModeState] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [playhead, setPlayhead] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [customFonts, setCustomFonts] = useState<StudioFont[]>([]);
+  const [videoFormats] = useState(() => supportedVideoFormats());
+  const [videoFormat, setVideoFormat] = useState<VideoFormat>(
+    () => supportedVideoFormats()[0] ?? 'webm'
+  );
+  const [audioClips, setAudioClips] = useState<AudioClip[]>([]);
+  const audioClipsRef = useRef<AudioClip[]>([]);
+  audioClipsRef.current = audioClips;
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  /** While true, canvas mutations are animation preview - never committed/saved. */
+  const previewingRef = useRef(false);
+  const previewBaseRef = useRef<Map<StudioObject, Keyframe> | null>(null);
+  const playRafRef = useRef<number | null>(null);
+
   const preset = getPreset(presetId);
   const presetRef = useRef(preset);
   presetRef.current = preset;
@@ -244,13 +336,14 @@ export function useStudio(
     const canvas = canvasRef.current;
     const history = historyRef.current;
     if (!canvas || !history) return pagesRef.current;
-    const zoom = canvas.getZoom() || 1;
-    const thumb = canvas.toDataURL({
-      format: 'jpeg',
-      quality: 0.7,
-      multiplier: THUMB_WIDTH / (presetRef.current.width * zoom),
-      enableRetinaScaling: false
-    });
+    // Never snapshot an in-flight animation pose as the saved design.
+    if (previewingRef.current) return pagesRef.current;
+    const thumb = pageDataUrl(
+      canvas,
+      presetRef.current.width,
+      presetRef.current.height,
+      { multiplier: THUMB_WIDTH / presetRef.current.width }
+    );
     const next = pagesRef.current.map((page, index) =>
       index === activePageRef.current
         ? { ...page, json: history.snapshot(), thumb }
@@ -265,7 +358,7 @@ export function useStudio(
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
       const history = historyRef.current;
-      if (!history) return;
+      if (!history || previewingRef.current) return;
       const current = captureActivePage();
       const ok = writeAutosave({
         presetId: presetRef.current.id,
@@ -290,8 +383,20 @@ export function useStudio(
       setLayers([...canvas.getObjects()].reverse() as StudioObject[]);
       if (typeof canvas.backgroundColor === 'string')
         setBackgroundColorState(canvas.backgroundColor);
+      const audioEnd = audioClipsRef.current.reduce(
+        (m, c) => Math.max(m, clipEnd(c)),
+        0
+      );
+      setDuration(Math.max(animationDuration(canvas), audioEnd));
     }
   }, [scheduleAutosave]);
+
+  // Keep the timeline length in sync when audio clips are added/moved/trimmed.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const audioEnd = audioClips.reduce((m, c) => Math.max(m, clipEnd(c)), 0);
+    setDuration(Math.max(canvas ? animationDuration(canvas) : 0, audioEnd));
+  }, [audioClips]);
 
   // ---- Canvas lifecycle -------------------------------------------------
   useEffect(() => {
@@ -322,6 +427,7 @@ export function useStudio(
     canvas.on('selection:updated', refreshSelection);
     canvas.on('selection:cleared', () => setSelected([]));
     canvas.on('object:added', (e) => {
+      if (previewingRef.current) return;
       const obj = e.target as StudioObject;
       if (obj instanceof Path && !(obj as StudioObject).name)
         obj.set({ name: 'Drawing' });
@@ -329,14 +435,17 @@ export function useStudio(
       markChanged();
     });
     canvas.on('object:removed', () => {
+      if (previewingRef.current) return;
       history.commit();
       markChanged();
     });
     canvas.on('object:modified', () => {
+      if (previewingRef.current) return;
       history.commit();
       markChanged();
     });
     canvas.on('text:editing:exited', () => {
+      if (previewingRef.current) return;
       history.commit();
       markChanged();
     });
@@ -400,6 +509,8 @@ export function useStudio(
 
     return () => {
       cancelled = true;
+      if (playRafRef.current !== null) cancelAnimationFrame(playRafRef.current);
+      if (audioCtxRef.current) void audioCtxRef.current.close();
       canvasRef.current = null;
       historyRef.current = null;
       void canvas.dispose();
@@ -407,38 +518,177 @@ export function useStudio(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- Zoom / fit -------------------------------------------------------
+  // ---- View: fit / zoom / pan ------------------------------------------
+  // Figma-style: the canvas element fills the workspace and never resizes on
+  // zoom. Pan/zoom move Fabric's viewportTransform imperatively (no React churn,
+  // no re-rasterize), and a clipPath draws the page as a card on the workspace.
+  const fitView = useCallback(() => {
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    const { width: pw, height: ph } = presetRef.current;
+    canvas.setDimensions({ width: w, height: h });
+    ensurePageClip(canvas, pw, ph);
+    const z = Math.max(0.05, Math.min((w - 96) / pw, (h - 96) / ph, 2));
+    canvas.setViewportTransform([
+      z,
+      0,
+      0,
+      z,
+      (w - pw * z) / 2,
+      (h - ph * z) / 2
+    ]);
+    canvas.requestRenderAll();
+    setZoomState(z);
+  }, [containerRef]);
+
+  const setZoomAtCenter = useCallback(
+    (target: number) => {
+      const container = containerRef.current;
+      const canvas = canvasRef.current;
+      if (!container || !canvas) return;
+      const z = Math.min(8, Math.max(0.05, target));
+      canvas.zoomToPoint(
+        new Point(container.clientWidth / 2, container.clientHeight / 2),
+        z
+      );
+      canvas.requestRenderAll();
+      setZoomState(z);
+    },
+    [containerRef]
+  );
+
+  const zoomIn = useCallback(
+    () => setZoomAtCenter((canvasRef.current?.getZoom() ?? 1) * 1.6),
+    [setZoomAtCenter]
+  );
+  const zoomOut = useCallback(
+    () => setZoomAtCenter((canvasRef.current?.getZoom() ?? 1) / 1.6),
+    [setZoomAtCenter]
+  );
+
+  // Fit on ready / preset change; on window resize keep the current zoom.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !ready) return;
+    fitView();
+    let first = true;
+    const observer = new ResizeObserver(() => {
+      if (first) {
+        first = false;
+        return; // observe() fires once immediately - fitView already ran
+      }
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.setDimensions({
+        width: container.clientWidth,
+        height: container.clientHeight
+      });
+      canvas.requestRenderAll();
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [ready, preset.width, preset.height, fitView, containerRef]);
+
+  // ---- Gesture zoom + pan (imperative viewportTransform) ----------------
   useEffect(() => {
     const container = containerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas || !ready) return;
-
-    const applyFit = () => {
-      const padding = 48;
-      const availWidth = Math.max(container.clientWidth - padding, 100);
-      const availHeight = Math.max(container.clientHeight - padding, 100);
-      const fit = Math.min(
-        availWidth / preset.width,
-        availHeight / preset.height,
-        1
-      );
-      setFitZoom(fit);
-      const zoom = fit * zoomFactor;
-      canvas.setDimensions({
-        width: preset.width * zoom,
-        height: preset.height * zoom
+    const MIN = 0.05;
+    const MAX = 8;
+    let spaceHeld = false;
+    let panning = false;
+    let displayRaf = 0;
+    const syncDisplay = () => {
+      if (displayRaf) return;
+      displayRaf = requestAnimationFrame(() => {
+        displayRaf = 0;
+        setZoomState(canvas.getZoom());
       });
-      canvas.setZoom(zoom);
-      canvas.requestRenderAll();
     };
 
-    applyFit();
-    const observer = new ResizeObserver(applyFit);
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, [ready, preset.width, preset.height, zoomFactor, containerRef]);
+    // ⌘/Ctrl + wheel (and trackpad pinch) zooms to the pointer; plain
+    // two-finger scroll pans. Both just move the viewport - no resize.
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = container.getBoundingClientRect();
+      const point = new Point(e.clientX - rect.left, e.clientY - rect.top);
+      if (e.ctrlKey || e.metaKey) {
+        const z = Math.min(
+          MAX,
+          Math.max(MIN, canvas.getZoom() * Math.exp(-e.deltaY * 0.0065))
+        );
+        canvas.zoomToPoint(point, z);
+      } else {
+        canvas.relativePan(new Point(-e.deltaX, -e.deltaY));
+      }
+      canvas.requestRenderAll();
+      syncDisplay();
+    };
 
-  const zoom = fitZoom * zoomFactor;
+    // Middle-mouse or space + drag pans. Capture phase beats Fabric's own
+    // pointer handling (which would otherwise start a selection).
+    const onPointerDown = (e: PointerEvent) => {
+      if (!(e.button === 1 || (e.button === 0 && spaceHeld))) return;
+      e.preventDefault();
+      e.stopPropagation();
+      panning = true;
+      container.style.cursor = 'grabbing';
+      const move = (ev: PointerEvent) => {
+        if (!panning) return;
+        canvas.relativePan(new Point(ev.movementX, ev.movementY));
+        canvas.requestRenderAll();
+      };
+      const up = () => {
+        panning = false;
+        container.style.cursor = spaceHeld ? 'grab' : '';
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    };
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button === 1) e.preventDefault(); // no middle-click autoscroll
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || spaceHeld) return;
+      const t = e.target as HTMLElement | null;
+      if (
+        t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.isContentEditable)
+      )
+        return;
+      spaceHeld = true;
+      container.style.cursor = 'grab';
+      e.preventDefault();
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      spaceHeld = false;
+      if (!panning) container.style.cursor = '';
+    };
+
+    container.addEventListener('wheel', onWheel, { passive: false });
+    container.addEventListener('pointerdown', onPointerDown, true);
+    container.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      cancelAnimationFrame(displayRaf);
+      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener('pointerdown', onPointerDown, true);
+      container.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, [ready, containerRef]);
 
   // ---- Drawing mode -----------------------------------------------------
   useEffect(() => {
@@ -725,6 +975,7 @@ export function useStudio(
       canvas.backgroundColor = '#ffffff';
       if (json) await canvas.loadFromJSON(JSON.parse(json));
     });
+    ensurePageClip(canvas, presetRef.current.width, presetRef.current.height);
     canvas.requestRenderAll();
     history.reset();
     setSelected([]);
@@ -866,6 +1117,7 @@ export function useStudio(
       canvas.clear();
       canvas.backgroundColor = '#ffffff';
     });
+    ensurePageClip(canvas, presetRef.current.width, presetRef.current.height);
     setSelected([]);
   }, []);
 
@@ -886,28 +1138,26 @@ export function useStudio(
       const template = BUILTIN_TEMPLATES.find((t) => t.id === id);
       if (!template) return;
       const { width, height } = presetRef.current;
-      const zoom = canvas.getZoom() || 1;
       const builtPages: StudioPage[] = [];
       await history.suspendWhile(async () => {
         for (const buildPage of template.pages) {
           canvas.discardActiveObject();
           canvas.clear();
           canvas.backgroundColor = '#ffffff';
+          ensurePageClip(canvas, width, height);
           await buildPage(canvas, width, height);
           canvas.requestRenderAll();
           builtPages.push({
             id: newPageId(),
             json: history.snapshot(),
-            thumb: canvas.toDataURL({
-              format: 'jpeg',
-              quality: 0.7,
-              multiplier: THUMB_WIDTH / (width * zoom),
-              enableRetinaScaling: false
+            thumb: pageDataUrl(canvas, width, height, {
+              multiplier: THUMB_WIDTH / width
             })
           });
         }
         canvas.clear();
         canvas.backgroundColor = '#ffffff';
+        ensurePageClip(canvas, width, height);
         await canvas.loadFromJSON(JSON.parse(builtPages[0].json ?? '{}'));
       });
       canvas.requestRenderAll();
@@ -1006,6 +1256,282 @@ export function useStudio(
     []
   );
 
+  // ---- Animation --------------------------------------------------------
+  /**
+   * Snapshot-keyframe model: each object stores absolute poses at times, and
+   * the canvas at rest holds the base (design) transform used for stills/save.
+   * Playing/scrubbing mutates objects transiently; endPreview restores the base
+   * so an animated frame is never saved. Keyframe edits happen only at rest.
+   */
+  // ponytail: to pose at a mid-time you move the object at rest and keyframe it;
+  // no scrub-and-edit. Presets + start/end keyframes cover the common case.
+  const beginPreview = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || previewingRef.current) return;
+    const base = new Map<StudioObject, Keyframe>();
+    for (const obj of canvas.getObjects() as StudioObject[])
+      base.set(obj, { t: 0, ...readPose(obj) });
+    previewBaseRef.current = base;
+    previewingRef.current = true;
+  }, []);
+
+  const endPreview = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !previewingRef.current) return;
+    const base = previewBaseRef.current;
+    const live = canvas.getObjects();
+    base?.forEach((pose, obj) => {
+      if (!live.includes(obj)) return;
+      obj.set({
+        left: pose.left,
+        top: pose.top,
+        scaleX: pose.scaleX,
+        scaleY: pose.scaleY,
+        angle: pose.angle,
+        opacity: pose.opacity
+      });
+      obj.setCoords();
+    });
+    previewBaseRef.current = null;
+    previewingRef.current = false;
+    canvas.requestRenderAll();
+  }, []);
+
+  const stopAudioPlayback = useCallback(() => {
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
+  }, []);
+
+  /** Schedule every audio clip on a live context, aligned to the timeline. */
+  const startAudioPlayback = useCallback(
+    (from: number) => {
+      stopAudioPlayback();
+      const clips = audioClipsRef.current;
+      if (!clips.length) return;
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+      const base = ctx.currentTime + 0.06;
+      for (const clip of clips) {
+        if (clipEnd(clip) <= from) continue;
+        const lateBy = Math.max(0, from - clip.start);
+        const playDur = clip.duration - lateBy;
+        if (playDur <= 0) continue;
+        const source = ctx.createBufferSource();
+        source.buffer = clip.buffer;
+        source.connect(ctx.destination);
+        source.start(
+          base + Math.max(0, clip.start - from),
+          clip.offset + lateBy,
+          playDur
+        );
+      }
+    },
+    [stopAudioPlayback]
+  );
+
+  const stopPlayback = useCallback(() => {
+    if (playRafRef.current !== null) cancelAnimationFrame(playRafRef.current);
+    playRafRef.current = null;
+    stopAudioPlayback();
+    setPlaying(false);
+  }, [stopAudioPlayback]);
+
+  const seek = useCallback(
+    (t: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      stopPlayback();
+      beginPreview();
+      applyAnimationAtTime(canvas, t);
+      canvas.requestRenderAll();
+      setPlayhead(t);
+    },
+    [beginPreview, stopPlayback]
+  );
+
+  const play = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const anim = animationDuration(canvas);
+    const audioEnd = audioClipsRef.current.reduce(
+      (m, c) => Math.max(m, clipEnd(c)),
+      0
+    );
+    const total = Math.max(anim, audioEnd);
+    if (total <= 0) return;
+    beginPreview();
+    canvas.discardActiveObject();
+    setPlaying(true);
+    const from = playhead >= total ? 0 : playhead;
+    startAudioPlayback(from);
+    const clock = performance.now() - from * 1000;
+    const loop = () => {
+      const c = canvasRef.current;
+      if (!c) return;
+      const t = (performance.now() - clock) / 1000;
+      // Animation clamps at its own end; video holds the last frame for audio.
+      applyAnimationAtTime(c, Math.min(t, anim));
+      c.requestRenderAll();
+      if (t >= total) {
+        setPlayhead(total);
+        stopPlayback();
+        return;
+      }
+      setPlayhead(t);
+      playRafRef.current = requestAnimationFrame(loop);
+    };
+    playRafRef.current = requestAnimationFrame(loop);
+  }, [beginPreview, playhead, startAudioPlayback, stopPlayback]);
+
+  const stopAnimation = useCallback(() => {
+    stopPlayback();
+    endPreview();
+    setPlayhead(0);
+  }, [endPreview, stopPlayback]);
+
+  const setAnimateMode = useCallback(
+    (on: boolean) => {
+      if (!on) stopAnimation();
+      setAnimateModeState(on);
+    },
+    [stopAnimation]
+  );
+
+  const addKeyframe = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    endPreview(); // capture the resting pose, not an animated frame
+    const targets = canvas.getActiveObjects() as StudioObject[];
+    if (!targets.length) return;
+    const t = Math.round(playhead * 100) / 100;
+    targets.forEach((obj) => upsertKeyframe(obj, { t, ...readPose(obj) }));
+    historyRef.current?.commit();
+    markChanged();
+  }, [endPreview, playhead, markChanged]);
+
+  const removeKeyframe = useCallback(
+    (obj: StudioObject, t: number) => {
+      endPreview();
+      removeKeyframeAt(obj, t);
+      historyRef.current?.commit();
+      markChanged();
+    },
+    [endPreview, markChanged]
+  );
+
+  const applyAnimationPreset = useCallback(
+    (preset: AnimationPreset) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      endPreview();
+      const targets = canvas.getActiveObjects() as StudioObject[];
+      if (!targets.length) return;
+      targets.forEach((obj) => presetKeyframes(obj, preset));
+      historyRef.current?.commit();
+      markChanged();
+    },
+    [endPreview, markChanged]
+  );
+
+  const clearKeyframes = useCallback(
+    (obj: StudioObject) => {
+      endPreview();
+      delete (obj as StudioObject & { keyframes?: Keyframe[] }).keyframes;
+      historyRef.current?.commit();
+      markChanged();
+    },
+    [endPreview, markChanged]
+  );
+
+  const exportVideo = useCallback(
+    async (fps = 30) => {
+      const canvas = canvasRef.current;
+      const history = historyRef.current;
+      if (!canvas || !history) return;
+      stopAnimation();
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const json = history.snapshot();
+      const { width, height } = presetRef.current;
+      const stamp = new Date().toISOString().slice(0, 10);
+      const audioEnd = audioClipsRef.current.reduce(
+        (m, c) => Math.max(m, clipEnd(c)),
+        0
+      );
+      const total = Math.max(animationDuration(canvas), audioEnd);
+      setVideoProgress(0);
+      try {
+        const audio = await mixClips(audioClipsRef.current, total);
+        const blob = await recordPageVideo(videoFormat, json, width, height, {
+          fps,
+          audio,
+          extendToSeconds: total,
+          onProgress: setVideoProgress
+        });
+        downloadBlob(`${presetRef.current.id}-${stamp}.${videoFormat}`, blob);
+      } finally {
+        setVideoProgress(null);
+      }
+    },
+    [stopAnimation, videoFormat]
+  );
+
+  const addAudioClip = useCallback(async (file: File): Promise<boolean> => {
+    try {
+      const buffer = await decodeAudioFile(file);
+      setAudioClips((prev) => [...prev, createClip(file.name, buffer)]);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const updateAudioClip = useCallback(
+    (id: string, patch: Partial<AudioClip>) => {
+      setAudioClips((prev) =>
+        prev.map((c) => (c.id === id ? clampClip({ ...c, ...patch }) : c))
+      );
+    },
+    []
+  );
+
+  const removeAudioClip = useCallback((id: string) => {
+    setAudioClips((prev) => prev.filter((c) => c.id !== id));
+  }, []);
+
+  const splitAudioClipAt = useCallback((id: string, atTime: number) => {
+    setAudioClips((prev) => {
+      const index = prev.findIndex((c) => c.id === id);
+      if (index < 0) return prev;
+      const pair = splitClip(prev[index], atTime);
+      if (!pair) return prev;
+      return [
+        ...prev.slice(0, index),
+        pair[0],
+        pair[1],
+        ...prev.slice(index + 1)
+      ];
+    });
+  }, []);
+
+  const addCustomFont = useCallback(
+    async (file: File): Promise<StudioFont | null> => {
+      try {
+        const font = await registerCustomFont(file);
+        setCustomFonts((prev) => [
+          ...prev.filter((f) => f.family !== font.family),
+          font
+        ]);
+        return font;
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
+
   // ---- Export -----------------------------------------------------------
   const exportImage = useCallback(
     async (options: ExportOptions) => {
@@ -1017,12 +1543,16 @@ export function useStudio(
       const ext = options.format === 'jpeg' ? 'jpg' : 'png';
 
       if (options.pages === 'current' || pagesRef.current.length === 1) {
-        const dataUrl = canvas.toDataURL({
-          format: options.format,
-          quality: options.quality,
-          multiplier: options.scale / canvas.getZoom(),
-          enableRetinaScaling: false
-        });
+        const dataUrl = pageDataUrl(
+          canvas,
+          presetRef.current.width,
+          presetRef.current.height,
+          {
+            format: options.format,
+            quality: options.quality,
+            multiplier: options.scale
+          }
+        );
         downloadDataUrl(`${presetRef.current.id}-${stamp}.${ext}`, dataUrl);
         return;
       }
@@ -1056,10 +1586,9 @@ export function useStudio(
   const setPresetId = useCallback(
     (id: string) => {
       setPresetIdState(id);
-      const next = getPreset(id);
       const canvas = canvasRef.current;
       if (canvas) {
-        canvas.setDimensions({ width: next.width, height: next.height });
+        // The view effect refits + re-clips to the new page size (preset dep).
         canvas.requestRenderAll();
         historyRef.current?.commit();
         // Thumbnails have the old aspect ratio - drop them so they regenerate.
@@ -1159,8 +1688,9 @@ export function useStudio(
     presetId,
     setPresetId,
     zoom,
-    zoomFactor,
-    setZoomFactor,
+    zoomIn,
+    zoomOut,
+    zoomToFit: fitView,
     selected,
     layers,
     version,
@@ -1206,7 +1736,37 @@ export function useStudio(
     importTemplateFile,
     userTemplates,
     exportImage,
-    storageWarning
+    storageWarning,
+    // Animation
+    animateMode,
+    setAnimateMode,
+    playing,
+    playhead,
+    duration,
+    play,
+    pause: stopPlayback,
+    stopAnimation,
+    seek,
+    addKeyframe,
+    removeKeyframe,
+    applyAnimationPreset,
+    clearKeyframes,
+    getKeyframes,
+    hasAnimation: () =>
+      canvasRef.current ? hasAnimation(canvasRef.current) : false,
+    exportVideo,
+    videoProgress,
+    videoFormats,
+    videoFormat,
+    setVideoFormat,
+    audioClips,
+    addAudioClip,
+    updateAudioClip,
+    removeAudioClip,
+    splitAudioClipAt,
+    // Fonts
+    fonts: [...STUDIO_FONTS, ...customFonts],
+    addCustomFont
   };
 }
 

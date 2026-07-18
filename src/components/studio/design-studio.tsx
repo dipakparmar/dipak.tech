@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  Clapperboard,
   FilePlus2,
   Minus,
   Palette,
@@ -19,6 +20,7 @@ import {
   ExportDialog,
   TemplatesDialog
 } from '@/components/studio/studio-dialogs';
+import { Timeline } from '@/components/studio/timeline';
 import { ToolRail } from '@/components/studio/tool-rail';
 import { useStudio } from '@/components/studio/use-studio';
 import {
@@ -65,9 +67,14 @@ export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
   const [layersOpen, setLayersOpen] = useState(false);
 
   return (
-    <div
-      className={`${STUDIO_FONT_CLASSES} flex h-dvh flex-col overflow-hidden bg-background`}
-    >
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      {/*
+        Carries the studio font classes so next/font emits their @font-face rules,
+        without letting any of them set the UI's base font (each class sets
+        font-family, so applying them to a real container would override the app font).
+      */}
+      <span className={`${STUDIO_FONT_CLASSES} sr-only`} aria-hidden />
+
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-1.5 border-b px-2 py-2 pr-16">
         <Link
@@ -148,28 +155,26 @@ export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
             size="icon"
             className="h-8 w-8"
             aria-label="Zoom out"
-            onClick={() =>
-              studio.setZoomFactor(
-                Math.max(0.4, Math.round((studio.zoomFactor - 0.2) * 10) / 10)
-              )
-            }
+            onClick={studio.zoomOut}
           >
             <Minus className="h-4 w-4" />
           </Button>
-          <span className="w-11 text-center text-xs tabular-nums text-muted-foreground">
+          <button
+            type="button"
+            onClick={studio.zoomToFit}
+            aria-label="Fit to screen"
+            title="Fit to screen"
+            className="w-11 text-center text-xs tabular-nums text-muted-foreground transition-colors hover:text-foreground"
+          >
             {Math.round(studio.zoom * 100)}%
-          </span>
+          </button>
           <Button
             type="button"
             variant="ghost"
             size="icon"
             className="h-8 w-8"
             aria-label="Zoom in"
-            onClick={() =>
-              studio.setZoomFactor(
-                Math.min(3, Math.round((studio.zoomFactor + 0.2) * 10) / 10)
-              )
-            }
+            onClick={studio.zoomIn}
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -187,6 +192,15 @@ export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
               </TooltipContent>
             </Tooltip>
           )}
+          <Button
+            type="button"
+            variant={studio.animateMode ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => studio.setAnimateMode(!studio.animateMode)}
+          >
+            <Clapperboard className="mr-1.5 h-4 w-4" />
+            Animate
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button type="button" variant="ghost" size="sm">
@@ -221,13 +235,11 @@ export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
 
         <div
           ref={containerRef}
-          className="relative min-w-0 flex-1 overflow-auto bg-[radial-gradient(circle,_rgba(120,120,120,0.14)_1px,_transparent_1px)] bg-[size:18px_18px]"
+          className="relative min-h-0 min-w-0 flex-1 touch-none overflow-hidden bg-neutral-200/70 bg-[radial-gradient(circle,_rgba(120,120,120,0.18)_1px,_transparent_1px)] bg-[size:18px_18px] dark:bg-neutral-900"
         >
-          <div className="flex min-h-full min-w-full items-center justify-center p-6">
-            <div className="shadow-2xl ring-1 ring-black/10">
-              <canvas ref={canvasElRef} />
-            </div>
-          </div>
+          {/* The canvas fills the workspace; the page is drawn as a clipped card.
+              Pan/zoom move Fabric's viewportTransform (see useStudio). */}
+          <canvas ref={canvasElRef} className="absolute inset-0" />
           {!studio.ready && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/70">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -242,6 +254,9 @@ export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
           <RightPanel studio={studio} />
         </aside>
       </div>
+
+      {/* Animation timeline */}
+      {studio.animateMode && <Timeline studio={studio} />}
 
       {/* Pages / carousel strip */}
       <PagesStrip studio={studio} />

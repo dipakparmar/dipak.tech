@@ -12,9 +12,11 @@ import {
   EyeOff,
   Lock,
   LockOpen,
-  Trash2
+  Trash2,
+  Upload
 } from 'lucide-react';
 import { FabricImage, Group, IText, Textbox, filters } from 'fabric';
+import { useRef } from 'react';
 
 import { ColorField, SliderField } from '@/components/studio/controls';
 import {
@@ -36,7 +38,7 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { STUDIO_FONTS, ensureFontLoaded } from '@/lib/studio/fonts';
+import { ensureFontLoaded } from '@/lib/studio/fonts';
 import { cn } from '@/lib/utils';
 
 function isTextLike(
@@ -62,46 +64,70 @@ function TextProperties({
   studio: StudioApi;
   text: (Textbox | IText) & StudioObject;
 }) {
+  const fontUploadRef = useRef<HTMLInputElement>(null);
   const fontGroups = [
     { label: 'Handwriting', kind: 'handwriting' as const },
     { label: 'Display', kind: 'display' as const },
     { label: 'Body', kind: 'body' as const }
   ];
+  const applyFont = async (family: string) => {
+    await ensureFontLoaded(family, String(text.fontWeight ?? '400'));
+    studio.updateObjects((obj) => {
+      if (isTextLike(obj)) obj.set({ fontFamily: family });
+    });
+  };
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Font</Label>
-        <Select
-          value={text.fontFamily}
-          onValueChange={async (family) => {
-            await ensureFontLoaded(family, String(text.fontWeight ?? '400'));
-            studio.updateObjects((obj) => {
-              if (isTextLike(obj)) obj.set({ fontFamily: family });
-            });
-          }}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Font" />
-          </SelectTrigger>
-          <SelectContent>
-            {fontGroups.map((group) => (
-              <SelectGroup key={group.kind}>
-                <SelectLabel>{group.label}</SelectLabel>
-                {STUDIO_FONTS.filter((font) => font.kind === group.kind).map(
-                  (font) => (
-                    <SelectItem
-                      key={font.label}
-                      value={font.family}
-                      style={{ fontFamily: font.family }}
-                    >
-                      {font.label}
-                    </SelectItem>
-                  )
-                )}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1.5">
+          <Select value={text.fontFamily} onValueChange={applyFont}>
+            <SelectTrigger className="h-8 flex-1">
+              <SelectValue placeholder="Font" />
+            </SelectTrigger>
+            <SelectContent>
+              {fontGroups.map((group) => (
+                <SelectGroup key={group.kind}>
+                  <SelectLabel>{group.label}</SelectLabel>
+                  {studio.fonts
+                    .filter((font) => font.kind === group.kind)
+                    .map((font) => (
+                      <SelectItem
+                        key={font.label}
+                        value={font.family}
+                        style={{ fontFamily: font.family }}
+                      >
+                        {font.label}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            aria-label="Upload custom font"
+            onClick={() => fontUploadRef.current?.click()}
+          >
+            <Upload className="h-3.5 w-3.5" />
+          </Button>
+          <input
+            ref={fontUploadRef}
+            type="file"
+            accept=".ttf,.otf,.woff,.woff2,font/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              const font = await studio.addCustomFont(file);
+              if (font) await applyFont(font.family);
+            }}
+          />
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

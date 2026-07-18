@@ -117,6 +117,16 @@ export function downloadDataUrl(filename: string, dataUrl: string): void {
   anchor.click();
 }
 
+/** Download an in-memory blob (video export). */
+export function downloadBlob(filename: string, blob: Blob): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 /**
  * Bundle multiple exported images into one zip download. Browsers block
  * several programmatic downloads in a row, so multi-page exports ship as
