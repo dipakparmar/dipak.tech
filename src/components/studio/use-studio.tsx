@@ -477,9 +477,14 @@ export function useStudio(
           setActivePageIndex(saved.activeIndex);
           activePageRef.current = saved.activeIndex;
         } catch {
-          clearAutosave();
+          // Don't wipe a valid autosave just because the effect was torn down
+          // mid-load (strict-mode remount); only clear on genuine bad data.
+          if (!cancelled) clearAutosave();
         }
       }
+      // The canvas may have been disposed while awaiting above (React strict
+      // mode remounts the effect); never touch it after that.
+      if (cancelled) return;
       if (!pagesRef.current.length) {
         const defaultPreset = getPreset(DEFAULT_PRESET_ID);
         canvas.setDimensions({

@@ -26,7 +26,6 @@ import {
 } from '@/components/studio/use-studio';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -488,22 +487,23 @@ export function RightPanel({ studio }: { studio: StudioApi }) {
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Layers ({studio.layers.length})
         </h3>
-        <ScrollArea className="min-h-0 flex-1 -mx-1 px-1">
-          <div className="flex flex-col gap-0.5">
-            {studio.layers.map((obj, index) => (
-              <LayerRow
-                key={`${index}-${getObjectLabel(obj)}`}
-                studio={studio}
-                obj={obj}
-              />
-            ))}
-            {!studio.layers.length && (
-              <p className="text-xs text-muted-foreground">
-                The canvas is empty.
-              </p>
-            )}
-          </div>
-        </ScrollArea>
+        {/* Plain scroller (not Radix ScrollArea): its display:table content
+            wrapper shrink-to-fits to the widest row, so long layer names break
+            truncate and overflow the panel. */}
+        <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1">
+          {studio.layers.map((obj, index) => (
+            <LayerRow
+              key={`${index}-${getObjectLabel(obj)}`}
+              studio={studio}
+              obj={obj}
+            />
+          ))}
+          {!studio.layers.length && (
+            <p className="text-xs text-muted-foreground">
+              The canvas is empty.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
