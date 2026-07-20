@@ -330,6 +330,7 @@ export function useStudio(
   const [playhead, setPlayhead] = useState(0);
   const [duration, setDuration] = useState(0);
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const [customFonts, setCustomFonts] = useState<StudioFont[]>([]);
   const [videoFormats] = useState(() => supportedVideoFormats());
   const [videoFormat, setVideoFormat] = useState<VideoFormat>(
@@ -1621,6 +1622,7 @@ export function useStudio(
       );
       const total = Math.max(animationDuration(canvas), audioEnd);
       setVideoProgress(0);
+      setVideoError(null);
       try {
         const audio = await mixClips(audioClipsRef.current, total);
         const blob = await recordPageVideo(videoFormat, json, width, height, {
@@ -1630,6 +1632,10 @@ export function useStudio(
           onProgress: setVideoProgress
         });
         downloadBlob(`${presetRef.current.id}-${stamp}.${videoFormat}`, blob);
+      } catch (err) {
+        setVideoError(
+          err instanceof Error ? err.message : 'Video export failed.'
+        );
       } finally {
         setVideoProgress(null);
       }
@@ -1924,6 +1930,8 @@ export function useStudio(
       canvasRef.current ? hasAnimation(canvasRef.current) : false,
     exportVideo,
     videoProgress,
+    videoError,
+    clearVideoError: () => setVideoError(null),
     videoFormats,
     videoFormat,
     setVideoFormat,

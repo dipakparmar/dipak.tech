@@ -193,6 +193,14 @@ export function DesignStudio({ backHref = '/tools' }: { backHref?: string }) {
               </TooltipContent>
             </Tooltip>
           )}
+          {studio.videoError && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TriangleAlert className="h-4 w-4 text-destructive" />
+              </TooltipTrigger>
+              <TooltipContent>{studio.videoError}</TooltipContent>
+            </Tooltip>
+          )}
           <Button
             type="button"
             variant={studio.animateMode ? 'secondary' : 'ghost'}
