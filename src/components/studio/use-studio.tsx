@@ -549,6 +549,8 @@ export function useStudio(
       cancelled = true;
       if (playRafRef.current !== null) cancelAnimationFrame(playRafRef.current);
       if (audioCtxRef.current) void audioCtxRef.current.close();
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+      if (commitTimer.current) clearTimeout(commitTimer.current);
       canvasRef.current = null;
       historyRef.current = null;
       void canvas.dispose();
