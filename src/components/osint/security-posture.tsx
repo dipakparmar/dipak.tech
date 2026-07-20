@@ -34,11 +34,11 @@ function StatusBadge({ pass, label }: { pass: boolean | null; label: string }) {
       </Badge>
     );
   return pass ? (
-    <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 hover:bg-emerald-950">
+    <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
       {label}
     </Badge>
   ) : (
-    <Badge className="bg-red-950 text-red-400 border-red-900 hover:bg-red-950">
+    <Badge className="border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300">
       {label}
     </Badge>
   );
@@ -46,7 +46,7 @@ function StatusBadge({ pass, label }: { pass: boolean | null; label: string }) {
 
 function WarnBadge({ label }: { label: string }) {
   return (
-    <Badge className="bg-amber-950 text-amber-400 border-amber-900 hover:bg-amber-950">
+    <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300">
       {label}
     </Badge>
   );
@@ -61,7 +61,7 @@ export function SecurityPosture({
 }: SecurityPostureProps) {
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-900/40 bg-red-950/20 p-4 text-sm text-red-400">
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
         Security Posture unavailable: {error}
       </div>
     );
@@ -102,7 +102,7 @@ export function SecurityPosture({
                 {waf.capabilities.map((cap) => (
                   <Badge
                     key={cap}
-                    className="bg-emerald-950 text-emerald-400 border-emerald-800 text-xs"
+                    className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs"
                   >
                     {cap}
                   </Badge>
