@@ -8,7 +8,9 @@ export const SERIALIZED_PROPS = [
   'evented',
   'globalCompositeOperation',
   'rx',
-  'ry'
+  'ry',
+  'keyframes',
+  'textBrush'
 ];
 
 const MAX_HISTORY = 50;

@@ -10,13 +10,33 @@ import {
   Copy,
   Eye,
   EyeOff,
+  GripVertical,
   Lock,
   LockOpen,
-  Trash2
+  Trash2,
+  Upload
 } from 'lucide-react';
 import { FabricImage, Group, IText, Textbox, filters } from 'fabric';
+import { useRef, useState } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import { ColorField, SliderField } from '@/components/studio/controls';
+import { TextBrushFields } from '@/components/studio/text-brush-fields';
 import {
   getObjectLabel,
   type StudioApi,
@@ -24,7 +44,6 @@ import {
 } from '@/components/studio/use-studio';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -36,13 +55,27 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { STUDIO_FONTS, ensureFontLoaded } from '@/lib/studio/fonts';
+import { ensureFontLoaded } from '@/lib/studio/fonts';
+import { isTextBrushGroup, type TextBrushGroup } from '@/lib/studio/text-brush';
 import { cn } from '@/lib/utils';
 
 function isTextLike(
   obj: StudioObject
 ): obj is (Textbox | IText) & StudioObject {
   return obj instanceof Textbox || obj instanceof IText;
+}
+
+// Stable sortable id per Fabric object (same instance across renders/reorders).
+// A WeakMap avoids mutating objects and lets ids GC when objects are replaced.
+const layerIds = new WeakMap<object, string>();
+let layerIdSeq = 0;
+function layerId(obj: object): string {
+  let id = layerIds.get(obj);
+  if (!id) {
+    id = `layer-${(layerIdSeq += 1)}`;
+    layerIds.set(obj, id);
+  }
+  return id;
 }
 
 function readImageAdjust(image: FabricImage) {
@@ -62,46 +95,70 @@ function TextProperties({
   studio: StudioApi;
   text: (Textbox | IText) & StudioObject;
 }) {
+  const fontUploadRef = useRef<HTMLInputElement>(null);
   const fontGroups = [
     { label: 'Handwriting', kind: 'handwriting' as const },
     { label: 'Display', kind: 'display' as const },
     { label: 'Body', kind: 'body' as const }
   ];
+  const applyFont = async (family: string) => {
+    await ensureFontLoaded(family, String(text.fontWeight ?? '400'));
+    studio.updateObjects((obj) => {
+      if (isTextLike(obj)) obj.set({ fontFamily: family });
+    });
+  };
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Font</Label>
-        <Select
-          value={text.fontFamily}
-          onValueChange={async (family) => {
-            await ensureFontLoaded(family, String(text.fontWeight ?? '400'));
-            studio.updateObjects((obj) => {
-              if (isTextLike(obj)) obj.set({ fontFamily: family });
-            });
-          }}
-        >
-          <SelectTrigger className="h-8">
-            <SelectValue placeholder="Font" />
-          </SelectTrigger>
-          <SelectContent>
-            {fontGroups.map((group) => (
-              <SelectGroup key={group.kind}>
-                <SelectLabel>{group.label}</SelectLabel>
-                {STUDIO_FONTS.filter((font) => font.kind === group.kind).map(
-                  (font) => (
-                    <SelectItem
-                      key={font.label}
-                      value={font.family}
-                      style={{ fontFamily: font.family }}
-                    >
-                      {font.label}
-                    </SelectItem>
-                  )
-                )}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-1.5">
+          <Select value={text.fontFamily} onValueChange={applyFont}>
+            <SelectTrigger className="h-8 flex-1">
+              <SelectValue placeholder="Font" />
+            </SelectTrigger>
+            <SelectContent>
+              {fontGroups.map((group) => (
+                <SelectGroup key={group.kind}>
+                  <SelectLabel>{group.label}</SelectLabel>
+                  {studio.fonts
+                    .filter((font) => font.kind === group.kind)
+                    .map((font) => (
+                      <SelectItem
+                        key={font.label}
+                        value={font.family}
+                        style={{ fontFamily: font.family }}
+                      >
+                        {font.label}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            aria-label="Upload custom font"
+            onClick={() => fontUploadRef.current?.click()}
+          >
+            <Upload className="h-3.5 w-3.5" />
+          </Button>
+          <input
+            ref={fontUploadRef}
+            type="file"
+            accept=".ttf,.otf,.woff,.woff2,font/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              const font = await studio.addCustomFont(file);
+              if (font) await applyFont(font.family);
+            }}
+          />
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -207,6 +264,28 @@ function TextProperties({
   );
 }
 
+function TextBrushProperties({
+  studio,
+  group
+}: {
+  studio: StudioApi;
+  group: TextBrushGroup;
+}) {
+  return (
+    <div className="space-y-3">
+      <TextBrushFields
+        id="selected-text-brush"
+        value={group.textBrush}
+        fonts={studio.fonts}
+        onChange={(patch) => studio.updateTextBrush(group, patch)}
+      />
+      <p className="text-xs text-muted-foreground">
+        Drawn along your stroke - edits re-stamp it on the same path.
+      </p>
+    </div>
+  );
+}
+
 function ImageProperties({
   studio,
   image
@@ -305,13 +384,36 @@ function ShapeProperties({
 
 function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
   const isActive = studio.selected.includes(obj);
+  const [editing, setEditing] = useState(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: layerId(obj) });
+
   return (
     <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'group flex items-center gap-1 rounded-md border border-transparent px-1.5 py-1 text-sm transition-colors',
-        isActive ? 'border-sky-500/40 bg-sky-500/10' : 'hover:bg-muted/60'
+        'group flex items-center gap-0.5 rounded-md border border-transparent px-1 py-1 text-sm transition-colors',
+        isActive ? 'border-sky-500/40 bg-sky-500/10' : 'hover:bg-muted/60',
+        isDragging && 'z-10 opacity-70 shadow-md'
       )}
     >
+      {/* Drag handle - listeners live here so the row's buttons stay clickable */}
+      <button
+        type="button"
+        aria-label="Drag to reorder layer"
+        className="shrink-0 cursor-grab touch-none text-muted-foreground/40 hover:text-muted-foreground active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
       <Button
         type="button"
         variant="ghost"
@@ -326,16 +428,40 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
           <EyeOff className="h-3.5 w-3.5" />
         )}
       </Button>
-      <button
-        type="button"
-        className={cn(
-          'min-w-0 flex-1 truncate text-left',
-          obj.locked && 'text-muted-foreground'
-        )}
-        onClick={() => studio.selectObject(obj)}
-      >
-        {getObjectLabel(obj)}
-      </button>
+      {editing ? (
+        <input
+          autoFocus
+          defaultValue={getObjectLabel(obj)}
+          className="min-w-0 flex-1 rounded border bg-background px-1 py-0.5 text-sm outline-none focus:border-sky-500"
+          onFocus={(e) => e.target.select()}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={(e) => {
+            studio.renameObject(obj, e.target.value);
+            setEditing(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              studio.renameObject(obj, e.currentTarget.value);
+              setEditing(false);
+            } else if (e.key === 'Escape') {
+              setEditing(false);
+            }
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          className={cn(
+            'min-w-0 flex-1 truncate text-left',
+            obj.locked && 'text-muted-foreground'
+          )}
+          onClick={() => studio.selectObject(obj)}
+          onDoubleClick={() => setEditing(true)}
+          title="Double-click to rename"
+        >
+          {getObjectLabel(obj)}
+        </button>
+      )}
       <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
         <Button
           type="button"
@@ -391,6 +517,20 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
 
 export function RightPanel({ studio }: { studio: StudioApi }) {
   const single = studio.selected.length === 1 ? studio.selected[0] : null;
+  const sensors = useSensors(
+    // Small distance so a click on a layer's buttons doesn't start a drag.
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const onLayerDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = studio.layers.map((o) => layerId(o));
+    const from = ids.indexOf(active.id as string);
+    const to = ids.indexOf(over.id as string);
+    if (from !== -1 && to !== -1) studio.reorderLayers(from, to);
+  };
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -414,11 +554,15 @@ export function RightPanel({ studio }: { studio: StudioApi }) {
             {single && isTextLike(single) && (
               <TextProperties studio={studio} text={single} />
             )}
+            {single && isTextBrushGroup(single) && (
+              <TextBrushProperties studio={studio} group={single} />
+            )}
             {single && single instanceof FabricImage && (
               <ImageProperties studio={studio} image={single} />
             )}
             {single &&
               !isTextLike(single) &&
+              !isTextBrushGroup(single) &&
               !(single instanceof FabricImage) && (
                 <ShapeProperties studio={studio} shape={single} />
               )}
@@ -462,22 +606,32 @@ export function RightPanel({ studio }: { studio: StudioApi }) {
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Layers ({studio.layers.length})
         </h3>
-        <ScrollArea className="min-h-0 flex-1 -mx-1 px-1">
-          <div className="flex flex-col gap-0.5">
-            {studio.layers.map((obj, index) => (
-              <LayerRow
-                key={`${index}-${getObjectLabel(obj)}`}
-                studio={studio}
-                obj={obj}
-              />
-            ))}
-            {!studio.layers.length && (
-              <p className="text-xs text-muted-foreground">
-                The canvas is empty.
-              </p>
-            )}
-          </div>
-        </ScrollArea>
+        {/* Plain scroller (not Radix ScrollArea): its display:table content
+            wrapper shrink-to-fits to the widest row, so long layer names break
+            truncate and overflow the panel. */}
+        <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onLayerDragEnd}
+          >
+            <SortableContext
+              items={studio.layers.map((o) => layerId(o))}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="flex flex-col gap-0.5">
+                {studio.layers.map((obj) => (
+                  <LayerRow key={layerId(obj)} studio={studio} obj={obj} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+          {!studio.layers.length && (
+            <p className="text-xs text-muted-foreground">
+              The canvas is empty.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

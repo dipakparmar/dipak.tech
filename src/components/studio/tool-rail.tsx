@@ -1,20 +1,30 @@
 'use client';
 
 import {
+  ArrowRight,
+  ArrowUpRight,
   Circle,
+  CircleDashed,
+  Heart,
   Highlighter,
   ImagePlus,
+  Images,
   Layers2,
   MousePointer2,
   PaintBucket,
   PenLine,
   Shapes,
   Sparkles,
-  Type
+  Square,
+  Star,
+  Type,
+  Underline
 } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { ColorField, SliderField } from '@/components/studio/controls';
+import { TextBrushFields } from '@/components/studio/text-brush-fields';
+import { UnsplashPanel } from '@/components/studio/unsplash-panel';
 import type {
   DrawMode,
   StudioApi,
@@ -38,8 +48,23 @@ import {
   FONT_MARKER
 } from '@/lib/studio/fonts';
 import { OVERLAY_LABELS } from '@/lib/studio/overlays';
-import { ROUGH_SHAPE_LABELS } from '@/lib/studio/rough-shapes';
+import {
+  ROUGH_SHAPE_LABELS,
+  type RoughShapeKind
+} from '@/lib/studio/rough-shapes';
 import { cn } from '@/lib/utils';
+
+const SHAPE_ICONS: Record<RoughShapeKind, typeof Circle> = {
+  rectangle: Square,
+  ellipse: Circle,
+  arrow: ArrowRight,
+  star: Star,
+  heart: Heart,
+  'scribble-circle': CircleDashed,
+  'scribble-underline': Underline,
+  'scribble-arrow': ArrowUpRight,
+  'scribble-highlight': Highlighter
+};
 
 const TEXT_BUTTONS: {
   kind: TextKind;
@@ -82,7 +107,8 @@ const TEXT_BUTTONS: {
 const DRAW_MODES: { mode: DrawMode; label: string }[] = [
   { mode: 'pen', label: 'Pen' },
   { mode: 'marker', label: 'Marker' },
-  { mode: 'glow', label: 'Glow' }
+  { mode: 'glow', label: 'Glow' },
+  { mode: 'text', label: 'Text' }
 ];
 
 function RailButton({
@@ -125,6 +151,7 @@ export function ToolRail({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [shapeColor, setShapeColor] = useState('#FFE066');
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [unsplashOpen, setUnsplashOpen] = useState(false);
 
   const selectedImage =
     studio.selected.length === 1 && studio.selected[0].isType('image');
@@ -183,24 +210,27 @@ export function ToolRail({
           className="w-64 space-y-3 p-3"
         >
           <div className="grid grid-cols-3 gap-1.5">
-            {ROUGH_SHAPE_LABELS.map((shape) => (
-              <button
-                key={shape.kind}
-                type="button"
-                onClick={() =>
-                  studio.addShape(shape.kind, {
-                    stroke: shapeColor,
-                    strokeWidth: 3
-                  })
-                }
-                className="flex h-16 flex-col items-center justify-center gap-1 rounded-md border text-center transition-colors hover:bg-muted"
-              >
-                <Circle className="h-4 w-4 opacity-60" />
-                <span className="text-[10px] leading-tight text-muted-foreground">
-                  {shape.label}
-                </span>
-              </button>
-            ))}
+            {ROUGH_SHAPE_LABELS.map((shape) => {
+              const Icon = SHAPE_ICONS[shape.kind];
+              return (
+                <button
+                  key={shape.kind}
+                  type="button"
+                  onClick={() =>
+                    studio.addShape(shape.kind, {
+                      stroke: shapeColor,
+                      strokeWidth: 3
+                    })
+                  }
+                  className="flex h-16 flex-col items-center justify-center gap-1 rounded-md border text-center transition-colors hover:bg-muted"
+                >
+                  <Icon className="h-4 w-4 opacity-60" />
+                  <span className="text-[10px] leading-tight text-muted-foreground">
+                    {shape.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <ColorField
             label="Shape color"
@@ -241,22 +271,34 @@ export function ToolRail({
               </Button>
             ))}
           </div>
-          <ColorField
-            label="Brush color"
-            value={studio.drawColor}
-            onChange={studio.setDrawColor}
-          />
-          <SliderField
-            label="Brush size"
-            value={studio.drawWidth}
-            min={2}
-            max={60}
-            onChange={studio.setDrawWidth}
-          />
+          {studio.drawMode === 'text' ? (
+            <TextBrushFields
+              id="draw-text-brush"
+              value={studio.textBrush}
+              fonts={studio.fonts}
+              onChange={studio.updateTextBrushSettings}
+            />
+          ) : (
+            <>
+              <ColorField
+                label="Brush color"
+                value={studio.drawColor}
+                onChange={studio.setDrawColor}
+              />
+              <SliderField
+                label="Brush size"
+                value={studio.drawWidth}
+                min={2}
+                max={60}
+                onChange={studio.setDrawWidth}
+              />
+            </>
+          )}
           {studio.drawMode !== 'off' && (
             <p className="text-xs text-muted-foreground">
-              Drawing mode is on - draw directly on the canvas. Press Select
-              when done.
+              {studio.drawMode === 'text'
+                ? 'Drag on the canvas - your text repeats along the stroke. Select it afterwards to keep tweaking.'
+                : 'Drawing mode is on - draw directly on the canvas. Press Select when done.'}
             </p>
           )}
         </PopoverContent>
@@ -313,6 +355,23 @@ export function ToolRail({
           <p className="text-xs text-muted-foreground">
             Photos stay in your browser - nothing is uploaded to a server.
           </p>
+        </PopoverContent>
+      </Popover>
+
+      {/* Stock photos (Unsplash) */}
+      <Popover open={unsplashOpen} onOpenChange={setUnsplashOpen}>
+        <PopoverTrigger asChild>
+          <span>
+            <RailButton label="Stock photos">
+              <Images className="h-5 w-5" />
+            </RailButton>
+          </span>
+        </PopoverTrigger>
+        <PopoverContent side="right" align="start" className="w-72 p-3">
+          <UnsplashPanel
+            studio={studio}
+            onInserted={() => setUnsplashOpen(false)}
+          />
         </PopoverContent>
       </Popover>
 
