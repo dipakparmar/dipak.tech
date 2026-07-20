@@ -106,7 +106,9 @@ export function downloadJson(filename: string, data: unknown): void {
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
-  URL.revokeObjectURL(url);
+  // Some browsers start the save asynchronously; revoking immediately can
+  // truncate the download.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /** Download a data URL (PNG/JPEG export). */
@@ -124,7 +126,9 @@ export function downloadBlob(filename: string, blob: Blob): void {
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
-  URL.revokeObjectURL(url);
+  // Some browsers start the save asynchronously; revoking immediately can
+  // truncate the download.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /**
@@ -155,7 +159,9 @@ export async function downloadImagesAsZip(
   anchor.href = url;
   anchor.download = filename;
   anchor.click();
-  URL.revokeObjectURL(url);
+  // Some browsers start the save asynchronously; revoking immediately can
+  // truncate the download.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /**
