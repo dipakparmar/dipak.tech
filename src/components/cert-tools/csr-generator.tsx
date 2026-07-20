@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import {
   FileKey,
   Copy,
@@ -196,8 +197,13 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CSRResult | null>(null);
-  const [copied, setCopied] = useState<'csr' | 'key' | null>(null);
-  const [urlCopied, setUrlCopied] = useState(false);
+  const csrCopy = useCopyToClipboard();
+  const keyCopy = useCopyToClipboard();
+  const {
+    status: urlStatus,
+    copied: urlCopied,
+    copy: copyShareUrl
+  } = useCopyToClipboard();
 
   const [sanError, setSanError] = useState<string | null>(null);
 
@@ -227,7 +233,7 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
     setSans((prev) => prev.filter((s) => s !== san));
   }, []);
 
-  const handleShareUrl = useCallback(async () => {
+  const handleShareUrl = useCallback(() => {
     const params = new URLSearchParams();
     params.set('tool', 'csr');
     if (formData.commonName) params.set('cn', formData.commonName);
@@ -243,11 +249,8 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
     const host = window.location.host;
     const resolvedPath = normalizePathname('tools', pathname, host);
     const url = `${window.location.origin}${resolvedPath}?${params.toString()}`;
-    await navigator.clipboard.writeText(url);
-    trigger('success');
-    setUrlCopied(true);
-    setTimeout(() => setUrlCopied(false), 2000);
-  }, [formData, sans, pathname, trigger]);
+    copyShareUrl(url);
+  }, [formData, sans, pathname, copyShareUrl]);
 
   const handleGenerate = useCallback(async () => {
     if (!formData.commonName.trim()) {
@@ -573,16 +576,6 @@ export function CSRGenerator({ initialValues }: CSRGeneratorProps) {
     }
   }, [formData, sans, keyMode, existingKey, trigger]);
 
-  const handleCopy = useCallback(
-    async (type: 'csr' | 'key', content: string) => {
-      await navigator.clipboard.writeText(content);
-      trigger('success');
-      setCopied(type);
-      setTimeout(() => setCopied(null), 2000);
-    },
-    [trigger]
-  );
-
   const handleDownload = useCallback((filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -870,8 +863,17 @@ MIIEvgIBADANBgkq...
               size="icon"
               onClick={handleShareUrl}
               title="Copy share URL"
+              aria-label={
+                urlStatus === 'error'
+                  ? 'Copy failed'
+                  : urlCopied
+                    ? 'Copied'
+                    : 'Copy share URL'
+              }
             >
-              {urlCopied ? (
+              {urlStatus === 'error' ? (
+                <X className="h-4 w-4 text-destructive" />
+              ) : urlCopied ? (
                 <Check className="h-4 w-4" />
               ) : (
                 <Share2 className="h-4 w-4" />
@@ -940,15 +942,28 @@ MIIEvgIBADANBgkq...
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleCopy('csr', result.csr)}
+                  onClick={() => csrCopy.copy(result.csr)}
                   className="gap-1"
+                  aria-label={
+                    csrCopy.status === 'error'
+                      ? 'Copy failed'
+                      : csrCopy.copied
+                        ? 'Copied'
+                        : 'Copy CSR'
+                  }
                 >
-                  {copied === 'csr' ? (
+                  {csrCopy.status === 'error' ? (
+                    <X className="h-3 w-3 text-destructive" />
+                  ) : csrCopy.copied ? (
                     <Check className="h-3 w-3" />
                   ) : (
                     <Copy className="h-3 w-3" />
                   )}
-                  {copied === 'csr' ? 'Copied' : 'Copy'}
+                  {csrCopy.status === 'error'
+                    ? 'Failed'
+                    : csrCopy.copied
+                      ? 'Copied'
+                      : 'Copy'}
                 </Button>
                 <Button
                   variant="outline"
@@ -987,15 +1002,28 @@ MIIEvgIBADANBgkq...
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleCopy('key', result.privateKey)}
+                  onClick={() => keyCopy.copy(result.privateKey)}
                   className="gap-1"
+                  aria-label={
+                    keyCopy.status === 'error'
+                      ? 'Copy failed'
+                      : keyCopy.copied
+                        ? 'Copied'
+                        : 'Copy private key'
+                  }
                 >
-                  {copied === 'key' ? (
+                  {keyCopy.status === 'error' ? (
+                    <X className="h-3 w-3 text-destructive" />
+                  ) : keyCopy.copied ? (
                     <Check className="h-3 w-3" />
                   ) : (
                     <Copy className="h-3 w-3" />
                   )}
-                  {copied === 'key' ? 'Copied' : 'Copy'}
+                  {keyCopy.status === 'error'
+                    ? 'Failed'
+                    : keyCopy.copied
+                      ? 'Copied'
+                      : 'Copy'}
                 </Button>
                 <Button
                   variant="outline"

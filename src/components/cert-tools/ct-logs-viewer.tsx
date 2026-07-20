@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -12,7 +13,8 @@ import {
   Building,
   Globe,
   Share2,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Input } from '@/components/ui/input';
@@ -66,7 +68,11 @@ export function CTLogsViewer({ initialDomain = '' }: CTLogsViewerProps) {
     issuers: string[];
     names: string[];
   } | null>(null);
-  const [urlCopied, setUrlCopied] = useState(false);
+  const {
+    status: urlStatus,
+    copied: urlCopied,
+    copy: copyShareUrl
+  } = useCopyToClipboard();
   const hasAutoSearched = useRef(false);
 
   // Update URL with domain param (preserves search state on navigation)
@@ -88,18 +94,15 @@ export function CTLogsViewer({ initialDomain = '' }: CTLogsViewerProps) {
     [router, pathname, searchParams]
   );
 
-  const handleShareUrl = useCallback(async () => {
+  const handleShareUrl = useCallback(() => {
     if (!query.trim()) return;
     const params = new URLSearchParams();
     params.set('domain', query.trim());
     const host = window.location.host;
     const resolvedPath = normalizePathname('tools', pathname, host);
     const url = `${window.location.origin}${resolvedPath}?${params.toString()}`;
-    await navigator.clipboard.writeText(url);
-    trigger('success');
-    setUrlCopied(true);
-    setTimeout(() => setUrlCopied(false), 2000);
-  }, [query, pathname, trigger]);
+    copyShareUrl(url);
+  }, [query, pathname, copyShareUrl]);
 
   const handleSearch = useCallback(
     async (searchQuery?: string) => {
@@ -234,8 +237,17 @@ export function CTLogsViewer({ initialDomain = '' }: CTLogsViewerProps) {
               onClick={handleShareUrl}
               disabled={!query.trim()}
               title="Copy share URL"
+              aria-label={
+                urlStatus === 'error'
+                  ? 'Copy failed'
+                  : urlCopied
+                    ? 'Copied'
+                    : 'Copy share URL'
+              }
             >
-              {urlCopied ? (
+              {urlStatus === 'error' ? (
+                <X className="h-4 w-4 text-destructive" />
+              ) : urlCopied ? (
                 <Check className="h-4 w-4" />
               ) : (
                 <Share2 className="h-4 w-4" />

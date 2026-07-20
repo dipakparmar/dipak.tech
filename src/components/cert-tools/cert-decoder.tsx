@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { FileText, Copy, AlertCircle, Link, Loader2 } from 'lucide-react';
+import { FileText, Copy, Check, X, AlertCircle, Link, Loader2 } from 'lucide-react';
 import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -441,6 +442,7 @@ export function CertDecoder() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchedPem, setFetchedPem] = useState<string | null>(null);
+  const fetchedPemCopy = useCopyToClipboard();
 
   const handleDecode = useCallback(async () => {
     if (!pem.trim()) {
@@ -643,13 +645,28 @@ export function CertDecoder() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(fetchedPem);
-                    }}
+                    onClick={() => fetchedPemCopy.copy(fetchedPem)}
                     className="gap-1"
+                    aria-label={
+                      fetchedPemCopy.status === 'error'
+                        ? 'Copy failed'
+                        : fetchedPemCopy.copied
+                          ? 'Copied'
+                          : 'Copy PEM certificate'
+                    }
                   >
-                    <Copy className="h-3 w-3" />
-                    Copy PEM
+                    {fetchedPemCopy.status === 'error' ? (
+                      <X className="h-3 w-3 text-destructive" />
+                    ) : fetchedPemCopy.copied ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                    {fetchedPemCopy.status === 'error'
+                      ? 'Failed'
+                      : fetchedPemCopy.copied
+                        ? 'Copied'
+                        : 'Copy PEM'}
                   </Button>
                 </div>
               )}

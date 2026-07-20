@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import {
   Key,
   Copy,
@@ -11,7 +12,8 @@ import {
   Lock,
   Unlock,
   Share2,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Label } from '@/components/ui/label';
@@ -75,10 +77,15 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<KeyPairResult | null>(null);
-  const [copied, setCopied] = useState<'public' | 'private' | null>(null);
-  const [urlCopied, setUrlCopied] = useState(false);
+  const publicKeyCopy = useCopyToClipboard();
+  const privateKeyCopy = useCopyToClipboard();
+  const {
+    status: urlStatus,
+    copied: urlCopied,
+    copy: copyShareUrl
+  } = useCopyToClipboard();
 
-  const handleShareUrl = useCallback(async () => {
+  const handleShareUrl = useCallback(() => {
     const params = new URLSearchParams();
     params.set('tool', 'keygen');
     if (settings.algorithm !== 'RSA')
@@ -88,11 +95,8 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
     const host = window.location.host;
     const resolvedPath = normalizePathname('tools', pathname, host);
     const url = `${window.location.origin}${resolvedPath}?${params.toString()}`;
-    await navigator.clipboard.writeText(url);
-    trigger('success');
-    setUrlCopied(true);
-    setTimeout(() => setUrlCopied(false), 2000);
-  }, [settings, pathname, trigger]);
+    copyShareUrl(url);
+  }, [settings, pathname, copyShareUrl]);
 
   const handleGenerate = useCallback(async () => {
     setLoading(true);
@@ -168,16 +172,6 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
       setLoading(false);
     }
   }, [settings, trigger]);
-
-  const handleCopy = useCallback(
-    async (type: 'public' | 'private', content: string) => {
-      await navigator.clipboard.writeText(content);
-      trigger('success');
-      setCopied(type);
-      setTimeout(() => setCopied(null), 2000);
-    },
-    [trigger]
-  );
 
   const handleDownload = useCallback((filename: string, content: string) => {
     const blob = new Blob([content], { type: 'text/plain' });
@@ -297,8 +291,17 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
               size="icon"
               onClick={handleShareUrl}
               title="Copy share URL"
+              aria-label={
+                urlStatus === 'error'
+                  ? 'Copy failed'
+                  : urlCopied
+                    ? 'Copied'
+                    : 'Copy share URL'
+              }
             >
-              {urlCopied ? (
+              {urlStatus === 'error' ? (
+                <X className="h-4 w-4 text-destructive" />
+              ) : urlCopied ? (
                 <Check className="h-4 w-4" />
               ) : (
                 <Share2 className="h-4 w-4" />
@@ -345,15 +348,28 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleCopy('public', result.publicKey)}
+                  onClick={() => publicKeyCopy.copy(result.publicKey)}
                   className="gap-1"
+                  aria-label={
+                    publicKeyCopy.status === 'error'
+                      ? 'Copy failed'
+                      : publicKeyCopy.copied
+                        ? 'Copied'
+                        : 'Copy public key'
+                  }
                 >
-                  {copied === 'public' ? (
+                  {publicKeyCopy.status === 'error' ? (
+                    <X className="h-3 w-3 text-destructive" />
+                  ) : publicKeyCopy.copied ? (
                     <Check className="h-3 w-3" />
                   ) : (
                     <Copy className="h-3 w-3" />
                   )}
-                  {copied === 'public' ? 'Copied' : 'Copy'}
+                  {publicKeyCopy.status === 'error'
+                    ? 'Failed'
+                    : publicKeyCopy.copied
+                      ? 'Copied'
+                      : 'Copy'}
                 </Button>
                 <Button
                   variant="outline"
@@ -392,15 +408,28 @@ export function KeyGenerator({ initialValues }: KeyGeneratorProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleCopy('private', result.privateKey)}
+                  onClick={() => privateKeyCopy.copy(result.privateKey)}
                   className="gap-1"
+                  aria-label={
+                    privateKeyCopy.status === 'error'
+                      ? 'Copy failed'
+                      : privateKeyCopy.copied
+                        ? 'Copied'
+                        : 'Copy private key'
+                  }
                 >
-                  {copied === 'private' ? (
+                  {privateKeyCopy.status === 'error' ? (
+                    <X className="h-3 w-3 text-destructive" />
+                  ) : privateKeyCopy.copied ? (
                     <Check className="h-3 w-3" />
                   ) : (
                     <Copy className="h-3 w-3" />
                   )}
-                  {copied === 'private' ? 'Copied' : 'Copy'}
+                  {privateKeyCopy.status === 'error'
+                    ? 'Failed'
+                    : privateKeyCopy.copied
+                      ? 'Copied'
+                      : 'Copy'}
                 </Button>
                 <Button
                   variant="outline"
