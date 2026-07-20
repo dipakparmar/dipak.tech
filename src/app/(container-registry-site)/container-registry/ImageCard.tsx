@@ -2,8 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
-import { useState } from 'react';
-import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import {
   RegistryBackend,
   REGISTRY_BACKENDS,
@@ -48,8 +47,7 @@ function formatDate(dateStr: string): string {
 }
 
 export function ImageCard({ image }: ImageCardProps) {
-  const [copied, setCopied] = useState(false);
-  const { trigger } = useHaptics();
+  const { status, copied, copy } = useCopyToClipboard();
   const registryConfig = REGISTRY_BACKENDS[image.registry];
   const pullCommand = `docker pull cr.dipak.io/${image.registry}/${image.name}:latest`;
   const fullImageName = `${GITHUB_USERNAME}/${image.name}`;
@@ -59,13 +57,6 @@ export function ImageCard({ image }: ImageCardProps) {
     image.registry === 'ghcr'
       ? `https://github.com/${GITHUB_USERNAME}/${image.name}/pkgs/container/${image.name}`
       : `https://hub.docker.com/r/${GITHUB_USERNAME}/${image.name}`;
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(pullCommand);
-    trigger('success');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="group relative rounded-xl border bg-card p-4 sm:p-5 text-card-foreground transition-all hover:border-foreground/20 hover:shadow-lg w-full max-w-full overflow-hidden">
@@ -159,12 +150,34 @@ export function ImageCard({ image }: ImageCardProps) {
           {pullCommand}
         </code>
         <button
-          onClick={handleCopy}
+          onClick={() => copy(pullCommand)}
           className="shrink-0 rounded-md p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
           title="Copy pull command"
+          aria-label={
+            status === 'error'
+              ? 'Copy failed'
+              : copied
+                ? 'Copied'
+                : 'Copy pull command'
+          }
           type="button"
         >
-          {copied ? (
+          {status === 'error' ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 text-destructive"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          ) : copied ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-4 w-4 text-green-500"

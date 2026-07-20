@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import {
   Card,
   CardContent,
@@ -18,7 +17,8 @@ import {
   Hash,
   FileText,
   Copy,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 
 // Normalized certificate data interface
@@ -65,18 +65,9 @@ export function CertificateDetails({
   showPem = true,
   className = ''
 }: CertificateDetailsProps) {
-  const [copied, setCopied] = useState<string | null>(null);
-  const { trigger } = useHaptics();
-
-  const handleCopy = useCallback(
-    async (text: string, id: string) => {
-      await navigator.clipboard.writeText(text);
-      trigger('success');
-      setCopied(id);
-      setTimeout(() => setCopied(null), 2000);
-    },
-    [trigger]
-  );
+  const serialCopy = useCopyToClipboard();
+  const fingerprintCopy = useCopyToClipboard();
+  const pemCopy = useCopyToClipboard();
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -309,9 +300,18 @@ export function CertificateDetails({
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 shrink-0"
-                onClick={() => handleCopy(certificate.serialNumber, 'serial')}
+                onClick={() => serialCopy.copy(certificate.serialNumber)}
+                aria-label={
+                  serialCopy.status === 'error'
+                    ? 'Copy failed'
+                    : serialCopy.copied
+                      ? 'Copied'
+                      : 'Copy serial number'
+                }
               >
-                {copied === 'serial' ? (
+                {serialCopy.status === 'error' ? (
+                  <X className="h-3 w-3 text-destructive" />
+                ) : serialCopy.copied ? (
                   <Check className="h-3 w-3" />
                 ) : (
                   <Copy className="h-3 w-3" />
@@ -335,13 +335,21 @@ export function CertificateDetails({
                   size="icon"
                   className="h-8 w-8 shrink-0"
                   onClick={() =>
-                    handleCopy(
-                      certificate.sha256 || certificate.fingerprint || '',
-                      'fingerprint'
+                    fingerprintCopy.copy(
+                      certificate.sha256 || certificate.fingerprint || ''
                     )
                   }
+                  aria-label={
+                    fingerprintCopy.status === 'error'
+                      ? 'Copy failed'
+                      : fingerprintCopy.copied
+                        ? 'Copied'
+                        : 'Copy fingerprint'
+                  }
                 >
-                  {copied === 'fingerprint' ? (
+                  {fingerprintCopy.status === 'error' ? (
+                    <X className="h-3 w-3 text-destructive" />
+                  ) : fingerprintCopy.copied ? (
                     <Check className="h-3 w-3" />
                   ) : (
                     <Copy className="h-3 w-3" />
@@ -369,14 +377,27 @@ export function CertificateDetails({
                 variant="outline"
                 size="sm"
                 className="gap-1"
-                onClick={() => handleCopy(certificate.pem || '', 'pem')}
+                onClick={() => pemCopy.copy(certificate.pem || '')}
+                aria-label={
+                  pemCopy.status === 'error'
+                    ? 'Copy failed'
+                    : pemCopy.copied
+                      ? 'Copied'
+                      : 'Copy PEM certificate'
+                }
               >
-                {copied === 'pem' ? (
+                {pemCopy.status === 'error' ? (
+                  <X className="h-3 w-3 text-destructive" />
+                ) : pemCopy.copied ? (
                   <Check className="h-3 w-3" />
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}
-                {copied === 'pem' ? 'Copied' : 'Copy'}
+                {pemCopy.status === 'error'
+                  ? 'Failed'
+                  : pemCopy.copied
+                    ? 'Copied'
+                    : 'Copy'}
               </Button>
             </div>
           </CardHeader>

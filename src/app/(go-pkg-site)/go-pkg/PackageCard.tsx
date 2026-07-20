@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Repo } from '@/lib/github';
 import { buildHref } from '@/lib/host-routing';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 
 interface PackageCardProps {
   repo: Repo;
@@ -12,16 +12,10 @@ interface PackageCardProps {
 }
 
 export function PackageCard({ repo, host }: PackageCardProps) {
-  const [copied, setCopied] = useState(false);
+  const { status, copied, copy } = useCopyToClipboard();
   const installCommand = `go get go.pkg.dipak.io/${repo.name}`;
   const githubUrl = `https://github.com/dipakparmar/${repo.name}`;
   const packageUrl = buildHref('goPkg', `/view/${repo.name}`, host);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(installCommand);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="group relative rounded-xl border bg-card p-5 text-card-foreground transition-all hover:border-foreground/20 hover:shadow-lg">
@@ -97,12 +91,34 @@ export function PackageCard({ repo, host }: PackageCardProps) {
           {installCommand}
         </code>
         <button
-          onClick={handleCopy}
+          onClick={() => copy(installCommand)}
           className="shrink-0 rounded-md p-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
           title="Copy install command"
+          aria-label={
+            status === 'error'
+              ? 'Copy failed'
+              : copied
+                ? 'Copied'
+                : 'Copy install command'
+          }
           type="button"
         >
-          {copied ? (
+          {status === 'error' ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4 text-destructive"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          ) : copied ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-4 w-4 text-green-500"
