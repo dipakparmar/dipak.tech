@@ -51,6 +51,7 @@ export function PackageCard({ repo, host }: PackageCardProps) {
           )}
           <Link
             href={packageUrl}
+            aria-label="View package info"
             className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="View package info"
           >
@@ -73,6 +74,7 @@ export function PackageCard({ repo, host }: PackageCardProps) {
             href={githubUrl}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="View on GitHub"
             className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="View on GitHub"
           >

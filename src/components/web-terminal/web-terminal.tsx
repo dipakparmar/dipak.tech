@@ -1767,6 +1767,7 @@ export function WebTerminal() {
                   variant="ghost"
                   size="sm"
                   onClick={toggleSearch}
+                  aria-label={showSearch ? 'Hide search' : 'Search (Ctrl+F)'}
                   className={`h-7 px-2 ${showSearch ? 'text-primary' : 'text-muted-foreground'} hover:text-foreground`}
                 >
                   <Search className="h-4 w-4" />
@@ -1784,6 +1785,7 @@ export function WebTerminal() {
                   variant="ghost"
                   size="sm"
                   onClick={() => terminalRefs.current.get(activeTabId)?.clear()}
+                  aria-label="Clear Terminal"
                   className="h-7 px-2 text-muted-foreground hover:text-foreground"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -1802,6 +1804,7 @@ export function WebTerminal() {
                   size="sm"
                   onClick={handleExportLog}
                   disabled={activeTab.sessionLog.length === 0}
+                  aria-label={`Export Log (${activeTab.sessionLog.length})`}
                   className="h-7 px-2 text-muted-foreground hover:text-foreground disabled:opacity-30"
                 >
                   <Download className="h-4 w-4" />
@@ -1837,6 +1840,9 @@ export function WebTerminal() {
                   variant="ghost"
                   size="sm"
                   onClick={toggleFullscreen}
+                  aria-label={
+                    isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'
+                  }
                   className="h-7 px-2 text-muted-foreground hover:text-foreground"
                 >
                   {isFullscreen ? (

@@ -23,6 +23,7 @@ export default function Navbar() {
             <TooltipTrigger asChild>
               <Link
                 href="/"
+                aria-label="Home"
                 className={cn(
                   buttonVariants({ variant: 'ghost', size: 'icon' }),
                   'size-12'
@@ -41,6 +42,7 @@ export default function Navbar() {
             <TooltipTrigger asChild>
               <Link
                 href="https://docs.dipak.tech"
+                aria-label="Docs Diary"
                 className={cn(
                   buttonVariants({ variant: 'ghost', size: 'icon' }),
                   'size-12'
@@ -59,6 +61,7 @@ export default function Navbar() {
             <TooltipTrigger asChild>
               <Link
                 href="/blog"
+                aria-label="Blog"
                 className={cn(
                   buttonVariants({ variant: 'ghost', size: 'icon' }),
                   'size-12'
@@ -79,6 +82,7 @@ export default function Navbar() {
               <TooltipTrigger asChild>
                 <Link
                   href={social.url}
+                  aria-label={name}
                   className={cn(
                     buttonVariants({ variant: 'ghost', size: 'icon' }),
                     'size-12'

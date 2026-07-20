@@ -118,6 +118,7 @@ export function ImageCard({ image }: ImageCardProps) {
             href={upstreamUrl}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={`View on ${registryConfig.name}`}
             className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title={`View on ${registryConfig.name}`}
           >
