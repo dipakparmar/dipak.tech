@@ -68,6 +68,15 @@ import {
 } from '@/lib/studio/storage';
 import { BUILTIN_TEMPLATES } from '@/lib/studio/templates';
 import {
+  DEFAULT_TEXT_BRUSH,
+  TextBrush,
+  isTextBrushGroup,
+  restyleTextBrushGroup,
+  type TextBrushGroup,
+  type TextBrushSettings,
+  type TextBrushStroke
+} from '@/lib/studio/text-brush';
+import {
   type VideoFormat,
   recordPageVideo,
   supportedVideoFormats
@@ -90,7 +99,7 @@ export type TextKind =
   | 'body'
   | 'handwritten'
   | 'marker';
-export type DrawMode = 'off' | 'pen' | 'marker' | 'glow';
+export type DrawMode = 'off' | 'pen' | 'marker' | 'glow' | 'text';
 export type ExportOptions = {
   format: 'png' | 'jpeg';
   scale: 1 | 2 | 3;
@@ -294,6 +303,15 @@ export function useStudio(
   const [drawMode, setDrawModeState] = useState<DrawMode>('off');
   const [drawColor, setDrawColor] = useState('#FFE066');
   const [drawWidth, setDrawWidth] = useState(8);
+  const [textBrush, setTextBrushState] = useState<TextBrushSettings>({
+    ...DEFAULT_TEXT_BRUSH,
+    fontFamily: FONT_DISPLAY
+  });
+  const updateTextBrushSettings = useCallback(
+    (patch: Partial<TextBrushSettings>) =>
+      setTextBrushState((prev) => ({ ...prev, ...patch })),
+    []
+  );
   const [historyState, setHistoryState] = useState({
     canUndo: false,
     canRedo: false
@@ -718,6 +736,14 @@ export function useStudio(
       canvas.isDrawingMode = false;
       return;
     }
+    if (drawMode === 'text') {
+      const brush = new TextBrush(canvas);
+      brush.settings = { ...textBrush, text: textBrush.text || ' ' };
+      canvas.freeDrawingBrush = brush;
+      canvas.isDrawingMode = true;
+      void ensureFontLoaded(textBrush.fontFamily, textBrush.fontWeight);
+      return;
+    }
     const brush = new PencilBrush(canvas);
     brush.decimate = 2;
     if (drawMode === 'marker') {
@@ -737,7 +763,7 @@ export function useStudio(
     }
     canvas.freeDrawingBrush = brush;
     canvas.isDrawingMode = true;
-  }, [drawMode, drawColor, drawWidth, ready]);
+  }, [drawMode, drawColor, drawWidth, textBrush, ready]);
 
   // ---- Object helpers ---------------------------------------------------
   const addAndSelect = useCallback((obj: FabricObject) => {
@@ -1026,6 +1052,44 @@ export function useStudio(
         : (canvas.getActiveObjects() as StudioObject[]);
       targets.forEach(mutate);
       canvas.requestRenderAll();
+      commitSoon();
+      markChanged();
+    },
+    [commitSoon, markChanged]
+  );
+
+  /**
+   * Re-stamp a text-brush stroke with new settings. The glyph count changes, so
+   * the group is rebuilt and swapped in at the same stacking position.
+   */
+  const updateTextBrush = useCallback(
+    (group: TextBrushGroup, patch: Partial<TextBrushStroke>) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      // Slider drags fire faster than React re-renders, so `group` can already
+      // be the previous stamp. Re-find the live one by stroke id (unless the
+      // stroke was duplicated - then trust the reference we were handed).
+      const matches = canvas
+        .getObjects()
+        .filter(
+          (obj) =>
+            isTextBrushGroup(obj) && obj.textBrush.id === group.textBrush.id
+        );
+      const target =
+        matches.length === 1 ? (matches[0] as TextBrushGroup) : group;
+      const next = restyleTextBrushGroup(target, patch);
+      if (!next) return;
+      const index = canvas.getObjects().indexOf(target);
+      // Suppress the add/remove commits so one edit is one undo step.
+      previewingRef.current = true;
+      canvas.remove(target);
+      canvas.add(next);
+      if (index >= 0) canvas.moveObjectTo(next, index);
+      next.setCoords();
+      canvas.setActiveObject(next);
+      previewingRef.current = false;
+      canvas.requestRenderAll();
+      setSelected([next as StudioObject]);
       commitSoon();
       markChanged();
     },
@@ -1794,6 +1858,8 @@ export function useStudio(
     setDrawColor,
     drawWidth,
     setDrawWidth,
+    textBrush,
+    updateTextBrushSettings,
     canUndo: historyState.canUndo,
     canRedo: historyState.canRedo,
     undo,
@@ -1819,6 +1885,7 @@ export function useStudio(
     contextMenu,
     closeContextMenu: () => setContextMenu(null),
     updateObjects,
+    updateTextBrush,
     setImageAdjust,
     newDesign,
     applyBuiltinTemplate,

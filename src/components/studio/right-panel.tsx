@@ -36,6 +36,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import { ColorField, SliderField } from '@/components/studio/controls';
+import { TextBrushFields } from '@/components/studio/text-brush-fields';
 import {
   getObjectLabel,
   type StudioApi,
@@ -55,6 +56,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ensureFontLoaded } from '@/lib/studio/fonts';
+import { isTextBrushGroup, type TextBrushGroup } from '@/lib/studio/text-brush';
 import { cn } from '@/lib/utils';
 
 function isTextLike(
@@ -258,6 +260,28 @@ function TextProperties({
           }
         />
       )}
+    </div>
+  );
+}
+
+function TextBrushProperties({
+  studio,
+  group
+}: {
+  studio: StudioApi;
+  group: TextBrushGroup;
+}) {
+  return (
+    <div className="space-y-3">
+      <TextBrushFields
+        id="selected-text-brush"
+        value={group.textBrush}
+        fonts={studio.fonts}
+        onChange={(patch) => studio.updateTextBrush(group, patch)}
+      />
+      <p className="text-xs text-muted-foreground">
+        Drawn along your stroke - edits re-stamp it on the same path.
+      </p>
     </div>
   );
 }
@@ -530,11 +554,15 @@ export function RightPanel({ studio }: { studio: StudioApi }) {
             {single && isTextLike(single) && (
               <TextProperties studio={studio} text={single} />
             )}
+            {single && isTextBrushGroup(single) && (
+              <TextBrushProperties studio={studio} group={single} />
+            )}
             {single && single instanceof FabricImage && (
               <ImageProperties studio={studio} image={single} />
             )}
             {single &&
               !isTextLike(single) &&
+              !isTextBrushGroup(single) &&
               !(single instanceof FabricImage) && (
                 <ShapeProperties studio={studio} shape={single} />
               )}
