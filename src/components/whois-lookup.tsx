@@ -9,7 +9,8 @@ import {
   Hash,
   Network,
   Search,
-  Share2
+  Share2,
+  X
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -20,6 +21,7 @@ import type React from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { OsintResults } from '@/components/osint-results';
 import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { SecurityData, IdentityData, ThreatData } from '@/lib/osint-types';
 import type { WhoisFallbackResult } from '@/lib/whois';
 
@@ -101,15 +103,15 @@ export function WhoisLookup() {
   const [securityData, setSecurityData] = useState<SecurityData | null>(null);
   const [identityData, setIdentityData] = useState<IdentityData | null>(null);
   const [threatData, setThreatData] = useState<ThreatData | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { status: shareStatus, copied, copy: copyShareLink } =
+    useCopyToClipboard();
   const hasAutoSearched = useRef(false);
   const prevUrlQuery = useRef(initialQuery);
 
-  const handleShare = useCallback(async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, []);
+  const handleShare = useCallback(
+    () => copyShareLink(window.location.href),
+    [copyShareLink]
+  );
 
   const performLookup = useCallback(
     async (searchQuery: string, updateUrl = true) => {
@@ -494,8 +496,20 @@ export function WhoisLookup() {
               size="sm"
               onClick={handleShare}
               className="gap-2"
+              aria-label={
+                shareStatus === 'error'
+                  ? 'Copy failed'
+                  : copied
+                    ? 'Copied'
+                    : 'Copy share link'
+              }
             >
-              {copied ? (
+              {shareStatus === 'error' ? (
+                <>
+                  <X className="h-4 w-4 text-destructive" />
+                  <span>Copy failed</span>
+                </>
+              ) : copied ? (
                 <>
                   <Check className="h-4 w-4 text-emerald-500" />
                   <span>Link copied!</span>

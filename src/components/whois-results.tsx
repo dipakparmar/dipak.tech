@@ -18,7 +18,8 @@ import {
   Phone,
   Server,
   Shield,
-  User
+  User,
+  X
 } from 'lucide-react';
 import {
   Card,
@@ -34,8 +35,8 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip';
 import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
-import { useCallback, useState } from 'react';
-import { useHaptics } from '@/hooks/use-haptics';
+import { useState } from 'react';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { ParsedWhoisData, WhoisFallbackResult } from '@/lib/whois';
 
 import { Badge } from '@/components/ui/badge';
@@ -439,24 +440,21 @@ function CopyButton({
   value: string;
   className?: string;
 }) {
-  const [copied, setCopied] = useState(false);
-  const { trigger } = useHaptics();
-
-  const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(value);
-    trigger('success');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [trigger, value]);
+  const { status, copied, copy } = useCopyToClipboard();
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={handleCopy}
-      className={`h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100 ${className}`}
+      onClick={() => copy(value)}
+      className={`h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 ${className}`}
+      aria-label={
+        status === 'error' ? 'Copy failed' : copied ? 'Copied' : 'Copy WHOIS value'
+      }
     >
-      {copied ? (
+      {status === 'error' ? (
+        <X className="h-3.5 w-3.5 text-destructive" />
+      ) : copied ? (
         <Check className="h-3.5 w-3.5 text-emerald-500" />
       ) : (
         <Copy className="h-3.5 w-3.5" />
