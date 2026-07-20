@@ -11,7 +11,8 @@ import {
   Info,
   ListChecks,
   Share2,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -36,12 +37,14 @@ import { BreakCard } from './break-card';
 import { SubscribeCalendarButton } from './subscribe-calendar-button';
 import { breaksToICS, downloadICS } from '@/lib/timeoff-optimizer/ics';
 import type { PlanResult } from '@/lib/timeoff-optimizer/types';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 
-type ShareExportAction = 'idle' | 'copied' | 'exported';
+type ShareExportAction = 'idle' | 'copied' | 'error' | 'exported';
 
 const SHARE_EXPORT_LABELS: Record<ShareExportAction, string> = {
   idle: 'Share & export',
   copied: 'Link copied!',
+  error: 'Copy failed',
   exported: 'Exported!'
 };
 
@@ -68,19 +71,18 @@ export function ResultsDisplay({
   eventTitleTemplate,
   eventNotesTemplate
 }: ResultsDisplayProps) {
-  const [shareExportAction, setShareExportAction] =
-    React.useState<ShareExportAction>('idle');
+  const [exportFlash, setExportFlash] = React.useState<'idle' | 'exported'>(
+    'idle'
+  );
+  const { status: copyStatus, copy } = useCopyToClipboard();
+  const shareExportAction: ShareExportAction =
+    copyStatus !== 'idle' ? copyStatus : exportFlash;
   const { breaks, stats, days } = result;
   const totalPtoUsed = stats.totalDayOffs + stats.totalTakenDays;
   const totalCalendarDaysOff =
     stats.totalDaysOff + stats.totalTakenCalendarDays;
   const efficiency =
     totalPtoUsed > 0 ? (totalCalendarDaysOff / totalPtoUsed).toFixed(2) : '0';
-
-  const flashAction = (action: ShareExportAction) => {
-    setShareExportAction(action);
-    setTimeout(() => setShareExportAction('idle'), 2000);
-  };
 
   const handleExport = () => {
     const ics = breaksToICS(
@@ -90,17 +92,11 @@ export function ResultsDisplay({
       eventNotesTemplate
     );
     downloadICS(`timeoff-${year}.ics`, ics);
-    flashAction('exported');
+    setExportFlash('exported');
+    setTimeout(() => setExportFlash('idle'), 2000);
   };
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      flashAction('copied');
-    } catch {
-      // clipboard unavailable
-    }
-  };
+  const handleCopy = () => copy(shareUrl);
 
   return (
     <Card>
@@ -157,6 +153,8 @@ export function ResultsDisplay({
                     >
                       {shareExportAction === 'idle' ? (
                         <Share2 className="size-3" />
+                      ) : shareExportAction === 'error' ? (
+                        <X className="size-3 text-destructive" />
                       ) : (
                         <Check className="size-3" />
                       )}

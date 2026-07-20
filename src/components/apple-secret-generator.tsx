@@ -2,10 +2,12 @@
 
 import { useState, useCallback } from 'react';
 import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import {
   Apple,
   Copy,
   Check,
+  X,
   AlertCircle,
   Clock,
   Shield,
@@ -108,7 +110,7 @@ export function AppleSecretGenerator() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GeneratedToken | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { status, copied, copy } = useCopyToClipboard();
   const [showKey, setShowKey] = useState(false);
 
   const lifetimeSeconds = Math.floor(
@@ -175,13 +177,10 @@ export function AppleSecretGenerator() {
     }
   }, [privateKey, teamId, clientId, keyId, lifetimeSeconds, trigger]);
 
-  const handleCopy = useCallback(async () => {
+  const handleCopy = useCallback(() => {
     if (!result) return;
-    await navigator.clipboard.writeText(result.jwt);
-    trigger('success');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [result, trigger]);
+    copy(result.jwt);
+  }, [result, copy]);
 
   return (
     <div className="space-y-6">
@@ -387,13 +386,22 @@ export function AppleSecretGenerator() {
                 size="sm"
                 onClick={handleCopy}
                 className="gap-1"
+                aria-label={
+                  status === 'error'
+                    ? 'Copy failed'
+                    : copied
+                      ? 'Copied'
+                      : 'Copy client secret'
+                }
               >
-                {copied ? (
+                {status === 'error' ? (
+                  <X className="h-3 w-3 text-destructive" />
+                ) : copied ? (
                   <Check className="h-3 w-3" />
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}
-                {copied ? 'Copied' : 'Copy'}
+                {status === 'error' ? 'Failed' : copied ? 'Copied' : 'Copy'}
               </Button>
             </CardContent>
           </Card>

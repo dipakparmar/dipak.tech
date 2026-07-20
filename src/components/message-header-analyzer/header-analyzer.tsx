@@ -30,9 +30,11 @@ import {
   Trash2,
   ChevronDown,
   Share2,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 
 function encodeHeaders(raw: string): string {
   const bytes = new TextEncoder().encode(raw);
@@ -98,7 +100,7 @@ function HeaderAnalyzerInner() {
   );
   const [error, setError] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(initialState.collapsed);
-  const [copied, setCopied] = useState(false);
+  const { status: shareStatus, copied, copy } = useCopyToClipboard();
   const { trigger: hapticTrigger } = useHaptics();
   const containerRef = useRef<HTMLDivElement>(null);
   const { setContainerEl } = useAnnotation();
@@ -151,12 +153,7 @@ function HeaderAnalyzerInner() {
     hapticTrigger('light');
   };
 
-  const handleShare = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    hapticTrigger('success');
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const handleShare = () => copy(window.location.href);
 
   return (
     <div className="space-y-8">
@@ -238,8 +235,20 @@ function HeaderAnalyzerInner() {
               size="sm"
               onClick={handleShare}
               className="gap-2"
+              aria-label={
+                shareStatus === 'error'
+                  ? 'Copy failed'
+                  : copied
+                    ? 'Copied'
+                    : 'Copy share link'
+              }
             >
-              {copied ? (
+              {shareStatus === 'error' ? (
+                <>
+                  <X className="h-3.5 w-3.5 text-destructive" />
+                  Copy failed
+                </>
+              ) : copied ? (
                 <>
                   <Check className="h-3.5 w-3.5 text-emerald-500" />
                   Link copied!
