@@ -2,6 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import React, { useState } from 'react';
 
 import { ArrowTopRightIcon } from '@radix-ui/react-icons';
@@ -59,10 +60,14 @@ export function Portfolio() {
     <div className="min-h-screen text-muted-foreground font-light px-4 md:px-0">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="py-4">
-          <h2 className="text-lg font-normal text-foreground mb-2">
+          <Label
+            id="resume-detail-level-label"
+            className="text-lg font-normal text-foreground mb-2 block"
+          >
             Resume Detail Level
-          </h2>
+          </Label>
           <Slider
+            aria-labelledby="resume-detail-level-label"
             defaultValue={[DetailLevel.DETAILED]}
             max={3}
             step={1}
