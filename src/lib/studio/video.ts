@@ -120,6 +120,7 @@ async function recordPageMp4(
     height: h,
     duration: animDuration
   } = await prepareOffscreen(json, width, height);
+  let codecError: Error | null = null;
   try {
     const duration = Math.max(animDuration, options.extendToSeconds ?? 0);
     if (duration <= 0)
@@ -150,7 +151,7 @@ async function recordPageMp4(
     const encoder = new VideoEncoder({
       output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
       error: (e) => {
-        throw e;
+        codecError = e instanceof Error ? e : new Error(String(e));
       }
     });
     encoder.configure({
@@ -180,12 +181,13 @@ async function recordPageMp4(
         await new Promise((r) => setTimeout(r, 0));
     }
     await encoder.flush();
+    if (codecError) throw codecError;
 
     if (audio) {
       const audioEncoder = new AudioEncoder({
         output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
         error: (e) => {
-          throw e;
+          codecError = e instanceof Error ? e : new Error(String(e));
         }
       });
       audioEncoder.configure({
@@ -196,6 +198,7 @@ async function recordPageMp4(
       });
       encodeAudioBuffer(audioEncoder, audio, total);
       await audioEncoder.flush();
+      if (codecError) throw codecError;
     }
 
     muxer.finalize();
