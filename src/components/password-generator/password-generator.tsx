@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useHaptics } from '@/hooks/use-haptics';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import {
   generatePassword,
@@ -42,6 +42,7 @@ import {
   RefreshCw,
   Share2,
   Check,
+  X,
   ShieldCheck,
   Wifi,
   TextCursorInput,
@@ -78,6 +79,30 @@ const DEFAULT_ENTROPY: EntropyResult = {
   percentage: 0
 };
 
+function ResultCopyButton({ value }: { value: string }) {
+  const { status, copied, copy } = useCopyToClipboard();
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8"
+      onClick={() => copy(value)}
+      aria-label={
+        status === 'error' ? 'Copy failed' : copied ? 'Copied' : 'Copy'
+      }
+    >
+      {status === 'error' ? (
+        <X className="h-3 w-3 text-destructive" />
+      ) : copied ? (
+        <Check className="h-3 w-3" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+    </Button>
+  );
+}
+
 function buildUrlKey(params: URLSearchParams): string {
   const sorted = new URLSearchParams([...params.entries()].sort());
   return sorted.toString();
@@ -89,7 +114,6 @@ export function PasswordGenerator() {
   const pathname = usePathname();
   const prevUrlKey = useRef<string>('');
   const isInitialMount = useRef(true);
-  const { trigger: hapticTrigger } = useHaptics();
 
   const [mode, setMode] = useState<Mode>(
     () => (searchParams.get('mode') as Mode) || 'password'
@@ -173,8 +197,13 @@ export function PasswordGenerator() {
     Math.min(50, Math.max(1, parseInt(searchParams.get('count') || '1', 10)))
   );
   const [regenKey, setRegenKey] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const { status: outputStatus, copied, copy: copyOutput } =
+    useCopyToClipboard();
+  const {
+    status: shareStatus,
+    copied: shareCopied,
+    copy: copyShareUrl
+  } = useCopyToClipboard();
 
   const getActiveSeparator = useCallback(() => {
     if (ppSep === 'custom') return ppCustomSep;
@@ -479,36 +508,17 @@ export function PasswordGenerator() {
     }
   }, []);
 
-  const copyToClipboard = useCallback(async () => {
-    await navigator.clipboard.writeText(results[0] || '');
-    hapticTrigger('success');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [results, hapticTrigger]);
+  const copyToClipboard = useCallback(() => {
+    copyOutput(results[0] || '');
+  }, [results, copyOutput]);
 
-  const copySingle = useCallback(
-    async (index: number) => {
-      await navigator.clipboard.writeText(results[index] || '');
-      hapticTrigger('success');
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    },
-    [results, hapticTrigger]
-  );
+  const copyAll = useCallback(() => {
+    copyOutput(results.join('\n'));
+  }, [results, copyOutput]);
 
-  const copyAll = useCallback(async () => {
-    await navigator.clipboard.writeText(results.join('\n'));
-    hapticTrigger('success');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [results, hapticTrigger]);
-
-  const shareConfig = useCallback(async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    hapticTrigger('success');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [hapticTrigger]);
+  const shareConfig = useCallback(() => {
+    copyShareUrl(window.location.href);
+  }, [copyShareUrl]);
 
   return (
     <div className="space-y-6">
@@ -546,8 +556,21 @@ export function PasswordGenerator() {
               <code className="flex-1 break-all rounded-lg bg-muted p-4 font-mono text-lg select-all">
                 {results[0] || ''}
               </code>
-              <Button variant="ghost" size="icon" onClick={copyToClipboard}>
-                {copied ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={copyToClipboard}
+                aria-label={
+                  outputStatus === 'error'
+                    ? 'Copy failed'
+                    : copied
+                      ? 'Copied'
+                      : 'Copy password'
+                }
+              >
+                {outputStatus === 'error' ? (
+                  <X className="h-4 w-4 text-destructive" />
+                ) : copied ? (
                   <Check className="h-4 w-4" />
                 ) : (
                   <Copy className="h-4 w-4" />
@@ -557,8 +580,21 @@ export function PasswordGenerator() {
           ) : (
             <div className="space-y-2">
               <div className="flex justify-end">
-                <Button variant="outline" size="sm" onClick={copyAll}>
-                  {copied ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyAll}
+                  aria-label={
+                    outputStatus === 'error'
+                      ? 'Copy failed'
+                      : copied
+                        ? 'Copied'
+                        : 'Copy all'
+                  }
+                >
+                  {outputStatus === 'error' ? (
+                    <X className="mr-2 h-3 w-3 text-destructive" />
+                  ) : copied ? (
                     <Check className="mr-2 h-3 w-3" />
                   ) : (
                     <Copy className="mr-2 h-3 w-3" />
@@ -572,18 +608,7 @@ export function PasswordGenerator() {
                     <code className="flex-1 break-all rounded bg-muted px-3 py-1.5 font-mono text-sm select-all">
                       {r}
                     </code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => copySingle(i)}
-                    >
-                      {copiedIndex === i ? (
-                        <Check className="h-3 w-3" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                    </Button>
+                    <ResultCopyButton value={r} />
                   </div>
                 ))}
               </div>
@@ -616,8 +641,29 @@ export function PasswordGenerator() {
             <Button onClick={regenerate} className="flex-1">
               <RefreshCw className="mr-2 h-4 w-4" /> Regenerate
             </Button>
-            <Button variant="outline" onClick={shareConfig}>
-              <Share2 className="mr-2 h-4 w-4" /> Share
+            <Button
+              variant="outline"
+              onClick={shareConfig}
+              aria-label={
+                shareStatus === 'error'
+                  ? 'Copy failed'
+                  : shareCopied
+                    ? 'Copied'
+                    : 'Copy share URL'
+              }
+            >
+              {shareStatus === 'error' ? (
+                <X className="mr-2 h-4 w-4 text-destructive" />
+              ) : shareCopied ? (
+                <Check className="mr-2 h-4 w-4" />
+              ) : (
+                <Share2 className="mr-2 h-4 w-4" />
+              )}
+              {shareStatus === 'error'
+                ? 'Failed'
+                : shareCopied
+                  ? 'Copied!'
+                  : 'Share'}
             </Button>
           </div>
         </CardContent>
