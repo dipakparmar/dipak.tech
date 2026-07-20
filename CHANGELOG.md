@@ -1,3 +1,22 @@
+# [2.1.0](https://github.com/dipakparmar/dipak.tech/compare/v2.0.0...v2.1.0) (2026-07-20)
+
+
+### Bug Fixes
+
+* **og:** pass OG_SECRET into docker build so signed tokens match runtime ([412eb62](https://github.com/dipakparmar/dipak.tech/commit/412eb6258b27ed4396b433187eb4eb69be6a8914))
+* **studio:** crash on reload with autosave, and layers panel overflow ([f8253a4](https://github.com/dipakparmar/dipak.tech/commit/f8253a427f1b49c447e1b89737ee69815392d513))
+* **studio:** distinct icons for each hand-drawn shape ([0215911](https://github.com/dipakparmar/dipak.tech/commit/021591155d3b61c4877bb3a7244a2e70bb5d6fdc))
+* **studio:** open right-click menu from Fabric's contextmenu event ([b1130cb](https://github.com/dipakparmar/dipak.tech/commit/b1130cb573b5865b19b295866a4fc9ae8ce5abdc))
+
+
+### Features
+
+* **studio:** animation timeline, video export, richer fonts, Figma-style canvas ([8cc47f1](https://github.com/dipakparmar/dipak.tech/commit/8cc47f11686b5284901755ec846f06c6bb1dbaa9))
+* **studio:** animation, video export, stock photos, and a text brush ([a4b555a](https://github.com/dipakparmar/dipak.tech/commit/a4b555a5b2e0af7d6fe409d0454b03746436304b))
+* **studio:** canvas right-click menu and layer rename ([8be6368](https://github.com/dipakparmar/dipak.tech/commit/8be6368bb838ffd74b6b2a7351b64d34977745a3))
+* **studio:** drag-to-reorder layers with dnd-kit ([e658148](https://github.com/dipakparmar/dipak.tech/commit/e658148c11de0de121a8764acfb28d163dc850bb))
+* **studio:** text brush that stamps text along a drawn stroke ([a790ed2](https://github.com/dipakparmar/dipak.tech/commit/a790ed23f127938e52073d9a0f222f8999978b63))
+* **studio:** Unsplash stock-photo search ([271bf35](https://github.com/dipakparmar/dipak.tech/commit/271bf35bdac2fe4de16c29460aa0f492cfae30f9))
 
 # [2.0.0](https://github.com/dipakparmar/v2/compare/v1.11.0...v2.0.0) (2026-07-11)
 
