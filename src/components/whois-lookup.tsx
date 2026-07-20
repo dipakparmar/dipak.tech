@@ -103,8 +103,11 @@ export function WhoisLookup() {
   const [securityData, setSecurityData] = useState<SecurityData | null>(null);
   const [identityData, setIdentityData] = useState<IdentityData | null>(null);
   const [threatData, setThreatData] = useState<ThreatData | null>(null);
-  const { status: shareStatus, copied, copy: copyShareLink } =
-    useCopyToClipboard();
+  const {
+    status: shareStatus,
+    copied,
+    copy: copyShareLink
+  } = useCopyToClipboard();
   const hasAutoSearched = useRef(false);
   const prevUrlQuery = useRef(initialQuery);
 

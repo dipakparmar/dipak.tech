@@ -197,8 +197,11 @@ export function PasswordGenerator() {
     Math.min(50, Math.max(1, parseInt(searchParams.get('count') || '1', 10)))
   );
   const [regenKey, setRegenKey] = useState(0);
-  const { status: outputStatus, copied, copy: copyOutput } =
-    useCopyToClipboard();
+  const {
+    status: outputStatus,
+    copied,
+    copy: copyOutput
+  } = useCopyToClipboard();
   const {
     status: shareStatus,
     copied: shareCopied,

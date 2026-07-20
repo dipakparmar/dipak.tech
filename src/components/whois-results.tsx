@@ -449,7 +449,11 @@ function CopyButton({
       onClick={() => copy(value)}
       className={`h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 ${className}`}
       aria-label={
-        status === 'error' ? 'Copy failed' : copied ? 'Copied' : 'Copy WHOIS value'
+        status === 'error'
+          ? 'Copy failed'
+          : copied
+            ? 'Copied'
+            : 'Copy WHOIS value'
       }
     >
       {status === 'error' ? (

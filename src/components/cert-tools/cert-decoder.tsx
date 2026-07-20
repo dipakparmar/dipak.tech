@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { FileText, Copy, Check, X, AlertCircle, Link, Loader2 } from 'lucide-react';
+import {
+  FileText,
+  Copy,
+  Check,
+  X,
+  AlertCircle,
+  Link,
+  Loader2
+} from 'lucide-react';
 import { useHaptics } from '@/hooks/use-haptics';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { HapticButton as Button } from '@/components/haptic-wrappers';

@@ -42,8 +42,11 @@ export function WhoisTool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rdapData, setRdapData] = useState<WhoisLookupResponse | null>(null);
-  const { status: shareStatus, copied, copy: copyShareLink } =
-    useCopyToClipboard();
+  const {
+    status: shareStatus,
+    copied,
+    copy: copyShareLink
+  } = useCopyToClipboard();
   const hasAutoSearched = useRef(false);
   const prevUrlQuery = useRef(initialQuery);
 
