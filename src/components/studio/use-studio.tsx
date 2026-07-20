@@ -669,25 +669,29 @@ export function useStudio(
 
     // Middle-mouse or space + drag pans. Capture phase beats Fabric's own
     // pointer handling (which would otherwise start a selection).
+    let panMove: ((ev: PointerEvent) => void) | null = null;
+    let panUp: (() => void) | null = null;
     const onPointerDown = (e: PointerEvent) => {
       if (!(e.button === 1 || (e.button === 0 && spaceHeld))) return;
       e.preventDefault();
       e.stopPropagation();
       panning = true;
       container.style.cursor = 'grabbing';
-      const move = (ev: PointerEvent) => {
+      panMove = (ev: PointerEvent) => {
         if (!panning) return;
         canvas.relativePan(new Point(ev.movementX, ev.movementY));
         canvas.requestRenderAll();
       };
-      const up = () => {
+      panUp = () => {
         panning = false;
         container.style.cursor = spaceHeld ? 'grab' : '';
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
+        if (panMove) window.removeEventListener('pointermove', panMove);
+        if (panUp) window.removeEventListener('pointerup', panUp);
+        panMove = null;
+        panUp = null;
       };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up);
+      window.addEventListener('pointermove', panMove);
+      window.addEventListener('pointerup', panUp);
     };
 
     const onMouseDown = (e: MouseEvent) => {
@@ -725,6 +729,8 @@ export function useStudio(
       container.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
+      if (panMove) window.removeEventListener('pointermove', panMove);
+      if (panUp) window.removeEventListener('pointerup', panUp);
     };
   }, [ready, containerRef]);
 
