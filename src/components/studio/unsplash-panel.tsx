@@ -88,6 +88,7 @@ export function UnsplashPanel({
         }}
       >
         <Input
+          aria-label="Search Unsplash photos"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search Unsplash…"
@@ -146,7 +147,7 @@ export function UnsplashPanel({
                 href={`${photo.photographerUrl}${UTM}`}
                 target="_blank"
                 rel="noreferrer"
-                className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-0.5 pt-3 text-[10px] text-white/90 opacity-0 transition-opacity group-hover:opacity-100 hover:underline"
+                className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-1.5 pb-0.5 pt-3 text-[10px] text-white/90 opacity-100 transition-opacity focus-visible:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100 hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 {photo.photographer}
