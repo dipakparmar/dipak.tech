@@ -53,8 +53,7 @@ export default function AppleSecretGeneratorPage() {
           <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
             client_secret
           </code>{' '}
-          with Sign in with Apple. Everything runs client-side in your
-          browser.
+          with Sign in with Apple. Everything runs client-side in your browser.
         </>
       }
       accentGlowClassName="bg-rose-500/20"

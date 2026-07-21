@@ -52,9 +52,9 @@ export default async function TimeoffOptimizerPage() {
       title="Make every PTO day count"
       description={
         <>
-          Plan your year by stacking time off around weekends, public
-          holidays, and company days. Pick a strategy and we&rsquo;ll find the
-          dates that give you the most rest.
+          Plan your year by stacking time off around weekends, public holidays,
+          and company days. Pick a strategy and we&rsquo;ll find the dates that
+          give you the most rest.
         </>
       }
       containerClassName="relative z-10 pointer-events-auto"
