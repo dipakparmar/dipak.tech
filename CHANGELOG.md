@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/dipakparmar/dipak.tech/compare/v2.1.1...v2.1.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **styles:** register the typography plugin so prose classes apply ([6130930](https://github.com/dipakparmar/dipak.tech/commit/6130930fa791172b084be71346c138e57e601224))
+
 ## [2.1.1](https://github.com/dipakparmar/dipak.tech/compare/v2.1.0...v2.1.1) (2026-07-21)
 
 
