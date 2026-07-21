@@ -1,4 +1,5 @@
 import { BlurFade } from '@/components/magicui/blur-fade';
+import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
 export interface ToolPageHeroProps {
@@ -24,6 +25,8 @@ export interface ToolPageHeroProps {
   children: ReactNode;
   /** Vertical rhythm of the page body. Defaults to the majority `space-y-14`. */
   bodyClassName?: string;
+  /** Extra classes for the outer content container, e.g. stacking-context fixes. */
+  containerClassName?: string;
 }
 
 export function ToolPageHero({
@@ -35,7 +38,8 @@ export function ToolPageHero({
   pills,
   blurFadeDelay = 0.04,
   children,
-  bodyClassName = 'space-y-14'
+  bodyClassName = 'space-y-14',
+  containerClassName
 }: ToolPageHeroProps) {
   return (
     <main className="min-h-screen bg-background">
@@ -46,7 +50,12 @@ export function ToolPageHero({
         />
       </div>
 
-      <div className="container mx-auto px-4 py-16 md:py-24">
+      <div
+        className={cn(
+          'container mx-auto px-4 py-16 md:py-24',
+          containerClassName
+        )}
+      >
         <div className={`mx-auto max-w-6xl ${bodyClassName}`}>
           {/* Hero Section */}
           <BlurFade delay={blurFadeDelay}>
