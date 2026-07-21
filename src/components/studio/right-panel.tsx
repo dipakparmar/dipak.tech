@@ -418,7 +418,7 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
         type="button"
         variant="ghost"
         size="icon"
-        className="h-6 w-6 shrink-0 text-muted-foreground"
+        className="h-8 w-8 shrink-0 text-muted-foreground"
         aria-label={obj.visible ? 'Hide layer' : 'Show layer'}
         onClick={() => studio.toggleVisible(obj)}
       >
@@ -467,7 +467,7 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
           type="button"
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-muted-foreground"
+          className="h-8 w-8 text-muted-foreground"
           aria-label="Move layer up"
           onClick={() => studio.moveLayer(obj, 'up')}
         >
@@ -477,7 +477,7 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
           type="button"
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-muted-foreground"
+          className="h-8 w-8 text-muted-foreground"
           aria-label="Move layer down"
           onClick={() => studio.moveLayer(obj, 'down')}
         >
@@ -487,7 +487,7 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
           type="button"
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-muted-foreground"
+          className="h-8 w-8 text-muted-foreground"
           aria-label="Delete layer"
           onClick={() => studio.removeObject(obj)}
         >
@@ -499,7 +499,7 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
         variant="ghost"
         size="icon"
         className={cn(
-          'h-6 w-6 shrink-0',
+          'h-8 w-8 shrink-0',
           obj.locked ? 'text-amber-500' : 'text-muted-foreground/50'
         )}
         aria-label={obj.locked ? 'Unlock layer' : 'Lock layer'}

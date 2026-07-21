@@ -25,14 +25,14 @@ export function ColorField({
             aria-label={`Set ${label.toLowerCase()} to ${swatch}`}
             onClick={() => onChange(swatch)}
             className={cn(
-              'h-6 w-6 rounded-full border transition-transform hover:scale-110',
+              'h-8 w-8 rounded-full border transition-transform hover:scale-110',
               value.toLowerCase() === swatch.toLowerCase() &&
                 'ring-2 ring-sky-500 ring-offset-2 ring-offset-background'
             )}
             style={{ backgroundColor: swatch }}
           />
         ))}
-        <label className="relative h-6 w-6 cursor-pointer overflow-hidden rounded-full border bg-[conic-gradient(red,yellow,lime,cyan,blue,magenta,red)]">
+        <label className="relative h-8 w-8 cursor-pointer overflow-hidden rounded-full border bg-[conic-gradient(red,yellow,lime,cyan,blue,magenta,red)]">
           <input
             type="color"
             value={/^#[0-9a-f]{6}$/i.test(value) ? value : '#ffffff'}

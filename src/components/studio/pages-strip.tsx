@@ -61,7 +61,7 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-8 w-8"
                 aria-label="Move page left"
                 disabled={index === 0}
                 onClick={() => studio.movePage(index, 'left')}
@@ -72,7 +72,7 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-8 w-8"
                 aria-label="Duplicate page"
                 onClick={() => void studio.duplicatePage(index)}
               >
@@ -82,7 +82,7 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-8 w-8"
                 aria-label="Delete page"
                 disabled={studio.pages.length <= 1}
                 onClick={() => void studio.deletePage(index)}
@@ -93,7 +93,7 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-8 w-8"
                 aria-label="Move page right"
                 disabled={index === studio.pages.length - 1}
                 onClick={() => studio.movePage(index, 'right')}

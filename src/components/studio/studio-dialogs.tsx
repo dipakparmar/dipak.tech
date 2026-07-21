@@ -187,7 +187,7 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-muted-foreground"
+                            className="h-8 w-8 text-muted-foreground"
                             aria-label="Download template file"
                             onClick={() => studio.exportTemplateFile(template)}
                           >
@@ -197,7 +197,7 @@ export function TemplatesDialog({ studio }: { studio: StudioApi }) {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 text-muted-foreground"
+                            className="h-8 w-8 text-muted-foreground"
                             aria-label="Delete template"
                             onClick={() =>
                               studio.removeSavedTemplate(template.id)
