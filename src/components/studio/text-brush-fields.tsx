@@ -60,7 +60,7 @@ export function TextBrushFields({
             onChange({ fontFamily });
           }}
         >
-          <SelectTrigger className="h-8">
+          <SelectTrigger aria-label="Font" className="h-8">
             <SelectValue placeholder="Font" />
           </SelectTrigger>
           <SelectContent>

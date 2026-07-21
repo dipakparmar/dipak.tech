@@ -113,7 +113,7 @@ function TextProperties({
         <Label className="text-xs text-muted-foreground">Font</Label>
         <div className="flex items-center gap-1.5">
           <Select value={text.fontFamily} onValueChange={applyFont}>
-            <SelectTrigger className="h-8 flex-1">
+            <SelectTrigger aria-label="Font" className="h-8 flex-1">
               <SelectValue placeholder="Font" />
             </SelectTrigger>
             <SelectContent>
