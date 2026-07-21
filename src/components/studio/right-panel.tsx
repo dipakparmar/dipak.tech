@@ -462,7 +462,7 @@ function LayerRow({ studio, obj }: { studio: StudioApi; obj: StudioObject }) {
           {getObjectLabel(obj)}
         </button>
       )}
-      <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="flex shrink-0 items-center opacity-100 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
         <Button
           type="button"
           variant="ghost"
