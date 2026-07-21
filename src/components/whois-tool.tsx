@@ -19,6 +19,7 @@ import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Input } from '@/components/ui/input';
 import type React from 'react';
 import { Spinner } from '@/components/ui/spinner';
+import { StatusAnnouncer } from '@/components/status-announcer';
 import { WhoisResults } from '@/components/whois-results';
 import { useHaptics } from '@/hooks/use-haptics';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
@@ -131,8 +132,18 @@ export function WhoisTool() {
     performLookup(example);
   };
 
+  const announcement = error
+    ? `WHOIS lookup failed: ${error}`
+    : loading
+      ? 'Loading WHOIS results'
+      : rdapData
+        ? 'WHOIS results ready'
+        : '';
+
   return (
     <div className="space-y-8">
+      <StatusAnnouncer message={announcement} assertive={Boolean(error)} />
+
       {/* Search Section */}
       <div className="mx-auto max-w-3xl space-y-4">
         <form onSubmit={handleLookup}>
