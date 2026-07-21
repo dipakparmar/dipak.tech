@@ -56,7 +56,7 @@ export function PagesStrip({ studio }: { studio: StudioApi }) {
             </button>
             {/* Hover actions - centered over the thumbnail so the strip's
                 overflow-x-auto (which also clips vertically) can't hide them. */}
-            <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center rounded-md border bg-popover/95 p-0.5 opacity-0 shadow-md backdrop-blur-sm transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+            <div className="pointer-events-auto absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center rounded-md border bg-popover/95 p-0.5 opacity-100 shadow-md backdrop-blur-sm transition-opacity focus-within:opacity-100 md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100">
               <Button
                 type="button"
                 variant="ghost"
