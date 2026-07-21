@@ -18,7 +18,7 @@ export type AutosavePayload = {
 };
 
 /** Accept both the current multi-page shape and the original single-page `json` field. */
-function migratePages(value: {
+export function migratePages(value: {
   pages?: string[];
   json?: string;
 }): string[] | null {
