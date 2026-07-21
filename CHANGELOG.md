@@ -1,3 +1,26 @@
+## [2.1.1](https://github.com/dipakparmar/dipak.tech/compare/v2.1.0...v2.1.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **a11y:** add accessible names to icon-only controls ([5d38a55](https://github.com/dipakparmar/dipak.tech/commit/5d38a5557b5ff85e771b913b4b3f98a94cc0e572))
+* **a11y:** announce async lookup results via live regions ([895a2dc](https://github.com/dipakparmar/dipak.tech/commit/895a2dc77e02d8d0447d4944f891a126a81fad49))
+* **a11y:** announce WHOIS page results (missed component) ([3ebcfd7](https://github.com/dipakparmar/dipak.tech/commit/3ebcfd752064fb24ffe8d87208b5d66a70f308da))
+* **a11y:** label the resume detail slider instead of using a heading ([4e739e7](https://github.com/dipakparmar/dipak.tech/commit/4e739e75f20b6e0ba8424d850dcb434fa3ed9264))
+* **a11y:** make web-terminal tabs keyboard operable ([972dfbe](https://github.com/dipakparmar/dipak.tech/commit/972dfbe704fb65db1bfd2b82fe75dd0baa77dfd7))
+* **osint:** make security-posture badges legible in light mode ([6bea0ed](https://github.com/dipakparmar/dipak.tech/commit/6bea0edd308d8bcd79d140739f8ee1abd60d1968))
+* **studio:** capture codec errors instead of throwing from encoder callbacks ([59314c2](https://github.com/dipakparmar/dipak.tech/commit/59314c2acf83c7038cc9022f039030c38cd50ff6))
+* **studio:** clear autosave/commit debounce timers on canvas unmount ([c7d52bd](https://github.com/dipakparmar/dipak.tech/commit/c7d52bd33f3807a553cfea1c2b2cb2253b3b4415))
+* **studio:** defer object-URL revocation until after the save has time to start ([31e251f](https://github.com/dipakparmar/dipak.tech/commit/31e251fa1d42a11fa5ea4b88b5fc758395ca1880))
+* **studio:** enlarge icon buttons to h-8 w-8 for touch targets ([e2596dd](https://github.com/dipakparmar/dipak.tech/commit/e2596dd2231822284c4d6003757c0558f5612eb3))
+* **studio:** hoist pan listener handlers so unmount cleanup can remove them ([5febfbd](https://github.com/dipakparmar/dipak.tech/commit/5febfbde4685b7f6c792c550faf2289305d8c641))
+* **studio:** label Unsplash search input, show attribution without hover ([e73a8f8](https://github.com/dipakparmar/dipak.tech/commit/e73a8f83fd3da18f05e7294d2762a454c15ff79b))
+* **studio:** make page actions reachable on touch and keyboard ([d95b47b](https://github.com/dipakparmar/dipak.tech/commit/d95b47bfac5226fa76c8a2659646fab9aeb579b7))
+* **studio:** name SliderField's Slider for screen readers ([85cf3ed](https://github.com/dipakparmar/dipak.tech/commit/85cf3ed5ce6a65141fc3fae059bcdc0b59ef9cfb))
+* **studio:** name the Font select triggers for screen readers ([16a1d9f](https://github.com/dipakparmar/dipak.tech/commit/16a1d9f089706fc05eca1d212df59d11632887f6))
+* **studio:** reveal layer actions by default below md breakpoint ([4d88cec](https://github.com/dipakparmar/dipak.tech/commit/4d88cec620c06beebeb47d894a35f7e41fd3307b))
+* **studio:** surface video export failures instead of swallowing them ([65e3069](https://github.com/dipakparmar/dipak.tech/commit/65e306936c368436db4c2f505778c34ce055d20b))
+
 # [2.1.0](https://github.com/dipakparmar/dipak.tech/compare/v2.0.0...v2.1.0) (2026-07-20)
 
 
