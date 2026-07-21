@@ -7,10 +7,17 @@ export interface ToolPageHeroProps {
   title: ReactNode;
   description: ReactNode;
   /**
-   * Tailwind background class for the glow and the pinging status dot,
-   * e.g. 'bg-violet-500'. Defaults to the brand accent.
+   * Complete Tailwind class for the background glow, e.g. 'bg-violet-500/20'.
+   * Must be a full literal class name — Tailwind's scanner cannot see
+   * classes assembled at runtime via string interpolation. Defaults to the
+   * brand accent.
    */
-  accentClassName?: string;
+  accentGlowClassName?: string;
+  /**
+   * Complete Tailwind class for the pinging status dot, e.g.
+   * 'bg-violet-500'. Same literal-class-name constraint as above.
+   */
+  accentDotClassName?: string;
   /** Optional feature pills rendered under the description. */
   pills?: { icon: ReactNode; label: string }[];
   blurFadeDelay?: number;
@@ -23,7 +30,8 @@ export function ToolPageHero({
   eyebrow,
   title,
   description,
-  accentClassName = 'bg-primary',
+  accentGlowClassName = 'bg-primary/20',
+  accentDotClassName = 'bg-primary',
   pills,
   blurFadeDelay = 0.04,
   children,
@@ -34,7 +42,7 @@ export function ToolPageHero({
       {/* Gradient background effect */}
       <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-size-[14px_24px]">
         <div
-          className={`absolute left-0 right-0 top-0 -z-10 m-auto h-77.5 w-77.5 rounded-full opacity-20 blur-[100px] ${accentClassName}/20`}
+          className={`absolute left-0 right-0 top-0 -z-10 m-auto h-77.5 w-77.5 rounded-full opacity-20 blur-[100px] ${accentGlowClassName}`}
         />
       </div>
 
@@ -46,10 +54,10 @@ export function ToolPageHero({
               <div className="mb-4 inline-flex items-center justify-center gap-2 rounded-full border bg-muted/50 px-4 py-1.5">
                 <span className="relative flex h-2 w-2">
                   <span
-                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${accentClassName}`}
+                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${accentDotClassName}`}
                   />
                   <span
-                    className={`relative inline-flex h-2 w-2 rounded-full ${accentClassName}`}
+                    className={`relative inline-flex h-2 w-2 rounded-full ${accentDotClassName}`}
                   />
                 </span>
                 <span className="text-sm font-medium">{eyebrow}</span>
