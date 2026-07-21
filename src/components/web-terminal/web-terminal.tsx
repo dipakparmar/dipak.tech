@@ -149,6 +149,9 @@ export function WebTerminal() {
   const connectionsRef = useRef<Map<string, TabConnections>>(new Map());
   const welcomeShownRef = useRef<Set<string>>(new Set());
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const tabButtonRefs = useRef<Map<string, HTMLButtonElement | null>>(
+    new Map()
+  );
   const handleDisconnectRef = useRef<(tabId: string) => Promise<void>>(() =>
     Promise.resolve()
   );
@@ -760,6 +763,7 @@ export function WebTerminal() {
       terminalRefs.current.delete(tabId);
       connectionsRef.current.delete(tabId);
       welcomeShownRef.current.delete(tabId);
+      tabButtonRefs.current.delete(tabId);
 
       setTabs((prev) => {
         const newTabs = prev.filter((t) => t.id !== tabId);
@@ -783,6 +787,22 @@ export function WebTerminal() {
       }
     },
     [tabs, activeTabId, handleDisconnect]
+  );
+
+  const handleTabKeyDown = useCallback(
+    (e: React.KeyboardEvent, tabId: string) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const i = tabs.findIndex((t) => t.id === tabId);
+      if (i === -1) return;
+      const next =
+        e.key === 'ArrowRight'
+          ? tabs[(i + 1) % tabs.length]
+          : tabs[(i - 1 + tabs.length) % tabs.length];
+      setActiveTabId(next.id);
+      tabButtonRefs.current.get(next.id)?.focus();
+    },
+    [tabs]
   );
 
   // Export log
@@ -1520,32 +1540,46 @@ export function WebTerminal() {
       {/* Tab Bar */}
       {!isMinimized && (
         <div className="flex items-center bg-muted/50 border-b overflow-x-auto">
-          <div className="flex items-center flex-1 min-w-0">
+          <div className="flex items-center flex-1 min-w-0" role="tablist">
             {tabs.map((tab) => (
               <div
                 key={tab.id}
-                className={`group flex items-center gap-1.5 px-3 py-1.5 border-r cursor-pointer text-xs transition-colors ${
+                className={`group flex items-center border-r text-xs transition-colors ${
                   tab.id === activeTabId
                     ? 'bg-background text-foreground'
                     : 'text-muted-foreground hover:bg-background/50'
                 }`}
-                onClick={() => setActiveTabId(tab.id)}
               >
-                <Circle
-                  className={`h-2 w-2 shrink-0 ${
-                    tab.isConnected
-                      ? 'fill-green-500 text-green-500'
-                      : 'fill-muted-foreground/50 text-muted-foreground/50'
-                  }`}
-                />
-                <span className="truncate max-w-24">{tab.title}</span>
+                <button
+                  ref={(el) => {
+                    tabButtonRefs.current.set(tab.id, el);
+                  }}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab.id === activeTabId}
+                  tabIndex={tab.id === activeTabId ? 0 : -1}
+                  onClick={() => setActiveTabId(tab.id)}
+                  onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
+                  className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                >
+                  <Circle
+                    className={`h-2 w-2 shrink-0 ${
+                      tab.isConnected
+                        ? 'fill-green-500 text-green-500'
+                        : 'fill-muted-foreground/50 text-muted-foreground/50'
+                    }`}
+                  />
+                  <span className="truncate max-w-24">{tab.title}</span>
+                </button>
                 {tabs.length > 1 && (
                   <button
+                    type="button"
+                    aria-label={`Close ${tab.title}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       closeTab(tab.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                    className="pr-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 hover:text-destructive transition-opacity"
                   >
                     <X className="h-3 w-3" />
                   </button>
