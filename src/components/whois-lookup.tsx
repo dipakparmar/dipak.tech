@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import type React from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { OsintResults } from '@/components/osint-results';
+import { StatusAnnouncer } from '@/components/status-announcer';
 import { useHaptics } from '@/hooks/use-haptics';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import type { SecurityData, IdentityData, ThreatData } from '@/lib/osint-types';
@@ -419,8 +420,18 @@ export function WhoisLookup() {
     threatData
   );
 
+  const announcement = error
+    ? `WHOIS lookup failed: ${error}`
+    : loading
+      ? 'Loading WHOIS results'
+      : hasResults
+        ? 'WHOIS results ready'
+        : '';
+
   return (
     <div className="space-y-8">
+      <StatusAnnouncer message={announcement} assertive={Boolean(error)} />
+
       {/* Search Section */}
       <div className="mx-auto max-w-3xl space-y-4">
         {/* Main Search Input */}

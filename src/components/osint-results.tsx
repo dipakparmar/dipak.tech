@@ -20,6 +20,7 @@ import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
 
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusAnnouncer } from '@/components/status-announcer';
 import { WhoisResults } from '@/components/whois-results';
 import { SecurityPosture } from '@/components/osint/security-posture';
 import { SiteIdentity } from '@/components/osint/site-identity';
@@ -193,8 +194,20 @@ export function OsintResults({
 
   const dnsMap = buildDnsMap();
 
+  const anyPending = Object.values(pending).some(Boolean);
+  const anyError = Object.entries(errors).some(
+    ([, message]) => message && message !== 'Not applicable for this query type'
+  );
+  const announcement = anyPending
+    ? 'Loading OSINT scan results'
+    : anyError
+      ? 'OSINT scan completed with errors'
+      : 'OSINT scan complete';
+
   return (
     <div className="space-y-8">
+      <StatusAnnouncer message={announcement} />
+
       {/* RDAP Section - Always full width */}
       <section>
         {rdapData ? (

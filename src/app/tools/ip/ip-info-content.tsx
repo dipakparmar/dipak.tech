@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { IPResponse } from '@/types/ip';
 import { Map, MapMarker, MapTileLayer, MapPopup } from '@/components/ui/map';
+import { StatusAnnouncer } from '@/components/status-announcer';
 import { siteConfig } from '@/lib/og-config';
 import { parseNetworkInput } from '@/lib/network-input-parser';
 import type {
@@ -974,8 +975,18 @@ export default function IPInfoContent() {
   const isASNView = parsedInput?.type === 'asn';
   const isCidrView = parsedInput?.type === 'cidr';
 
+  const announcement = error
+    ? `IP lookup failed: ${error}`
+    : loading || networkLoading
+      ? 'Loading IP information'
+      : ipData || networkData
+        ? 'IP information loaded'
+        : '';
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
+      <StatusAnnouncer message={announcement} assertive={Boolean(error)} />
+
       <BlurFade delay={BLUR_FADE_DELAY}>
         <div className="mb-8 space-y-2">
           <div className="flex items-center gap-2">

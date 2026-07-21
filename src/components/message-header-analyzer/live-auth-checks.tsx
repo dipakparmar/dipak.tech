@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusAnnouncer } from '@/components/status-announcer';
 import { HapticButton as Button } from '@/components/haptic-wrappers';
 import {
   CheckCircle2,
@@ -352,8 +353,20 @@ export function LiveAuthChecks({ context }: LiveAuthChecksProps) {
 
   if (!hasLookupContext(context) || !context.fromDomain) return null;
 
+  const announcement = !approved
+    ? ''
+    : error
+      ? `Live DNS check failed: ${error}`
+      : pending
+        ? 'Running live DNS checks'
+        : data
+          ? 'Live DNS checks complete'
+          : '';
+
   return (
     <Card>
+      <StatusAnnouncer message={announcement} assertive={Boolean(error)} />
+
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
