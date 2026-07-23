@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Apple,
   CalendarHeart,
+  Fingerprint,
   Globe,
   KeyRound,
   Mail,
@@ -238,6 +239,20 @@ const tools: Tool[] = [
     hoverBg: 'hover:bg-sky-500/10',
     stat: 'Client-side · 8D maker + more coming',
     tags: ['8D Audio', 'Smart 8D', 'Timeline', 'More soon']
+  },
+  {
+    title: 'What Your Browser Told Me',
+    description:
+      'See your browser fingerprint read live — location, GPU, fonts, battery, and more',
+    path: 'browser-fingerprint',
+    icon: Fingerprint,
+    color: 'text-violet-500',
+    borderColor: 'hover:border-violet-500/30',
+    iconBg: 'bg-violet-500/10',
+    tagBg: 'bg-violet-500/10 text-violet-500',
+    hoverBg: 'hover:bg-violet-500/10',
+    stat: 'Client-side, standard browser APIs, nothing stored',
+    tags: ['Fingerprint', 'Privacy', 'Live']
   },
   {
     title: 'Time-off Optimizer',
