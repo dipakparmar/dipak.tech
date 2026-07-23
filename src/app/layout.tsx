@@ -4,6 +4,7 @@ import { Inter, Karla, Reenie_Beanie } from 'next/font/google';
 import { LOGO_URL, ogUrls } from '@/lib/og-config';
 
 import { GoogleTagManager } from '@next/third-parties/google';
+import { Mascot } from '@/components/mascot';
 import type { Metadata } from 'next';
 import type { Viewport } from 'next';
 import { cn } from '@/lib/utils';
@@ -137,6 +138,7 @@ export default function RootLayout({
         )}
       >
         {children}
+        <Mascot />
       </body>
     </html>
   );
