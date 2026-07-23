@@ -228,11 +228,25 @@ export function BrowserFingerprint() {
       </div>
 
       {done && (
-        <p className="mx-auto mt-10 max-w-xl text-center text-sm text-muted-foreground">
-          Every reading above was taken on this device and uploaded nowhere. The
-          point is not this bench. It is that any site you open can probe the
-          same components silently and assemble the same profile.
-        </p>
+        <>
+          <p className="mx-auto mt-10 max-w-xl text-center text-sm text-muted-foreground">
+            Every reading above was taken on this device and uploaded nowhere.
+            The point is not this bench. It is that any site you open can probe
+            the same components silently and assemble the same profile.
+          </p>
+          <p className="mx-auto mt-4 text-center text-xs text-muted-foreground/80">
+            Inspired by the original idea from{' '}
+            <a
+              href="https://sinceyouarrived.world/?utm_source=tools.dipak.io&utm_medium=referral&utm_campaign=browser-fingerprint"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-violet-500 underline-offset-2 hover:underline"
+            >
+              Since You Arrived
+            </a>
+            .
+          </p>
+        </>
       )}
 
       <style jsx global>{`
