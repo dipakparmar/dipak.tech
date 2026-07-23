@@ -1,3 +1,11 @@
+# [2.2.0](https://github.com/dipakparmar/dipak.tech/compare/v2.1.2...v2.2.0) (2026-07-23)
+
+
+### Features
+
+* add draggable corner mascot ([6f1b40e](https://github.com/dipakparmar/dipak.tech/commit/6f1b40e74676c2fb5a45f73a2a3eb17b58885990))
+* **tools:** add browser fingerprint tool ([6c13bba](https://github.com/dipakparmar/dipak.tech/commit/6c13bbae5e464b7fda89248218113e61a5f4aada))
+
 ## [2.1.2](https://github.com/dipakparmar/dipak.tech/compare/v2.1.1...v2.1.2) (2026-07-21)
 
 
