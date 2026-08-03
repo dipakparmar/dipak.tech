@@ -81,9 +81,11 @@ export function Annotate({
     return (
       <span className="relative inline-flex items-center justify-center px-[6px] mx-[1px] leading-none align-baseline">
         <span className="relative z-10">{children}</span>
+        {/* z-20 puts the stroke over the content, not under it — an
+            inline <code> chip's background would otherwise hide it. */}
         <ScribbleCircle
           color={color}
-          className="absolute left-0 right-0 top-1/2 -translate-y-1/2 w-full h-[170%] pointer-events-none overflow-visible"
+          className="absolute left-0 right-0 top-1/2 z-20 -translate-y-1/2 w-full h-[170%] pointer-events-none overflow-visible"
         />
       </span>
     );
