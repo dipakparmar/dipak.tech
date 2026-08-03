@@ -1,0 +1,325 @@
+---
+title: "How mDNS Works, and the Setting That Broke My Thermostat"
+description: "A deep dive into multicast DNS and DNS-SD, told through a HomeKit thermostat that spent a month retrying a port nothing had listened on for weeks."
+date: "2026-08-03"
+tags: ["networking", "mdns", "homekit", "home-assistant", "homelab", "smart-home"]
+---
+
+export const references = [
+  {
+    href: "https://www.rfc-editor.org/rfc/rfc6762",
+    label: "RFC 6762: Multicast DNS",
+  },
+  {
+    href: "https://www.rfc-editor.org/rfc/rfc6763",
+    label: "RFC 6763: DNS-Based Service Discovery",
+  },
+  {
+    href: "https://www.rfc-editor.org/rfc/rfc5771",
+    label: "RFC 5771: IANA Guidelines for IPv4 Multicast Address Assignments",
+  },
+  {
+    href: "https://www.rfc-editor.org/rfc/rfc2782",
+    label: "RFC 2782: A DNS RR for specifying the location of services (SRV)",
+  },
+  {
+    href: "https://github.com/home-assistant/core/tree/dev/homeassistant/components/homekit_controller",
+    label: "Home Assistant: homekit_controller integration source",
+  },
+];
+
+I spent a good chunk of this long weekend on a bug I'd been putting off for a month, and I'm happier about the result than the size of the fix deserves. One value edited. One toggle flipped. A thermostat that had been greyed out in Home Assistant since the start of July, back.
+
+Here's what that month looked like from my server's side. Every ten minutes, it dialed a port that nothing had been listening on since the thermostat's last firmware update.
+
+The thermostat was fine. Awake, on the network, and refusing that connection outright, because the port it used to answer on no longer existed. Home Assistant marked it unavailable, waited, and tried the same dead port again. It would have kept doing that for years.
+
+Every diagnostic I ran said the network was healthy. Ping worked. TCP handshakes to every other port on the device completed. The routing table was right and the firewall rules passed.
+
+This is the part of running your own smart home that doesn't make it into the screenshots. Everything here is local: my own hardware, my own VLANs, no vendor cloud deciding whether my heating works this morning. The trade is that when it breaks, there's nobody to open a ticket with. You get to understand it instead, which is either the appeal or the problem depending on the weekend.
+
+This one turned out to be a good weekend.
+
+The cause was a tidy-up I'd done months earlier and stopped thinking about. My network has been split into VLANs for years, with Home Assistant on the server network and most of my IoT devices on their own, and mDNS reflection had been switched on everywhere since the day I built it. Sitting down to audit which networks actually needed multicast, I turned it off on the server network. Nothing broke that day. Nothing broke for months. Then the thermostat took a firmware update, came back on a different port, and had no way left to tell Home Assistant about it.
+
+The integrations page was emphatic and mostly misleading. Behind the card's *Failed setup, will retry*, the log said:
+
+```text
+Error while connecting to device
+['198.51.100.42', 'fd00:...']:38537:
+Multiple exceptions:
+  [Errno 111] Connect call failed ('198.51.100.42', 38537),
+  [Errno 101] Network is unreachable
+```
+
+The thermostat is paired into Home Assistant over HomeKit rather than through the vendor cloud. My first instinct was wrong, and I suspect it would be yours too: the pairing broke, delete the integration and pair it again. That would have thrown away a valid set of cryptographic credentials to fix a problem that had nothing to do with them.
+
+Everything that actually mattered here happened in a protocol most of us treat as weather. It either works or it doesn't, and either way you don't think about it. So let's take multicast DNS apart, then watch it explain every character of that error.
+
+<Callout type="note" title="What's in this post">
+  The first half is a from-scratch explanation of mDNS and DNS-SD: how a device names itself with no server involved, and why that design has a hard boundary at your router. The second half is the debugging session, and what the failure taught me about trusting error messages.
+</Callout>
+
+## mDNS on one screen
+
+If you're here for the reference rather than the story, this is the whole protocol in a table. Everything below it is the long version.
+
+| | |
+|---|---|
+| **Addresses** | `224.0.0.251` (IPv4), `ff02::fb` (IPv6), UDP port `5353` |
+| **Scope** | Link-local. Routers do not forward it, by design, so it stops at your VLAN boundary |
+| **Namespace** | The `.local.` pseudo-TLD, never resolved by the global DNS |
+| **Who answers** | Every device is authoritative for its own names. There is no server |
+| **Browse** | `PTR` on `_service._tcp.local.` lists the instances that exist |
+| **Resolve** | `SRV` gives host and **port**, `TXT` gives metadata, `A`/`AAAA` give the address |
+| **Ports** | Come from `SRV`, and are often ephemeral, so they change across reboots |
+| **Freshness** | Unsolicited announcements on change, cache-flush bit to replace, TTL `0` to say goodbye |
+| **Across VLANs** | Needs a reflector on the gateway. UniFi calls it the per-network Multicast DNS setting |
+
+<Callout type="tip" title="The two commands worth memorising">
+  `dns-sd -B _hap._tcp local` (macOS) or `avahi-browse -rt _hap._tcp` (Linux) lists what a host can currently see. `dns-sd -L "<instance>" _hap._tcp local` resolves one instance to its live host and port. Run them from **both** the machine that's failing and a host you know is healthy. The difference between the two answers is the entire diagnosis in this post. (Home Assistant OS ships neither command, so there you want the integration's own zeroconf diagnostics instead.)
+</Callout>
+
+## The problem mDNS was invented to solve
+
+Regular DNS assumes infrastructure. Somebody runs a server, somebody edits a zone file, somebody delegates authority, and a resolver walks a hierarchy from the root down to an answer. That works well for the internet and badly for a living room.
+
+You buy a printer. You plug it in. There is no administrator, no zone file, no DHCP reservation, and nobody to tell your laptop what the printer is called. Yet you expect the printer to appear in a list, by name, within a couple of seconds.
+
+mDNS <Cite n={1} /> solves this by deleting the server and keeping the message format. It reuses the DNS packet structure, the record types, and the wire encoding, and changes one thing: instead of asking a designated server, you ask everyone at once and whoever owns the answer replies.
+
+Every participating device is both a client and an authoritative server for its own names. There is no central registry, because every device is the registry for itself.
+
+<FlowDiagram
+  ariaLabel="Comparison of unicast DNS resolution against multicast DNS: unicast DNS queries a resolver which walks root, TLD and authoritative servers, while mDNS sends one multicast query to the local link and the owning device answers directly"
+  title="Two ways to turn a name into an address"
+  nodes={[
+    { label: "Unicast DNS", sublabel: "Ask a server configured in advance", color: "neutral" },
+    { label: "Resolver → root → TLD → authoritative", sublabel: "Hierarchy of delegated authority", color: "info" },
+    { label: "mDNS", sublabel: "Ask the entire local link at once", color: "purple" },
+    { label: "The device that owns the name answers", sublabel: "Every host is authoritative for itself", color: "tip" },
+  ]}
+  caption="Same packet format, opposite assumptions about who is in charge."
+/>
+
+### The address, the namespace, and the TTL trick
+
+Three details define the protocol:
+
+**The address.** mDNS queries go to `224.0.0.251` for IPv4 and `ff02::fb` for IPv6, on UDP port `5353`. That IPv4 address sits inside `224.0.0.0/24`, the Local Network Control Block <Cite n={3} />. Addresses in that block carry protocol control traffic that, by definition, <Highlighter color="danger">is not forwarded off the link</Highlighter>. Hold on to this. It's the constraint the rest of this story is built on.
+
+**The namespace.** mDNS is authoritative for the reserved TLD `.local.`, which is defined never to be resolved through the global DNS. When a resolver sees `printer.local.`, it knows to shout rather than to ask.
+
+**The TTL trick.** mDNS responses are sent with an IP TTL of 255 <Cite n={1} />. That is a compatibility measure rather than a security one: early implementations checked the received TTL to decide whether a packet had come from the local link, and discarded anything else. RFC 6762 keeps the sending rule, but the check a modern receiver performs is on the destination address. A response addressed to `224.0.0.251` or `ff02::fb` is deemed local by definition, and a unicast response is accepted only if its source sits on a local subnet. That is what stops a remote host spoofing answers at you.
+
+<MarginNote color="purple" text="Same address, two jobs. TTL 255 is the older, weaker version of the same idea.">The link-local *address* is what stops the packet leaving the link, and it is also what a receiver uses to decide the packet was local.</MarginNote>
+
+## DNS-SD: turning names into services
+
+mDNS alone gets you `thermostat.local. → 198.51.100.42`. Useful, but not enough. You don't want to know that a host exists. You want to know that something here speaks the protocol you care about, and where to reach it.
+
+That's DNS-Based Service Discovery <Cite n={2} />, the layer people usually mean when they say "mDNS." DNS-SD is a naming convention plus four ordinary DNS record types, stacked.
+
+A service instance is named in three parts:
+
+```text
+Thermostat . _hap._tcp . local.
+└ instance ┘ └ service ┘ └ domain
+```
+
+The instance name is human-readable and may contain spaces and Unicode, because humans read it. The service type is `_<protocol>._<transport>`. HomeKit uses `_hap._tcp`. AirPlay uses `_airplay._tcp`. Printers use `_ipp._tcp`.
+
+Resolution walks four record types, and it's worth understanding why it takes four instead of one:
+
+<FlowDiagram
+  ariaLabel="DNS-SD four-record resolution chain: PTR record lists instances of a service type, SRV record gives target host and port, TXT record carries metadata key-value pairs, and A or AAAA records resolve the host to an IP address"
+  title="The DNS-SD resolution chain"
+  nodes={[
+    { label: "PTR", sublabel: "_hap._tcp.local. → \"Thermostat\"", color: "chart-1", note: "Browse: what instances of this service exist?" },
+    { label: "SRV", sublabel: "\"Thermostat\" → host + PORT", color: "chart-2", note: "Resolve: which host, and which port?" },
+    { label: "TXT", sublabel: "key/value metadata", color: "chart-3", note: "Describe: state, flags, identifiers" },
+    { label: "A / AAAA", sublabel: "host → 198.51.100.42", color: "chart-4", note: "Address: what IP is that host on?" },
+  ]}
+  flow
+  caption="Four indirections, so that any one of them can change without invalidating the others."
+/>
+
+That indirection looks like over-engineering until you notice what it buys. The instance name stays stable while the host changes. The host stays stable while the IP changes via DHCP. And, for this story, the port is a lookup rather than a constant.
+
+### The SRV record is where the port lives
+
+`SRV` <Cite n={4} /> carries the port number. In classic internet services you never think about this, because ports are conventions: HTTP is 80, SSH is 22. You don't look them up, you just know them.
+
+DNS-SD drops that assumption on purpose. A service advertises whatever port it happened to bind, and <Highlighter color="info">the SRV record is the only way to learn it</Highlighter>. Many implementations bind an ephemeral port, one the OS hands out from a high range at startup, because the SRV record makes a fixed port unnecessary.
+
+That design decision turned a routine firmware update into a month-long outage in my house.
+
+### The TXT record is the accessory's status page
+
+TXT records look like a dumping ground for miscellaneous key/value pairs, and largely they are. For HomeKit they carry the accessory's entire public state:
+
+```text
+c#=55 ff=2 id=AA:BB:CC:11:22:33 md=THERM01
+pv=1.1 s#=1 sf=0 ci=9
+```
+
+| Key | Meaning |
+|---|---|
+| `id` | The accessory's stable pairing identifier. Survives reboots and IP changes. |
+| `sf` | Status flags. Bit 0 set (`sf=1`) means the accessory is unpaired and advertising for setup. `sf=0` means it is already paired. |
+| `c#` | Configuration number. Incremented whenever the accessory's service definition changes, typically a firmware update. |
+| `s#` | State number. Always `1` for HomeKit over IP. |
+| `md` | Model identifier. |
+| `pv` | HAP protocol version. |
+| `ci` | Accessory category (9 = thermostat). |
+
+<Callout type="tip" title="sf is the single most useful byte in HomeKit debugging">
+  When a HomeKit device stops responding, `sf` tells you whether you have a pairing problem or a networking problem. `sf=0` means the accessory still believes it is paired, so your controller's credentials are probably fine and re-pairing would only destroy working keys. `sf=1` means the pairing is gone and you have no choice. Check this **before** you delete anything.
+</Callout>
+
+### Staying fresh without a server to ask
+
+Because there's no server to poll, mDNS has to solve freshness on its own:
+
+- **Announcements.** When a device joins the network or changes its records, it multicasts unsolicited responses, typically several, a second or so apart, so everyone's cache updates without anyone asking.
+- **The cache-flush bit.** The top bit of the record's class field is repurposed to mean "replace what you have cached for this name, don't merge with it." Without it, a device changing address would leave listeners holding both the old and new records as equally valid.
+- **Goodbye packets.** A device leaving gracefully re-announces its records with a TTL of `0`, meaning *delete this now.* That's why an AirPlay speaker vanishes from the list the instant it's powered off, and why an ungracefully-killed device lingers for minutes.
+- **Continuous queries with backoff.** A long-running browse re-queries on a schedule that backs off exponentially, roughly 1s, 2s, 4s and onward, capped around an hour, so a network of a hundred devices doesn't melt into a multicast storm.
+- **Probing and conflict resolution.** Before claiming a name, a device sends three probe queries about 250ms apart. If someone objects, the newcomer renames itself. That's where `Printer (2).local.` comes from.
+
+None of this involves a server. It's a gossip protocol using DNS record formats.
+
+## The hard boundary: why mDNS stops at your router
+
+Everything above depends on that multicast packet reaching every device that cares. On a single flat subnet it does. Multicast is delivered to the local link, everyone hears it, life is good. That's why mDNS feels like magic in a normal house, and why most people never learn how it works.
+
+Segment your network and the magic stops, silently.
+
+`224.0.0.251` is link-local by definition. A router that forwards it is a broken router. So the moment your IoT devices live on one VLAN and your server lives on another, they sit in separate multicast domains. They can still route packets to each other fine, since unicast TCP is untouched, but they cannot hear each other.
+
+Note that this is independent of your firewall policy, and the two get confused constantly. My IoT VLAN can't open a connection to my server VLAN at all, while Home Assistant can reach anything it likes on the IoT side. That asymmetry is deliberate and it had nothing to do with the outage: multicast was dead in both directions regardless, and the direction that mattered for HomeKit, server to accessory, was permitted the whole time.
+
+<LaneDiagram
+  ariaLabel="Two VLANs on the same gateway: unicast TCP traffic routes between them normally, while multicast DNS on 224.0.0.251 is dropped at the gateway boundary because link-local multicast is never forwarded"
+  lanes={[
+    {
+      title: "Unicast TCP",
+      subtitle: "Routes normally",
+      nodes: [
+        { label: "Server VLAN", sublabel: "192.0.2.0/24", color: "info" },
+        { label: "Gateway", sublabel: "Routes between VLANs", color: "neutral" },
+        { label: "IoT VLAN", sublabel: "198.51.100.0/24", color: "info" },
+        { label: "Connection succeeds", color: "tip" },
+      ],
+      connectors: [{ label: "routed" }, { label: "routed" }, { label: "SYN/ACK" }],
+    },
+    {
+      title: "mDNS multicast",
+      subtitle: "Dropped at the boundary",
+      nodes: [
+        { label: "Server VLAN", sublabel: "Listening on 224.0.0.251:5353", color: "purple" },
+        { label: "Gateway", sublabel: "Link-local, must not forward", color: "danger" },
+        { label: "IoT VLAN", sublabel: "Announcing on 224.0.0.251:5353", color: "purple" },
+        { label: "Nobody hears anything", color: "danger" },
+      ],
+      connectors: [{ label: "blocked", color: "danger" }, { label: "blocked", color: "danger" }, { label: "silence", color: "danger" }],
+    },
+  ]}
+  caption="The same two VLANs, the same gateway. One plane works, the other is a wall."
+/>
+
+This produces a nasty failure mode, because it is not a connectivity failure. Every tool you reach for says the network is fine. Ping works. TCP connects. Routing is correct. Firewall rules pass. Nothing you run tests whether the two hosts can still hear each other. The broken thing is the discovery plane, and almost nothing you'd normally run tests it.
+
+### Reflectors, and what turning one off costs
+
+The fix is an mDNS reflector, also called a repeater: a daemon on the gateway that joins the multicast group on several interfaces, listens for mDNS traffic on each, and re-transmits it onto the others. Note that it does not forward anything. It terminates the packet and originates a new one on the other interface, which is why it can do this without being the broken router I just described. Avahi does this, as do most prosumer firewalls. In UniFi it's the per-network **Multicast DNS** setting (Auto, Off or Custom, not a plain on/off), in OPNsense and pfSense it's the Avahi plugin, on a Linux router it's `enable-reflector=yes` under `[reflector]` in `/etc/avahi/avahi-daemon.conf`.
+
+Three things to know before you touch that toggle.
+
+First: reflection is a deliberate hole in your segmentation. If you split IoT onto its own VLAN so a compromised bulb can't enumerate your network, a reflector partially undoes that, since it lets both sides discover each other by design. That's usually what you want for a server that's supposed to talk to your devices, but it should be a decision rather than an accident.
+
+Second: reflectors are dumber than they look. They generally re-transmit records without rewriting them, so a device advertising an address on one VLAN gets that address echoed verbatim onto another. It works because the VLANs are routable to each other, but the reflector is doing packet plumbing, not translation. Get the routing wrong and you'll see the records and still fail to connect.
+
+Third, and this is the one that got me: turning reflection **off** looks free. Nothing goes down when you save the setting. Existing connections keep working, because a controller that already resolved an accessory holds its address and port in a config entry and dials it directly from then on. The cost is deferred to whenever the next device changes what it advertises, which might be months. <Highlighter color="warning">A network where multicast is disabled looks identical to a network where multicast is working, right up until something moves.</Highlighter>
+
+## Reading the error again, with the theory in hand
+
+Every piece of that log line now decodes.
+
+```text
+[Errno 111] Connect call failed ('198.51.100.42', 38537)
+```
+
+`Errno 111` is `ECONNREFUSED`. Not a timeout, not "no route", but actively refused: something on the path answered with a RST instead of swallowing the packet. A rejecting firewall rule produces the same errno, so on its own this only rules out a black hole. Combined with a policy that permits server to IoT, and an accessory demonstrably answering on a different port, it points at the thermostat's own stack turning down a port with no listener. The IP was right. The routing was right. The device was awake and answering. Only the port was wrong.
+
+And why was the port wrong? HAP advertises an ephemeral port in its SRV record, the thermostat had taken a firmware update, and on reboot it bound a different one. The `c#=55` in that TXT record is the fingerprint of a device reconfigured dozens of times across its life. Every firmware update bumps that number, and every bump is a chance for the port to move.
+
+With reflection on, this self-heals in seconds. The accessory reboots, multicasts its new SRV record, every controller updates its cache, nobody notices. My server never heard the announcement, so it kept dialing a number that had been disconnected, backing off to once every ten minutes, with infinite patience.
+
+The second half of the error is a red herring that cost me real time:
+
+```text
+[Errno 101] Network is unreachable
+```
+
+That's the IPv6 attempt. Home Assistant had cached a unique-local address for the accessory alongside the IPv4 one and tried both. ULA is `fc00::/7`, of which the locally-assigned `fd00::/8` half is what anything real uses. The server's routing table has no entry covering that prefix, because the IoT VLAN generates its own ULA range and nothing on the server side routes to it, so the IPv6 attempt failed instantly with `ENETUNREACH`, before a packet left the host. It looks alarming and means nothing. Two errors on one line, from two address families, with two unrelated causes, and only one of them mattered.
+
+### Two vantage points, one difference
+
+The decisive test took about six seconds and touched nothing:
+
+```bash
+dns-sd -L "Thermostat" _hap._tcp local
+```
+
+```text
+Thermostat._hap._tcp.local. can be reached at thermostat-a1b2.local.:33391
+c#=55 ff=2 id=AA:BB:CC:11:22:33 md=THERM01 pv=1.1 s#=1 sf=0 ci=9
+```
+
+Three facts fell out at once:
+
+1. The live port is <Annotate type="circle" color="#ef4444">`33391`</Annotate>. My server was dialing `38537`. There's the bug.
+2. <Highlighter color="tip">`sf=0`, still paired.</Highlighter> The credentials were never the problem, and re-pairing would have destroyed them for nothing.
+3. The `id` matched the `AccessoryPairingID` stored in Home Assistant's config entry exactly, proving this was the same accessory and not a replacement device that had inherited the IP.
+
+<Quote>
+  The device was online. The network was routing. The credentials were valid. And it still could not connect, because everything the thermostat knew about itself was being announced into a room my server wasn't standing in.
+</Quote>
+
+I ran that command from my laptop, which sits on a subnet that did have reflection enabled. The confirmation came from running an equivalent `_hap._tcp` browse from inside Home Assistant itself: it returned ten HomeKit services, and every one of them was Home Assistant's own exported bridges. Zero external accessories. My laptop could see five. My server could see none of them, only its own.
+
+That asymmetry was the whole diagnosis. Same protocol, same building, one network with the multicast DNS toggle on and one with it off.
+
+### The fix: one value, then one toggle
+
+The immediate unblock was correcting the cached port. Home Assistant keeps HomeKit pairing state in `.storage/core.config_entries`, so with the core stopped it's a one-value edit, `AccessoryPort` from `38537` to `33391`, and a restart. The connection established immediately, and `ss -tnp` confirmed it:
+
+```text
+State  Recv-Q  Send-Q  Local Address:Port  Peer Address:Port      Process
+ESTAB  0       0       192.0.2.10:57672    198.51.100.42:33391    users:(("python3",pid=412,fd=63))
+```
+
+But that fixes the symptom on a device whose port will move again at the next firmware update. The real fix was turning the Multicast DNS setting back on for the server network, undoing the tidy-up that started this. Afterwards, the same browse from inside Home Assistant went from ten services to fifteen, now including every real accessory in the house at its correct current port.
+
+<Callout type="important" title="The general shape of this bug">
+  Any protocol that discovers peers over multicast and then caches the result will fail this way across a VLAN boundary: it works at setup time, keeps working until the peer's address or port changes, then fails permanently with an error describing the stale cache rather than the missing discovery. HomeKit, AirPlay, Chromecast, Sonos, network printers, Matter commissioning: same failure, different logo. The tell is an error about a specific address or port that no tool can independently confirm should be correct.
+</Callout>
+
+## What a month of this taught me
+
+**The error message described the symptom accurately and pointed at the wrong layer.** It told me a TCP connection to a port failed. That was true. It could not tell me the port number itself was a stale cache entry from a discovery protocol that had quietly stopped working months earlier, because from the connection code's point of view that port came from a trustworthy source.
+
+**Turning something off is a change, even when nothing breaks.** I audited my networks, decided the server VLAN had no business receiving multicast, and switched it off. That was a defensible call, and the feedback loop on it was six months long. Anything whose only job is to keep caches fresh will pass every test you run on the day you disable it. The bill arrives when a device it was quietly maintaining changes its mind.
+
+**The most valuable diagnostic ran from inside the affected host and compared against a known-good vantage point.** Everything I checked from my laptop said the network was healthy, because from my laptop it was. The bug only became visible when I asked the failing machine what it could see and the answer was "nothing." Two vantage points, one difference, immediate diagnosis.
+
+**And the strongest signal was a single byte I nearly didn't look at.** `sf=0` is what stopped me deleting the integration and re-pairing. Everything about the symptom said "broken pairing." One field in a TXT record said otherwise, and it was right.
+
+Tidying up your network doesn't come with a warning about which questions you now need to keep asking.
+
+<Acknowledgements>
+  Thanks to the maintainers of Home Assistant's `homekit_controller` integration <Cite n={5} />, whose careful separation of pairing state from network state is the only reason this was a one-value fix rather than a re-pair.
+</Acknowledgements>
+
+<References items={references} />
