@@ -1,3 +1,11 @@
+## [2.2.1](https://github.com/dipakparmar/dipak.tech/compare/v2.2.0...v2.2.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **blog:** add missing text language icon for code blocks ([c804b02](https://github.com/dipakparmar/dipak.tech/commit/c804b02775991617d958eef38ee79ef80f33d863))
+* **mdx:** draw circle annotation above inline code ([3d7bc84](https://github.com/dipakparmar/dipak.tech/commit/3d7bc8445d29d20c18a877b55dea56b80e72f3ef))
+
 # [2.2.0](https://github.com/dipakparmar/dipak.tech/compare/v2.1.2...v2.2.0) (2026-07-23)
 
 
