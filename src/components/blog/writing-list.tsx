@@ -14,13 +14,13 @@ interface WritingListProps {
 
 function formatDayMonth(date: string): string {
   const d = new Date(date);
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 function groupByYear(posts: PostMeta[]) {
   const map = new Map<string, PostMeta[]>();
   for (const post of posts) {
-    const year = String(new Date(post.date).getFullYear());
+    const year = String(new Date(post.date).getUTCFullYear());
     const bucket = map.get(year);
     if (bucket) bucket.push(post);
     else map.set(year, [post]);

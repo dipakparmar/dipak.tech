@@ -30,6 +30,7 @@ function BlogOG({
 }) {
   const formattedDate = date
     ? new Date(date).toLocaleDateString('en-US', {
+        timeZone: 'UTC',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
@@ -188,6 +189,7 @@ export async function GET(request: NextRequest) {
     readingTime ? `${readingTime} min read` : '',
     date
       ? new Date(date).toLocaleDateString('en-US', {
+          timeZone: 'UTC',
           year: 'numeric',
           month: 'long',
           day: 'numeric'

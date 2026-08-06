@@ -113,6 +113,7 @@ export default async function PostPage({ params }: PostPageProps) {
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] uppercase tracking-[0.08em] text-muted-foreground/55 tabular-nums">
             <time dateTime={meta.date}>
               {new Date(meta.date).toLocaleDateString('en-US', {
+                timeZone: 'UTC',
                 year: 'numeric',
                 month: 'short',
                 day: '2-digit'
@@ -130,6 +131,7 @@ export default async function PostPage({ params }: PostPageProps) {
                 <span>
                   Updated{' '}
                   {new Date(meta.updated).toLocaleDateString('en-US', {
+                    timeZone: 'UTC',
                     year: 'numeric',
                     month: 'short',
                     day: '2-digit'
