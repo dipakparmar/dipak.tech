@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getAllTags, getPostsByTag } from '@/lib/blog';
 import type { Metadata } from 'next';
+import { PostRows } from '@/components/blog/post-rows';
 
 interface TagPageProps {
   params: Promise<{ tag: string }>;
@@ -21,15 +22,6 @@ export async function generateMetadata({
     alternates: {
       canonical: `https://dipak.tech/blog/tags/${tag}`
     }
-  };
-}
-
-function formatRowDate(date: string) {
-  const d = new Date(date);
-  return {
-    mon: d.toLocaleDateString('en-US', { month: 'short' }),
-    day: d.toLocaleDateString('en-US', { day: '2-digit' }),
-    year: d.toLocaleDateString('en-US', { year: 'numeric' })
   };
 }
 
@@ -61,55 +53,7 @@ export default async function TagPage({ params }: TagPageProps) {
         </p>
       </header>
 
-      <ol className="border-t border-border/70">
-        {posts.map((post) => {
-          const d = formatRowDate(post.date);
-          return (
-            <li key={post.slug} className="border-b border-border/70">
-              <Link
-                href={`/blog/${post.slug.replace(/[^a-zA-Z0-9/_-]/g, '')}`}
-                className="group grid grid-cols-[5.25rem_1fr] gap-x-5 sm:gap-x-8 items-baseline py-5 sm:py-6"
-              >
-                <time
-                  dateTime={post.date}
-                  className="text-[11px] uppercase tracking-[0.08em] tabular-nums text-muted-foreground/60 pt-[3px] group-hover:text-muted-foreground transition-colors duration-150"
-                >
-                  <span className="sm:hidden">
-                    {d.mon} {d.day}, {d.year}
-                  </span>
-                  <span className="hidden sm:inline-flex flex-col leading-[1.35]">
-                    <span>
-                      {d.mon} {d.day}
-                    </span>
-                    <span className="text-muted-foreground/40">{d.year}</span>
-                  </span>
-                </time>
-                <div className="min-w-0">
-                  <h2 className="text-[17px] font-[470] tracking-[-0.015em] leading-[1.35] text-foreground/95">
-                    <span
-                      className="bg-no-repeat bg-[length:0%_1px] bg-[position:0_92%] group-hover:bg-[length:100%_1px] transition-[background-size] duration-300 ease-out"
-                      style={{
-                        backgroundImage:
-                          'linear-gradient(var(--color-primary), var(--color-primary))'
-                      }}
-                    >
-                      {post.title}
-                    </span>
-                  </h2>
-                  {post.description && (
-                    <p className="text-[13.5px] text-muted-foreground/85 mt-1.5 leading-[1.55] tracking-[-0.005em]">
-                      {post.description}
-                    </p>
-                  )}
-                  <div className="mt-2.5 text-[11px] text-muted-foreground/55 tabular-nums">
-                    {post.readingTime} min
-                  </div>
-                </div>
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
+      <PostRows posts={posts} />
 
       {posts.length === 0 && (
         <p className="text-sm text-muted-foreground italic py-16 text-center">
