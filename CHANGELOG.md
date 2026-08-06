@@ -1,3 +1,10 @@
+## [2.2.2](https://github.com/dipakparmar/dipak.tech/compare/v2.2.1...v2.2.2) (2026-08-06)
+
+
+### Bug Fixes
+
+* **blog:** format post dates in UTC to keep list and article in sync ([15b46d9](https://github.com/dipakparmar/dipak.tech/commit/15b46d978fef6930cf7233425d7639b8f3efdcb1))
+
 ## [2.2.1](https://github.com/dipakparmar/dipak.tech/compare/v2.2.0...v2.2.1) (2026-08-03)
 
 
