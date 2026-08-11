@@ -4,16 +4,18 @@ import { motion } from 'motion/react';
 import {
   colorProps,
   DEFAULT_CYCLE,
+  DiagramFigure,
   svgLayout,
   TextBlock,
   useReveal,
   wrapText,
+  type DiagramActionsOption,
   type DiagramAlign,
   type DiagramColor,
   type DiagramMotion,
   type FlowColor
 } from './diagram-kit';
-import { richHtml, richInline, richText } from './rich-text';
+import { richInline, richText } from './rich-text';
 
 export type { FlowColor };
 
@@ -50,6 +52,8 @@ interface FlowDiagramProps {
   /** `false` to render with no entrance, or `{ speed, stagger, once }`. */
   animate?: DiagramMotion;
   align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
   className?: string;
 }
 
@@ -130,6 +134,7 @@ export function FlowDiagram({
   flow = true,
   animate,
   align,
+  actions,
   className
 }: FlowDiagramProps) {
   const { ref, played, reduceMotion, staggerOr, reveal } =
@@ -445,21 +450,17 @@ export function FlowDiagram({
     </svg>
   );
 
-  if (!caption) return svg;
+  // The heading is drawn inside the SVG here (it predates DiagramFigure's
+  // HTML title), so only the caption is handed over.
   return (
-    <figure className="mdx-figure">
+    <DiagramFigure
+      caption={caption}
+      align={align}
+      actions={actions}
+      label={ariaLabel}
+    >
       {svg}
-      <motion.figcaption
-        className="mdx-figcaption"
-        {...reveal({
-          from: { opacity: 0, y: 4 },
-          duration: 0.45,
-          delay: entranceDone
-        })}
-      >
-        <span className="mdx-figcaption-label">{richHtml(caption)}</span>
-      </motion.figcaption>
-    </figure>
+    </DiagramFigure>
   );
 }
 

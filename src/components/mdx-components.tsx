@@ -14,6 +14,11 @@ import { Callout } from '@/components/mdx/callout';
 import { ArchitectureDiagram } from '@/components/mdx/architecture-diagram';
 import { BarChart } from '@/components/mdx/bar-chart';
 import { ErDiagram } from '@/components/mdx/er-diagram';
+import { FlowchartDiagram } from '@/components/mdx/flowchart-diagram';
+import { LineChart } from '@/components/mdx/line-chart';
+import { LoopDiagram } from '@/components/mdx/loop-diagram';
+import { NestedDiagram } from '@/components/mdx/nested-diagram';
+import { PyramidDiagram } from '@/components/mdx/pyramid-diagram';
 import { GanttChart } from '@/components/mdx/gantt-chart';
 import { MatrixDiagram } from '@/components/mdx/matrix-diagram';
 import { RadarChart } from '@/components/mdx/radar-chart';
@@ -177,12 +182,17 @@ export const mdxComponents: MDXComponents = {
   Cite,
   ErDiagram,
   FigureImage,
+  FlowchartDiagram,
   FlowDiagram,
   GanttChart,
   LaneDiagram,
   LayerStack,
+  LineChart,
+  LoopDiagram,
   MarginNote,
   MatrixDiagram,
+  NestedDiagram,
+  PyramidDiagram,
   QuadrantDiagram,
   Quote,
   RadarChart,

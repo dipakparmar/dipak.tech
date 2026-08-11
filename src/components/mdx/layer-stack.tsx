@@ -9,6 +9,7 @@ import {
   TextBlock,
   useReveal,
   wrapText,
+  type DiagramActionsOption,
   type DiagramAlign,
   type DiagramColor,
   type DiagramMotion
@@ -39,6 +40,8 @@ interface LayerStackProps {
   /** `false` to render with no entrance, or `{ speed, stagger, once }`. */
   animate?: DiagramMotion;
   align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
   className?: string;
 }
 
@@ -62,6 +65,7 @@ export function LayerStack({
   axis,
   animate,
   align,
+  actions,
   className
 }: LayerStackProps) {
   const { ref, staggerOr, reveal } = useReveal<SVGSVGElement>(0.2, animate);
@@ -247,7 +251,13 @@ export function LayerStack({
   );
 
   return (
-    <DiagramFigure title={title} caption={caption} align={align}>
+    <DiagramFigure
+      title={title}
+      caption={caption}
+      align={align}
+      actions={actions}
+      label={ariaLabel}
+    >
       {svg}
     </DiagramFigure>
   );

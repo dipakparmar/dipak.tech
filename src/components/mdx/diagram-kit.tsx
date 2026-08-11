@@ -2,7 +2,10 @@
 
 import { useInView, useReducedMotion } from 'motion/react';
 import { useRef, type CSSProperties, type ReactNode } from 'react';
+import { DiagramActions, type DiagramActionsOption } from './diagram-actions';
 import { richHtml, richInline } from './rich-text';
+
+export type { DiagramActionsOption };
 
 // Shared plumbing for the SVG diagram components. Colors are resolved by CSS
 // in globals.css (`.flow-diagram [data-color="..."]` sets --mn-color/--ac-fill)
@@ -140,6 +143,21 @@ function motionOptions(animate: DiagramMotion = true): DiagramMotionOptions {
   return typeof animate === 'object' ? animate : { enabled: animate };
 }
 
+// Properties whose "revealed" value is 1 rather than 0. pathLength belongs
+// here: a stroke drawn from 0 has to end fully drawn, and animating it back to
+// 0 leaves stroke-dasharray at "0px 1px", which renders the line invisible
+// while every other part of the diagram looks correct.
+const SHOWN_AT_ONE = new Set(['opacity', 'scale', 'pathLength']);
+
+/** The end state of an entrance, given where it starts. Pure — exported for tests. */
+export function revealTarget(
+  from: Record<string, number>
+): Record<string, number> {
+  const to: Record<string, number> = {};
+  for (const key of Object.keys(from)) to[key] = SHOWN_AT_ONE.has(key) ? 1 : 0;
+  return to;
+}
+
 interface RevealSpec {
   /** Starting state, e.g. `{ opacity: 0, y: 4 }`. */
   from: Record<string, number>;
@@ -182,10 +200,7 @@ export function useReveal<T extends Element>(
 
   /** initial/animate/transition for one element's entrance. */
   const reveal = ({ from, duration, delay = 0, pulse = false }: RevealSpec) => {
-    const to: Record<string, number> = {};
-    for (const key of Object.keys(from)) {
-      to[key] = key === 'opacity' || key === 'scale' ? 1 : 0;
-    }
+    const to = revealTarget(from);
     return {
       initial: reduceMotion ? (false as const) : from,
       animate: played
@@ -418,28 +433,59 @@ interface DiagramFigureProps {
   /** Footnote drawn below the diagram, for caveats or scope notes. */
   caption?: string;
   align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
+  /** Falls back to the diagram's `ariaLabel` for the filename and dialog. */
+  label: string;
   children: ReactNode;
 }
 
-/** Title/caption chrome around a diagram SVG. Rendered as HTML rather than
- *  SVG text so long headings wrap and stay selectable. */
+/**
+ * Title/caption chrome plus the hover actions, wrapped around a diagram SVG.
+ *
+ * The heading and footnote are HTML rather than SVG text so they wrap with the
+ * article column and stay selectable. The frame around the SVG exists so the
+ * action buttons have something to position against.
+ */
 export function DiagramFigure({
   title,
   caption,
   align = 'center',
+  actions = 'bottom-right',
+  label,
   children
 }: DiagramFigureProps) {
-  if (!title && !caption) return <>{children}</>;
+  const frameRef = useRef<HTMLDivElement>(null);
+  // Stable, human-readable anchor so a citation can point at this diagram
+  // rather than just the post.
+  const anchorId = `diagram-${(title || label)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)}`;
   const textAlign =
     align === 'left' ? 'left' : align === 'right' ? 'right' : 'center';
+
   return (
-    <figure className="mdx-figure">
+    <figure className="mdx-figure mdx-diagram-figure" id={anchorId}>
       {title && (
         <p className="mdx-diagram-title" style={{ textAlign }}>
           {richHtml(title)}
         </p>
       )}
-      {children}
+      <div className="mdx-diagram-frame" ref={frameRef}>
+        {children}
+        {actions !== false && (
+          <DiagramActions
+            frameRef={frameRef}
+            label={title || label}
+            anchorId={anchorId}
+            title={title}
+            caption={caption}
+            corner={actions}
+          />
+        )}
+      </div>
       {caption && (
         <figcaption className="mdx-figcaption" style={{ textAlign }}>
           <span className="mdx-figcaption-label">{richHtml(caption)}</span>

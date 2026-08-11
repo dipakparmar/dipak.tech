@@ -3,6 +3,7 @@ import {
   colorProps,
   isPaletteColor,
   measureText,
+  revealTarget,
   svgLayout,
   wrapText
 } from './diagram-kit';
@@ -111,5 +112,20 @@ describe('colorProps', () => {
 
   test('no color at all sets nothing', () => {
     expect(colorProps(undefined)).toEqual({});
+  });
+});
+
+describe('revealTarget', () => {
+  test('opacity, scale and pathLength end at 1', () => {
+    expect(revealTarget({ opacity: 0 })).toEqual({ opacity: 1 });
+    expect(revealTarget({ scale: 0.8 })).toEqual({ scale: 1 });
+    // Regression: ending pathLength at 0 leaves stroke-dasharray "0px 1px",
+    // which silently hides every connector while the boxes still render.
+    expect(revealTarget({ pathLength: 0 })).toEqual({ pathLength: 1 });
+  });
+
+  test('offsets end at 0', () => {
+    expect(revealTarget({ opacity: 0, y: 4 })).toEqual({ opacity: 1, y: 0 });
+    expect(revealTarget({ x: -4 })).toEqual({ x: 0 });
   });
 });

@@ -9,6 +9,7 @@ import {
   TextBlock,
   useReveal,
   wrapText,
+  type DiagramActionsOption,
   type DiagramAlign,
   type DiagramColor,
   type DiagramMotion
@@ -49,6 +50,8 @@ interface SequenceDiagramProps {
   /** `false` to render with no entrance, or `{ speed, stagger, once }`. */
   animate?: DiagramMotion;
   align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
   className?: string;
 }
 
@@ -83,6 +86,7 @@ export function SequenceDiagram({
   numbered = true,
   animate,
   align,
+  actions,
   className
 }: SequenceDiagramProps) {
   const { ref, staggerOr, reveal } = useReveal<SVGSVGElement>(0.2, animate);
@@ -286,7 +290,13 @@ export function SequenceDiagram({
               strokeDasharray={m.dashed ? '5 4' : undefined}
               style={{ stroke: 'var(--mn-color)' }}
               markerEnd={`url(#seq-arrow-${i})`}
-              {...reveal({ from: { pathLength: 0 }, duration: 0.3, delay })}
+              // A pathLength reveal drives stroke-dasharray itself and would
+              // wipe out the dash, so dashed strokes fade in instead.
+              {...reveal({
+                from: m.dashed ? { opacity: 0 } : { pathLength: 0 },
+                duration: 0.3,
+                delay
+              })}
             />
             {m.lines.length > 0 && (
               <TextBlock
@@ -317,7 +327,13 @@ export function SequenceDiagram({
   );
 
   return (
-    <DiagramFigure title={title} caption={caption} align={align}>
+    <DiagramFigure
+      title={title}
+      caption={caption}
+      align={align}
+      actions={actions}
+      label={ariaLabel}
+    >
       {svg}
     </DiagramFigure>
   );

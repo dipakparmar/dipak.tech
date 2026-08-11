@@ -9,6 +9,7 @@ import {
   TextBlock,
   useReveal,
   wrapText,
+  type DiagramActionsOption,
   type DiagramAlign,
   type DiagramColor,
   type DiagramMotion
@@ -37,6 +38,8 @@ interface MatrixDiagramProps {
   /** `false` to render with no entrance, or `{ speed, stagger, once }`. */
   animate?: DiagramMotion;
   align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
   className?: string;
 }
 
@@ -58,6 +61,7 @@ export function MatrixDiagram({
   caption,
   animate,
   align,
+  actions,
   className
 }: MatrixDiagramProps) {
   const { ref, staggerOr, reveal } = useReveal<SVGSVGElement>(0.2, animate);
@@ -248,7 +252,13 @@ export function MatrixDiagram({
   );
 
   return (
-    <DiagramFigure title={title} caption={caption} align={align}>
+    <DiagramFigure
+      title={title}
+      caption={caption}
+      align={align}
+      actions={actions}
+      label={ariaLabel}
+    >
       {svg}
     </DiagramFigure>
   );

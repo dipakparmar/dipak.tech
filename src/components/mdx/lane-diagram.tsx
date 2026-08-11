@@ -4,10 +4,12 @@ import { motion } from 'motion/react';
 import {
   colorProps,
   DEFAULT_CYCLE,
+  DiagramFigure,
   svgLayout,
   useReveal,
   TextBlock,
   wrapText,
+  type DiagramActionsOption,
   type DiagramAlign,
   type DiagramColor,
   type DiagramMotion
@@ -52,6 +54,8 @@ interface LaneDiagramProps {
   /** `false` to render with no entrance, or `{ speed, stagger, once }`. */
   animate?: DiagramMotion;
   align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
   className?: string;
 }
 
@@ -97,6 +101,7 @@ export function LaneDiagram({
   ariaLabel,
   animate,
   align,
+  actions,
   className
 }: LaneDiagramProps) {
   const { ref, staggerOr, reveal } = useReveal<SVGSVGElement>(0.2, animate);
@@ -139,7 +144,7 @@ export function LaneDiagram({
   });
   const height = rowCursor - GAP + captionRows + BOTTOM_PADDING + LANE_PADDING;
 
-  return (
+  const svg = (
     <svg
       ref={ref}
       viewBox={`0 0 ${width} ${height}`}
@@ -399,5 +404,11 @@ export function LaneDiagram({
         );
       })}
     </svg>
+  );
+
+  return (
+    <DiagramFigure align={align} actions={actions} label={ariaLabel}>
+      {svg}
+    </DiagramFigure>
   );
 }

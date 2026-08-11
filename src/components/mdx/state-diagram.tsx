@@ -10,6 +10,7 @@ import {
   TextBlock,
   useReveal,
   wrapText,
+  type DiagramActionsOption,
   type DiagramAlign,
   type DiagramColor,
   type DiagramMotion
@@ -49,6 +50,8 @@ interface StateDiagramProps {
   /** `false` to render with no entrance, or `{ speed, stagger, once }`. */
   animate?: DiagramMotion;
   align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
   className?: string;
 }
 
@@ -59,7 +62,9 @@ const LINE_HEIGHT = 15;
 const SUB_LINE = 12;
 const PAD = 34;
 // Extra canvas room for self-transitions, which bow outside the ring.
-const SELF_BOW = 54;
+const SELF_BOW = 46;
+// How far along the outward edge each end of a self-loop sits.
+const SELF_FOOT = 13;
 const LABEL_LINE = 12;
 const STAGGER = 0.12;
 
@@ -96,6 +101,7 @@ export function StateDiagram({
   caption,
   animate,
   align,
+  actions,
   className
 }: StateDiagramProps) {
   const { ref, staggerOr, reveal } = useReveal<SVGSVGElement>(0.2, animate);
@@ -152,49 +158,79 @@ export function StateDiagram({
     const ah = nodes[e.from].height;
     const bh = nodes[e.to].height;
     const isSelf = e.from === e.to;
-    // Self-transitions loop radially outward, away from the ring center.
+    // Radially outward from the ring centre, and the tangent across it.
     const outward = { x: Math.cos(a.angle), y: Math.sin(a.angle) };
-    const start = isSelf
-      ? edgePoint(
-          a.x,
-          a.y,
-          BOX_WIDTH,
-          ah,
-          a.x + outward.y * 60,
-          a.y - outward.x * 60
-        )
-      : edgePoint(a.x, a.y, BOX_WIDTH, ah, b.x, b.y);
-    const end = isSelf
-      ? edgePoint(
-          a.x,
-          a.y,
-          BOX_WIDTH,
-          ah,
-          a.x - outward.y * 60,
-          a.y + outward.x * 60
-        )
-      : edgePoint(b.x, b.y, BOX_WIDTH, bh, a.x, a.y);
+    const tangent = { x: -outward.y, y: outward.x };
+
+    // A self-transition is a loop hung off the outward-facing edge, clear of
+    // the box. Anchoring it on the corners instead tucks it against the label
+    // and reads as a stray mark rather than a transition.
+    if (isSelf) {
+      const edge = edgePoint(
+        a.x,
+        a.y,
+        BOX_WIDTH,
+        ah,
+        a.x + outward.x * 1000,
+        a.y + outward.y * 1000
+      );
+      const foot = SELF_FOOT;
+      const start = {
+        x: edge.x + tangent.x * foot,
+        y: edge.y + tangent.y * foot
+      };
+      const end = {
+        x: edge.x - tangent.x * foot,
+        y: edge.y - tangent.y * foot
+      };
+      const reach = SELF_BOW;
+      const c1 = {
+        x: start.x + outward.x * reach + tangent.x * foot,
+        y: start.y + outward.y * reach + tangent.y * foot
+      };
+      const c2 = {
+        x: end.x + outward.x * reach - tangent.x * foot,
+        y: end.y + outward.y * reach - tangent.y * foot
+      };
+      const labelLines = e.label ? wrapText(e.label, 108, 10.5) : [];
+      const labelWidth = Math.max(
+        ...labelLines.map((l) => measureText(l, 10.5)),
+        10
+      );
+      const tip = {
+        x: edge.x + outward.x * (reach * 0.78 + labelWidth / 2 + 10),
+        y: edge.y + outward.y * (reach * 0.78 + 12)
+      };
+      return {
+        e,
+        d: `M ${start.x} ${start.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${end.x} ${end.y}`,
+        ctrl: { x: c1.x, y: c1.y },
+        ctrl2: { x: c2.x, y: c2.y },
+        labelLines,
+        labelWidth,
+        lx: tip.x,
+        ly: tip.y
+      };
+    }
+
+    const start = edgePoint(a.x, a.y, BOX_WIDTH, ah, b.x, b.y);
+    const end = edgePoint(b.x, b.y, BOX_WIDTH, bh, a.x, a.y);
     // Bow each curve to one side so a pair of opposite transitions
     // between the same two states stays separately traceable.
     const mx = (start.x + end.x) / 2;
     const my = (start.y + end.y) / 2;
     const dist = Math.hypot(end.x - start.x, end.y - start.y) || 1;
-    const bow = isSelf ? SELF_BOW : dist * 0.16;
+    const bow = dist * 0.16;
     const nx = -(end.y - start.y) / dist;
     const ny = (end.x - start.x) / dist;
-    const ctrl = isSelf
-      ? {
-          x: a.x + outward.x * (BOX_WIDTH / 2 + bow),
-          y: a.y + outward.y * (ah / 2 + bow)
-        }
-      : { x: mx + nx * bow, y: my + ny * bow };
+    const ctrl = { x: mx + nx * bow, y: my + ny * bow };
     const path = `M ${start.x} ${start.y} Q ${ctrl.x} ${ctrl.y} ${end.x} ${end.y}`;
     // Midpoint of the quadratic, nudged further from the ring centre so
     // the label lands in open space rather than on top of a box.
     const midCurveX = 0.25 * start.x + 0.5 * ctrl.x + 0.25 * end.x;
     const midCurveY = 0.25 * start.y + 0.5 * ctrl.y + 0.25 * end.y;
     const away = Math.hypot(midCurveX - cx, midCurveY - cy) || 1;
-    const push = isSelf ? 12 : 14;
+    const push = 14;
     const lx = midCurveX + ((midCurveX - cx) / away) * push;
     const ly = midCurveY + ((midCurveY - cy) / away) * push;
     const labelLines = e.label ? wrapText(e.label, 108, 10.5) : [];
@@ -207,6 +243,7 @@ export function StateDiagram({
       e,
       d: path,
       ctrl,
+      ctrl2: undefined as { x: number; y: number } | undefined,
       labelLines,
       labelWidth,
       lx,
@@ -236,6 +273,10 @@ export function StateDiagram({
     );
     xs.push(curve.ctrl.x);
     ys.push(curve.ctrl.y);
+    if (curve.ctrl2) {
+      xs.push(curve.ctrl2.x);
+      ys.push(curve.ctrl2.y);
+    }
   });
   const minX = Math.min(...xs) - PAD;
   const minY = Math.min(...ys) - PAD;
@@ -419,7 +460,13 @@ export function StateDiagram({
   );
 
   return (
-    <DiagramFigure title={title} caption={caption} align={align}>
+    <DiagramFigure
+      title={title}
+      caption={caption}
+      align={align}
+      actions={actions}
+      label={ariaLabel}
+    >
       {svg}
     </DiagramFigure>
   );

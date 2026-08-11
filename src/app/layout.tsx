@@ -67,6 +67,7 @@ export const metadata: Metadata = {
     'Kamloops',
     'British Columbia'
   ],
+  authors: [{ name: 'Dipak Parmar', url: 'https://dipak.tech' }],
   openGraph: {
     type: 'website',
     locale: 'en_CA',
