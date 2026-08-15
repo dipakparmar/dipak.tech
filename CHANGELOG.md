@@ -1,3 +1,12 @@
+# [2.3.0](https://github.com/dipakparmar/dipak.tech/compare/v2.2.2...v2.3.0) (2026-08-15)
+
+
+### Features
+
+* **mdx:** add five diagram types, download, citation and full-screen actions ([8cf304b](https://github.com/dipakparmar/dipak.tech/commit/8cf304b1a70869db3f3d4656f3b32666d8facd9e))
+* **mdx:** expand blog diagrams to 21 types with shared layout kit and hover actions ([#130](https://github.com/dipakparmar/dipak.tech/issues/130)) ([644177c](https://github.com/dipakparmar/dipak.tech/commit/644177c4252ac14c59f16a5447a4a7eb827a6a11))
+* **mdx:** expand blog diagrams to fourteen types with shared layout kit ([829fe90](https://github.com/dipakparmar/dipak.tech/commit/829fe906f4e9b0c1c7a0c0db7a3f138fd8f4ce98))
+
 ## [2.2.2](https://github.com/dipakparmar/dipak.tech/compare/v2.2.1...v2.2.2) (2026-08-06)
 
 
