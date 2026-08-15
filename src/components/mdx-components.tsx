@@ -11,8 +11,27 @@ import { CopyButton } from '@/components/blog/copy-button';
 import { Highlighter } from '@/components/mdx/highlighter';
 import { Annotate } from '@/components/mdx/annotate';
 import { Callout } from '@/components/mdx/callout';
+import { ArchitectureDiagram } from '@/components/mdx/architecture-diagram';
+import { BarChart } from '@/components/mdx/bar-chart';
+import { ErDiagram } from '@/components/mdx/er-diagram';
+import { FlowchartDiagram } from '@/components/mdx/flowchart-diagram';
+import { LineChart } from '@/components/mdx/line-chart';
+import { LoopDiagram } from '@/components/mdx/loop-diagram';
+import { NestedDiagram } from '@/components/mdx/nested-diagram';
+import { PyramidDiagram } from '@/components/mdx/pyramid-diagram';
+import { GanttChart } from '@/components/mdx/gantt-chart';
+import { MatrixDiagram } from '@/components/mdx/matrix-diagram';
+import { RadarChart } from '@/components/mdx/radar-chart';
+import { ScatterPlot } from '@/components/mdx/scatter-plot';
+import { StateDiagram } from '@/components/mdx/state-diagram';
+import { VennDiagram } from '@/components/mdx/venn-diagram';
 import { FlowDiagram } from '@/components/mdx/flow-diagram';
 import { LaneDiagram } from '@/components/mdx/lane-diagram';
+import { LayerStack } from '@/components/mdx/layer-stack';
+import { QuadrantDiagram } from '@/components/mdx/quadrant-diagram';
+import { SequenceDiagram } from '@/components/mdx/sequence-diagram';
+import { TimelineDiagram } from '@/components/mdx/timeline-diagram';
+import { TreeDiagram } from '@/components/mdx/tree-diagram';
 import { MarginNote } from '@/components/mdx/margin-note';
 import { Quote } from '@/components/mdx/quote';
 import { References } from '@/components/mdx/references';
@@ -157,12 +176,31 @@ export const mdxComponents: MDXComponents = {
   Highlighter,
   Acknowledgements,
   Annotate,
+  ArchitectureDiagram,
+  BarChart,
   Callout,
   Cite,
+  ErDiagram,
   FigureImage,
+  FlowchartDiagram,
   FlowDiagram,
+  GanttChart,
   LaneDiagram,
+  LayerStack,
+  LineChart,
+  LoopDiagram,
   MarginNote,
+  MatrixDiagram,
+  NestedDiagram,
+  PyramidDiagram,
+  QuadrantDiagram,
   Quote,
-  References
+  RadarChart,
+  References,
+  ScatterPlot,
+  SequenceDiagram,
+  StateDiagram,
+  TimelineDiagram,
+  TreeDiagram,
+  VennDiagram
 };

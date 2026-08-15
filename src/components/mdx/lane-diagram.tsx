@@ -1,14 +1,27 @@
 'use client';
 
-import { motion, useInView, useReducedMotion } from 'motion/react';
-import { useRef } from 'react';
-import type { FlowColor } from './flow-diagram';
+import { motion } from 'motion/react';
+import {
+  colorProps,
+  DEFAULT_CYCLE,
+  DiagramFigure,
+  svgLayout,
+  useReveal,
+  TextBlock,
+  wrapText,
+  type DiagramActionsOption,
+  type DiagramAlign,
+  type DiagramColor,
+  type DiagramMotion
+} from './diagram-kit';
 import { richText } from './rich-text';
 
 interface LaneNode {
+  /** Breathe on a loop once revealed, to mark the element worth looking at. */
+  pulse?: boolean;
   label: string;
   sublabel?: string;
-  color?: FlowColor;
+  color?: DiagramColor;
   /** Small note rendered under this box — used for the cost/scope callout at the end of a lane. */
   caption?: string;
 }
@@ -17,7 +30,7 @@ interface LaneNode {
 interface LaneConnectorLine {
   label?: string;
   align?: 'left' | 'center' | 'right';
-  color?: FlowColor;
+  color?: DiagramColor;
 }
 
 /** One line, or several parallel lines (e.g. a separate "NFC" line and "HAP" line side by side). */
@@ -38,20 +51,20 @@ interface Lane {
 interface LaneDiagramProps {
   lanes: Lane[];
   ariaLabel: string;
+  /** `false` to render with no entrance, or `{ speed, stagger, once }`. */
+  animate?: DiagramMotion;
+  align?: DiagramAlign;
+  /** Corner for the download / full-screen buttons, or `false` to hide them. */
+  actions?: DiagramActionsOption;
   className?: string;
 }
 
-const DEFAULT_CYCLE: FlowColor[] = [
-  'chart-1',
-  'chart-2',
-  'chart-3',
-  'chart-4',
-  'chart-5'
-];
 const STAGGER = 0.4;
-const NODE_HEIGHT = 56;
+const MIN_NODE_HEIGHT = 56;
+const LINE_HEIGHT = 19;
+const SUB_LINE = 15;
+const BOX_PAD = 10;
 const GAP = 36;
-const STEP = NODE_HEIGHT + GAP;
 const LANE_WIDTH = 300;
 const LANE_GAP = 24;
 const LANE_PADDING = 16;
@@ -83,11 +96,16 @@ function lineX(centerX: number, align: LaneConnectorLine['align']) {
       : centerX;
 }
 
-export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
-  const ref = useRef<SVGSVGElement>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.2 });
-  const reduceMotion = useReducedMotion();
-  const played = Boolean(reduceMotion) || isInView;
+export function LaneDiagram({
+  lanes,
+  ariaLabel,
+  animate,
+  align,
+  actions,
+  className
+}: LaneDiagramProps) {
+  const { ref, staggerOr, reveal } = useReveal<SVGSVGElement>(0.2, animate);
+  const stagger = staggerOr(STAGGER);
 
   const laneCount = lanes.length;
   const width =
@@ -96,20 +114,41 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
   const captionRows = lanes.some((l) => l.nodes.some((n) => n.caption))
     ? 18
     : 0;
-  const height =
-    HEADER_HEIGHT +
-    maxNodes * STEP -
-    GAP +
-    captionRows +
-    BOTTOM_PADDING +
-    LANE_PADDING * 2;
+  const boxWidth = LANE_WIDTH - 28;
 
-  return (
+  // Labels are wrapped up front; a row is as tall as the tallest box in it,
+  // across every lane, so the lanes stay in step no matter how the text falls.
+  const wrapped = lanes.map((lane) =>
+    lane.nodes.map((node) => {
+      const lines = wrapText(node.label, boxWidth - 20, 16);
+      const subLines = node.sublabel
+        ? wrapText(node.sublabel, boxWidth - 16, 13)
+        : [];
+      return {
+        node,
+        lines,
+        subLines,
+        height:
+          BOX_PAD * 2 + lines.length * LINE_HEIGHT + subLines.length * SUB_LINE
+      };
+    })
+  );
+  const rowHeights = Array.from({ length: maxNodes }, (_, i) =>
+    Math.max(MIN_NODE_HEIGHT, ...wrapped.map((l) => l[i]?.height ?? 0))
+  );
+  const rowY: number[] = [];
+  let rowCursor = LANE_PADDING + HEADER_HEIGHT;
+  rowHeights.forEach((h, i) => {
+    rowY[i] = rowCursor;
+    rowCursor += h + GAP;
+  });
+  const height = rowCursor - GAP + captionRows + BOTTOM_PADDING + LANE_PADDING;
+
+  const svg = (
     <svg
       ref={ref}
       viewBox={`0 0 ${width} ${height}`}
-      className={`flow-diagram w-full mx-auto my-6 ${className ?? ''}`}
-      style={{ maxWidth: width }}
+      {...svgLayout(align, width, className)}
       role="img"
       aria-label={ariaLabel}
     >
@@ -132,9 +171,11 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
               strokeWidth="1"
             />
             <motion.g
-              initial={reduceMotion ? false : { opacity: 0 }}
-              animate={played ? { opacity: 1 } : undefined}
-              transition={{ duration: 0.4, ease: 'easeOut', delay: laneDelay }}
+              {...reveal({
+                from: { opacity: 0 },
+                duration: 0.4,
+                delay: laneDelay
+              })}
             >
               <text
                 x={centerX}
@@ -160,12 +201,21 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
             </motion.g>
 
             {lane.nodes.map((node, i) => {
-              const y = LANE_PADDING + HEADER_HEIGHT + i * STEP;
+              const y = rowY[i];
+              const nodeHeight = rowHeights[i];
+              const { lines: labelLines, subLines } = wrapped[laneIndex][i];
               const color =
                 node.color ?? DEFAULT_CYCLE[i % DEFAULT_CYCLE.length];
-              const delay = laneDelay + i * STAGGER;
-              const boxWidth = LANE_WIDTH - 28;
+              const delay = laneDelay + i * stagger;
               const boxX = laneX + 14;
+              const textTop =
+                y +
+                (nodeHeight -
+                  (labelLines.length * LINE_HEIGHT +
+                    subLines.length * SUB_LINE)) /
+                  2 +
+                LINE_HEIGHT -
+                4;
               const lines =
                 i < lane.nodes.length - 1
                   ? normalizeConnector(lane.connectors?.[i])
@@ -174,16 +224,19 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
               return (
                 <g key={i}>
                   <motion.g
-                    data-color={color}
-                    initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-                    animate={played ? { opacity: 1, y: 0 } : undefined}
-                    transition={{ duration: 0.4, ease: 'easeOut', delay }}
+                    {...colorProps(color)}
+                    {...reveal({
+                      from: { opacity: 0, y: 4 },
+                      duration: 0.4,
+                      delay,
+                      pulse: node.pulse
+                    })}
                   >
                     <rect
                       x={boxX}
                       y={y}
                       width={boxWidth}
-                      height={NODE_HEIGHT}
+                      height={nodeHeight}
                       rx="8"
                       strokeWidth="1.5"
                       style={{
@@ -191,35 +244,37 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                         stroke: 'var(--mn-color)'
                       }}
                     />
-                    <text
+                    <TextBlock
+                      lines={labelLines}
                       x={centerX}
-                      y={y + (node.sublabel ? 23 : 33)}
-                      textAnchor="middle"
-                      fontSize="16"
-                      fontWeight="500"
+                      y={textTop}
+                      lineHeight={LINE_HEIGHT}
+                      fontSize={16}
+                      fontWeight={500}
                       className="fill-foreground"
-                    >
-                      {richText(node.label, centerX)}
-                    </text>
-                    {node.sublabel && (
-                      <text
+                    />
+                    {subLines.length > 0 && (
+                      <TextBlock
+                        lines={subLines}
                         x={centerX}
-                        y={y + 41}
-                        textAnchor="middle"
-                        fontSize="13"
+                        y={
+                          textTop +
+                          (labelLines.length - 1) * LINE_HEIGHT +
+                          SUB_LINE
+                        }
+                        lineHeight={SUB_LINE}
+                        fontSize={13}
                         className="fill-muted-foreground"
-                      >
-                        {richText(node.sublabel, centerX)}
-                      </text>
+                      />
                     )}
                   </motion.g>
 
                   {lines.map((line, li) => {
                     const align = line.align ?? 'center';
                     const x = lineX(centerX, align);
-                    const y1 = y + NODE_HEIGHT;
-                    const y2 = y + STEP;
-                    const lineMid = y + NODE_HEIGHT + GAP / 2;
+                    const y1 = y + nodeHeight;
+                    const y2 = rowY[i + 1];
+                    const lineMid = (y1 + y2) / 2;
                     // Centered label sits on the line (baseline nudged up so the split gap
                     // brackets it); left/right labels sit beside the line, vertically centered.
                     const labelY =
@@ -251,7 +306,7 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                           : 'middle';
 
                     return (
-                      <g key={li} data-color={line.color}>
+                      <g key={li} {...colorProps(line.color)}>
                         {splitLine ? (
                           <>
                             <motion.path
@@ -260,13 +315,11 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                               strokeWidth="1.5"
                               style={lineStyle}
                               className={lineClass}
-                              initial={reduceMotion ? false : { pathLength: 0 }}
-                              animate={played ? { pathLength: 1 } : undefined}
-                              transition={{
+                              {...reveal({
+                                from: { pathLength: 0 },
                                 duration: 0.2,
-                                ease: 'easeOut',
                                 delay: delay + 0.2
-                              }}
+                              })}
                             />
                             <motion.path
                               d={`M ${x} ${labelY + labelGapBelow} L ${x} ${y2}`}
@@ -274,13 +327,11 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                               strokeWidth="1.5"
                               style={lineStyle}
                               className={lineClass}
-                              initial={reduceMotion ? false : { pathLength: 0 }}
-                              animate={played ? { pathLength: 1 } : undefined}
-                              transition={{
+                              {...reveal({
+                                from: { pathLength: 0 },
                                 duration: 0.2,
-                                ease: 'easeOut',
                                 delay: delay + 0.3
-                              }}
+                              })}
                             />
                           </>
                         ) : (
@@ -290,24 +341,20 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
                             strokeWidth="1.5"
                             style={lineStyle}
                             className={lineClass}
-                            initial={reduceMotion ? false : { pathLength: 0 }}
-                            animate={played ? { pathLength: 1 } : undefined}
-                            transition={{
+                            {...reveal({
+                              from: { pathLength: 0 },
                               duration: 0.3,
-                              ease: 'easeOut',
                               delay: delay + 0.2
-                            }}
+                            })}
                           />
                         )}
                         {line.label && (
                           <motion.g
-                            initial={reduceMotion ? false : { opacity: 0 }}
-                            animate={played ? { opacity: 1 } : undefined}
-                            transition={{
+                            {...reveal({
+                              from: { opacity: 0 },
                               duration: 0.3,
-                              ease: 'easeOut',
                               delay: delay + 0.3
-                            }}
+                            })}
                           >
                             <text
                               x={labelX}
@@ -333,17 +380,15 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
 
                   {node.caption && (
                     <motion.g
-                      initial={reduceMotion ? false : { opacity: 0 }}
-                      animate={played ? { opacity: 1 } : undefined}
-                      transition={{
+                      {...reveal({
+                        from: { opacity: 0 },
                         duration: 0.4,
-                        ease: 'easeOut',
                         delay: delay + 0.2
-                      }}
+                      })}
                     >
                       <text
                         x={centerX}
-                        y={y + NODE_HEIGHT + 16}
+                        y={y + nodeHeight + 16}
                         textAnchor="middle"
                         fontSize="12"
                         className="fill-muted-foreground"
@@ -359,5 +404,11 @@ export function LaneDiagram({ lanes, ariaLabel, className }: LaneDiagramProps) {
         );
       })}
     </svg>
+  );
+
+  return (
+    <DiagramFigure align={align} actions={actions} label={ariaLabel}>
+      {svg}
+    </DiagramFigure>
   );
 }

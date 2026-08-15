@@ -71,6 +71,10 @@ Uses shadcn/ui with:
 - Radix UI primitives
 - `@/` path alias maps to `./src/`
 
+### MDX Diagrams
+
+`src/components/mdx/` holds the SVG diagram components available inside blog posts (flow, lane, sequence, timeline, tree, layer stack, quadrant, state, architecture, ER, matrix, bar, gantt, radar, scatter, venn). They share`diagram-kit.tsx` for color cycling, scroll-reveal, text wrapping/measurement, and the `align` prop, and are registered in `src/components/mdx-components.tsx`.
+
 ### Go Package Hosting
 
 The `/go-pkg` routes serve `go-import` meta tags for vanity imports. The catch-all route `[...package]/route.ts` handles `?go-get=1` requests from `go get`, while view pages render package details fetched from GitHub API.
