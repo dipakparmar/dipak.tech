@@ -1,3 +1,11 @@
+## [2.3.1](https://github.com/dipakparmar/dipak.tech/compare/v2.3.0...v2.3.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* **osint:** accept fully-qualified names with a trailing dot ([50652a4](https://github.com/dipakparmar/dipak.tech/commit/50652a4d5acf43546a6414bfb4a33a62d43190a7))
+* **osint:** match DNS answers to the type that was queried ([a272b64](https://github.com/dipakparmar/dipak.tech/commit/a272b64cdff9a88ca7c7a5a715911cb183bd910a))
+
 # [2.3.0](https://github.com/dipakparmar/dipak.tech/compare/v2.2.2...v2.3.0) (2026-08-15)
 
 
