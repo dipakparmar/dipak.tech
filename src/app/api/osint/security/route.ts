@@ -8,6 +8,7 @@ import {
 } from '@/lib/osint-cache';
 import { captureAPIError } from '@/lib/sentry-utils';
 import type { SecurityData } from '@/lib/osint-types';
+import { answersOfType, type DnsTypeName } from '@/lib/doh';
 
 const RESPONSE_CACHE_TTL = 10 * 60 * 1000;
 const RATE_LIMIT = 30;
@@ -47,7 +48,10 @@ function reverseIP(ip: string) {
   return ip.split('.').reverse().join('.');
 }
 
-async function dohQuery(name: string, type = 'A'): Promise<string[]> {
+async function dohQuery(
+  name: string,
+  type: DnsTypeName = 'A'
+): Promise<string[]> {
   try {
     const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`;
     const res = await fetch(url, {
@@ -55,7 +59,7 @@ async function dohQuery(name: string, type = 'A'): Promise<string[]> {
     });
     if (!res.ok) return [];
     const data = await res.json();
-    return (data.Answer ?? []).map((r: { data: string }) => r.data);
+    return answersOfType(data.Answer, type);
   } catch {
     return [];
   }

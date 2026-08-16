@@ -9,6 +9,7 @@ import {
   setCached
 } from '@/lib/osint-cache';
 import { parseNetworkInput } from '@/lib/network-input-parser';
+import { answersOfType } from '@/lib/doh';
 
 const RESPONSE_CACHE_TTL = 30 * 60 * 1000;
 const RATE_LIMIT = 40;
@@ -200,19 +201,18 @@ function isIPv6(value: string) {
 
 async function resolveDomainToIP(domain: string): Promise<string | null> {
   try {
-    const response = await queryDNS(domain, 'A');
-    if (response.Answer && response.Answer.length > 0) {
-      return response.Answer[0].data;
-    }
+    const [address] = answersOfType((await queryDNS(domain, 'A')).Answer, 'A');
+    if (address) return address;
   } catch (error) {
     console.error('Failed to resolve A record for domain:', domain, error);
   }
 
   try {
-    const fallback = await queryDNS(domain, 'AAAA');
-    if (fallback.Answer && fallback.Answer.length > 0) {
-      return fallback.Answer[0].data;
-    }
+    const [address] = answersOfType(
+      (await queryDNS(domain, 'AAAA')).Answer,
+      'AAAA'
+    );
+    if (address) return address;
   } catch (error) {
     console.error('Failed to resolve AAAA record for domain:', domain, error);
   }

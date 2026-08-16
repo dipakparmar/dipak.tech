@@ -8,6 +8,7 @@ import {
 } from '@/lib/osint-cache';
 import { captureAPIError } from '@/lib/sentry-utils';
 import { parseEmailSecurity } from '@/lib/email-security';
+import { answersOfType } from '@/lib/doh';
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA'] as const;
 const RESPONSE_CACHE_TTL = 5 * 60 * 1000;
@@ -81,11 +82,11 @@ export async function GET(request: Request) {
     mainResults.forEach((result, index) => {
       const type = RECORD_TYPES[index];
       if (result.status === 'fulfilled' && result.value.Answer) {
-        records[type] = result.value.Answer.map((record) => record.data);
+        records[type] = answersOfType(result.value.Answer, type);
       }
     });
 
-    const dmarcTxt = dmarcResult?.Answer?.map((r) => r.data) ?? [];
+    const dmarcTxt = answersOfType(dmarcResult?.Answer, 'TXT');
     const emailSecurity = parseEmailSecurity([...records.TXT, ...dmarcTxt]);
 
     const payload = {
