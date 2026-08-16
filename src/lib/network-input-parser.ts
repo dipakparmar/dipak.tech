@@ -11,7 +11,8 @@ const MAX_ASN = 4_294_967_295;
 
 export function parseNetworkInput(raw: string): ParsedInput {
   const original = raw;
-  const trimmed = raw.trim();
+  // Absolute FQDNs (PTR values, DNS answers) carry a trailing dot; classify without it.
+  const trimmed = raw.trim().replace(/\.$/, '');
 
   if (!trimmed) {
     return { type: 'unknown', value: '', original, confidence: 'exact' };
@@ -109,7 +110,7 @@ export function parseNetworkInput(raw: string): ParsedInput {
 
   // 9. Domain — has a dot, no spaces, looks like a hostname
   if (
-    /^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)+$/.test(
+    /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$/.test(
       trimmed
     )
   ) {
