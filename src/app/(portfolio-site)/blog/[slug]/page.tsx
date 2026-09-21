@@ -11,7 +11,6 @@ import { ReadingProgress } from '@/components/blog/reading-progress';
 import { mdxComponents } from '@/components/mdx-components';
 import { notFound } from 'next/navigation';
 import { personReference } from '@/lib/schema';
-import { headers } from 'next/headers';
 import { ogUrls } from '@/lib/og-config';
 
 interface PostPageProps {
@@ -22,19 +21,17 @@ export async function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }));
 }
 
+// Every post is known at build time; an unknown slug is a 404 without a render.
+export const dynamicParams = false;
+
 export async function generateMetadata({
   params
 }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
   try {
     const { meta } = await getPostBySlug(slug);
-    const headersList = await headers();
-    const host = headersList.get('host') ?? 'dipak.tech';
-    const proto =
-      host.startsWith('localhost') || host.startsWith('127.0.0.1')
-        ? 'http'
-        : 'https';
-    const currentBaseUrl = `${proto}://${host}`;
+    // ponytail: OG image URL is always on the canonical host. Reading the request Host
+    // here would make every post dynamic and compile its MDX on each request.
     return {
       title: `${meta.title} | Dipak Parmar`,
       description: meta.description,
@@ -54,8 +51,7 @@ export async function generateMetadata({
             description: meta.description,
             tags: meta.tags.join(','),
             date: meta.date,
-            readingTime: String(meta.readingTime),
-            baseUrl: currentBaseUrl
+            readingTime: String(meta.readingTime)
           })
         ]
       }
