@@ -1,3 +1,10 @@
+## [2.3.2](https://github.com/dipakparmar/dipak.tech/compare/v2.3.1...v2.3.2) (2026-09-21)
+
+
+### Performance Improvements
+
+* **blog:** prerender posts at build time ([e15fa44](https://github.com/dipakparmar/dipak.tech/commit/e15fa4405b0210a6c88ee58f09beb7f8feac934d))
+
 ## [2.3.1](https://github.com/dipakparmar/dipak.tech/compare/v2.3.0...v2.3.1) (2026-08-16)
 
 
