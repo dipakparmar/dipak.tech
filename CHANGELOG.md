@@ -1,3 +1,10 @@
+## [2.3.3](https://github.com/dipakparmar/dipak.tech/compare/v2.3.2...v2.3.3) (2026-10-28)
+
+
+### Bug Fixes
+
+* **deps:** bump next to 16.4.3 ([9d86c87](https://github.com/dipakparmar/dipak.tech/commit/9d86c873652c96627749ec2b2e9fa0338393080e))
+
 ## [2.3.2](https://github.com/dipakparmar/dipak.tech/compare/v2.3.1...v2.3.2) (2026-09-21)
 
 
