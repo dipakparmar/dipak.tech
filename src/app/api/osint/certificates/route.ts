@@ -16,10 +16,10 @@ const RESPONSE_CACHE_TTL = 60 * 60 * 1000;
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 60 * 1000;
 /** Certificates fetched per scan. */
-const CERT_LIMIT = 1000;
+const CERT_LIMIT = 2000;
 /** Subdomains resolved per scan, most recently certified first. */
-const RESOLVE_LIMIT = 200;
-const RESOLVE_CONCURRENCY = 25;
+const RESOLVE_LIMIT = 1000;
+const RESOLVE_CONCURRENCY = 40;
 const HOSTNAME =
   /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const cacheKey = `certs:v2:${target}`;
+    const cacheKey = `certs:v3:${target}`;
     const cached = getCached<CertificateData>(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { headers: { 'X-Cache': 'HIT' } });
@@ -102,9 +102,7 @@ export async function GET(request: Request) {
 }
 
 /** CertKit first; crt.sh as a fallback. */
-async function fetchCerts(
-  domain: string
-): Promise<{
+async function fetchCerts(domain: string): Promise<{
   source: CertificateData['source'];
   total: number;
   certs: CtCert[];

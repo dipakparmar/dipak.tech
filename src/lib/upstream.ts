@@ -74,7 +74,9 @@ export async function fetchJson<T>(
     const reason =
       body && typeof body === 'object' && 'error' in body
         ? String((body as { error: unknown }).error)
-        : `${source} returned HTTP ${res.status}`;
+        : res.status === 429
+          ? `${source} is rate limiting requests; try again shortly`
+          : `${source} returned HTTP ${res.status}`;
     throw new UpstreamError(reason, res.status === 504 ? 504 : 502, res.status);
   }
 

@@ -12,6 +12,7 @@ const server = Bun.serve({
       return new Response('<html>Bad Gateway</html>', { status: 502 });
     if (path === '/api-error')
       return Response.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    if (path === '/bare429') return new Response('slow down', { status: 429 });
     if (path === '/garbage') return new Response('{"a": 1', { status: 200 });
     if (path === '/empty') return new Response('', { status: 200 });
     if (path === '/slow') {
@@ -42,6 +43,10 @@ assert.equal(e.upstreamStatus, 502);
 
 e = await rejects('/api-error');
 assert.equal(e.message, 'Rate limit exceeded', "prefers the body's error");
+
+e = await rejects('/bare429');
+assert.equal(e.message, 'svc is rate limiting requests; try again shortly');
+assert.equal(e.upstreamStatus, 429);
 
 e = await rejects('/garbage');
 assert.equal(e.message, 'svc returned an unreadable response');
