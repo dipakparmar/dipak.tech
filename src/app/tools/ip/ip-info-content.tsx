@@ -31,254 +31,28 @@ import {
 } from '@/components/ui/table';
 import {
   Globe,
-  MapPin,
-  Network,
-  Shield,
   Clock,
   Server,
-  Copy,
-  Check,
   Loader2,
   Search,
   Info,
-  Router,
-  Waypoints
+  Router
 } from 'lucide-react';
 import { IPResponse } from '@/types/ip';
-import { Map, MapMarker, MapTileLayer, MapPopup } from '@/components/ui/map';
+import { ASNPeers, ASNPrefixes, ASNSummary } from '@/components/ip/asn-detail';
+import { IPSummary } from '@/components/ip/ip-summary';
 import { StatusAnnouncer } from '@/components/status-announcer';
 import { siteConfig } from '@/lib/og-config';
 import { parseNetworkInput } from '@/lib/network-input-parser';
 import type {
   ParsedInput,
   NetworkIntelResponse,
-  BGPRoutingInfo,
-  ASNDetail
+  BGPRoutingInfo
 } from '@/types/network';
 
 const BLUR_FADE_DELAY = 0.04;
 
 // --- Sub-components ---
-
-function ASNSummaryCard({ detail }: { detail: ASNDetail }) {
-  return (
-    <Card className="mb-6 border-purple-500/50 bg-linear-to-br from-purple-50 to-transparent dark:from-purple-950/20">
-      <CardContent className="pt-6">
-        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="text-center sm:text-left">
-            <Label className="text-xs text-muted-foreground">
-              Autonomous System
-            </Label>
-            <div className="mt-1 flex items-center gap-2">
-              <p className="text-3xl font-bold tracking-tight">
-                AS{detail.asn}
-              </p>
-              <Badge variant="outline" className="text-xs">
-                {detail.rir}
-              </Badge>
-              {detail.country && (
-                <Badge variant="secondary" className="text-xs">
-                  {detail.country}
-                </Badge>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">{detail.name}</p>
-            {detail.description && detail.description !== detail.name && (
-              <p className="text-xs text-muted-foreground">
-                {detail.description}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-3 text-center">
-            <div>
-              <p className="text-2xl font-bold">{detail.prefixes_v4.length}</p>
-              <p className="text-xs text-muted-foreground">IPv4 Prefixes</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{detail.prefixes_v6.length}</p>
-              <p className="text-xs text-muted-foreground">IPv6 Prefixes</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{detail.peers_count}</p>
-              <p className="text-xs text-muted-foreground">Peers</p>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ASNPrefixesCard({ detail }: { detail: ASNDetail }) {
-  const [showAllV4, setShowAllV4] = useState(false);
-  const [showAllV6, setShowAllV6] = useState(false);
-  const limit = 20;
-
-  const v4Display = showAllV4
-    ? detail.prefixes_v4
-    : detail.prefixes_v4.slice(0, limit);
-  const v6Display = showAllV6
-    ? detail.prefixes_v6
-    : detail.prefixes_v6.slice(0, limit);
-
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Network className="h-5 w-5 text-green-500" />
-          Announced Prefixes
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* IPv4 */}
-        <div>
-          <h3 className="mb-2 text-sm font-semibold">
-            IPv4 Prefixes ({detail.prefixes_v4.length})
-          </h3>
-          {detail.prefixes_v4.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No IPv4 prefixes announced
-            </p>
-          ) : (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {v4Display.map((p) => (
-                  <span
-                    key={p.prefix}
-                    className="rounded bg-muted px-2 py-1 font-mono text-xs"
-                    title={p.name}
-                  >
-                    {p.prefix}
-                  </span>
-                ))}
-              </div>
-              {detail.prefixes_v4.length > limit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => setShowAllV4(!showAllV4)}
-                >
-                  {showAllV4
-                    ? 'Show less'
-                    : `Show all ${detail.prefixes_v4.length} prefixes`}
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* IPv6 */}
-        <div>
-          <h3 className="mb-2 text-sm font-semibold">
-            IPv6 Prefixes ({detail.prefixes_v6.length})
-          </h3>
-          {detail.prefixes_v6.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No IPv6 prefixes announced
-            </p>
-          ) : (
-            <>
-              <div className="flex flex-wrap gap-2">
-                {v6Display.map((p) => (
-                  <span
-                    key={p.prefix}
-                    className="rounded bg-muted px-2 py-1 font-mono text-xs"
-                    title={p.name}
-                  >
-                    {p.prefix}
-                  </span>
-                ))}
-              </div>
-              {detail.prefixes_v6.length > limit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => setShowAllV6(!showAllV6)}
-                >
-                  {showAllV6
-                    ? 'Show less'
-                    : `Show all ${detail.prefixes_v6.length} prefixes`}
-                </Button>
-              )}
-            </>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ASNPeersCard({ detail }: { detail: ASNDetail }) {
-  return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Waypoints className="h-5 w-5 text-blue-500" />
-          Upstreams &amp; Downstreams
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-6 sm:grid-cols-2">
-          {/* Upstreams */}
-          <div>
-            <h3 className="mb-2 text-sm font-semibold">
-              Upstreams ({detail.upstreams.length})
-            </h3>
-            {detail.upstreams.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upstream peers</p>
-            ) : (
-              <div className="space-y-1">
-                {detail.upstreams.map((peer, i) => (
-                  <div
-                    key={`${peer.asn}-${i}`}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Badge variant="outline" className="font-mono text-xs">
-                      AS{peer.asn}
-                    </Badge>
-                    <span className="truncate text-muted-foreground">
-                      {peer.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Downstreams */}
-          <div>
-            <h3 className="mb-2 text-sm font-semibold">
-              Downstreams ({detail.downstreams.length})
-            </h3>
-            {detail.downstreams.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No downstream peers
-              </p>
-            ) : (
-              <div className="space-y-1">
-                {detail.downstreams.map((peer, i) => (
-                  <div
-                    key={`${peer.asn}-${i}`}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <Badge variant="outline" className="font-mono text-xs">
-                      AS{peer.asn}
-                    </Badge>
-                    <span className="truncate text-muted-foreground">
-                      {peer.name}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // --- AS Path Graph (SVG DAG) ---
 
@@ -828,7 +602,6 @@ export default function IPInfoContent() {
   const [ipData, setIpData] = useState<IPResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [customIp, setCustomIp] = useState('');
-  const [copied, setCopied] = useState(false);
   const [isCustomLookup, setIsCustomLookup] = useState(false);
   const [baseUrl, setBaseUrl] = useState('');
   const [parsedInput, setParsedInput] = useState<ParsedInput | null>(null);
@@ -940,35 +713,6 @@ export default function IPInfoContent() {
     if (customIp.trim()) {
       // Just update the URL — the useEffect on searchParams will handle the fetch
       router.push(`/tools/ip?ip=${encodeURIComponent(customIp.trim())}`);
-    }
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-
-      // Fallback to legacy method
-      try {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (fallbackError) {
-        console.error('Fallback copy method also failed:', fallbackError);
-        setError('Failed to copy to clipboard. Please copy manually.');
-        setTimeout(() => setError(null), 3000);
-      }
     }
   };
 
@@ -1092,15 +836,15 @@ export default function IPInfoContent() {
           {networkData.asn_detail && (
             <>
               <BlurFade delay={BLUR_FADE_DELAY * 3}>
-                <ASNSummaryCard detail={networkData.asn_detail} />
+                <ASNSummary detail={networkData.asn_detail} />
               </BlurFade>
 
               <BlurFade delay={BLUR_FADE_DELAY * 4}>
-                <ASNPrefixesCard detail={networkData.asn_detail} />
+                <ASNPrefixes detail={networkData.asn_detail} />
               </BlurFade>
 
               <BlurFade delay={BLUR_FADE_DELAY * 5}>
-                <ASNPeersCard detail={networkData.asn_detail} />
+                <ASNPeers detail={networkData.asn_detail} />
               </BlurFade>
             </>
           )}
@@ -1117,268 +861,8 @@ export default function IPInfoContent() {
       {/* IP Information Display */}
       {ipData && !loading && !isASNView && (
         <>
-          {/* Main IP Card */}
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <Card className="mb-6 border-blue-500/50 bg-linear-to-br from-blue-50 to-transparent dark:from-blue-950/20">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                  <div className="text-center sm:text-left">
-                    <Label className="text-xs text-muted-foreground">
-                      {isCustomLookup ? 'IP Address' : 'Your IP Address'}
-                    </Label>
-                    <div className="mt-1 flex items-center gap-2">
-                      <p className="text-3xl font-bold tracking-tight">
-                        {ipData.ip}
-                      </p>
-                      <Badge variant="outline" className="text-xs">
-                        {ipData.ip_type}
-                      </Badge>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyToClipboard(ipData.ip || '')}
-                    className="gap-2"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </BlurFade>
-
-          {/* Location Information */}
-          <BlurFade delay={BLUR_FADE_DELAY * 4}>
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <MapPin className="h-5 w-5 text-red-500" />
-                  Location
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Country
-                    </Label>
-                    <p className="mt-1 font-medium">
-                      {ipData.country} ({ipData.countryCode})
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Region
-                    </Label>
-                    <p className="mt-1 font-medium">{ipData.regionName}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      City
-                    </Label>
-                    <p className="mt-1 font-medium">{ipData.city || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      ZIP Code
-                    </Label>
-                    <p className="mt-1 font-medium">{ipData.zip || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Coordinates
-                    </Label>
-                    <p className="mt-1 font-mono text-sm">
-                      {ipData.lat?.toFixed(4)}, {ipData.lon?.toFixed(4)}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Timezone
-                    </Label>
-                    <p className="mt-1 font-medium">{ipData.timezone}</p>
-                  </div>
-                </div>
-
-                {/* Map */}
-                {ipData.lat && ipData.lon && (
-                  <div className="h-100 w-full overflow-hidden rounded-md border">
-                    <Map
-                      center={[ipData.lat, ipData.lon]}
-                      zoom={10}
-                      className="rounded-md"
-                    >
-                      <MapTileLayer />
-                      <MapMarker
-                        position={[ipData.lat, ipData.lon]}
-                        icon={
-                          <div className="relative flex items-center justify-center">
-                            {/* Pulse animation */}
-                            <div className="absolute h-8 w-8 animate-ping rounded-full bg-blue-500 opacity-75" />
-                            {/* Outer ring */}
-                            <div className="absolute h-8 w-8 rounded-full bg-blue-500/30" />
-                            {/* Inner marker */}
-                            <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 shadow-lg">
-                              <MapPin className="h-4 w-4 text-white" />
-                            </div>
-                          </div>
-                        }
-                        iconAnchor={[16, 16]}
-                      >
-                        <MapPopup>
-                          <div className="min-w-48 space-y-3">
-                            {/* IP Address */}
-                            <div className="flex items-center gap-2 border-b pb-2">
-                              <Network className="h-4 w-4 text-blue-500" />
-                              <div>
-                                <p className="text-xs text-muted-foreground">
-                                  IP Address
-                                </p>
-                                <p className="font-mono font-semibold">
-                                  {ipData.ip}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Location */}
-                            <div className="space-y-1.5">
-                              <div className="flex items-start gap-2">
-                                <MapPin className="mt-0.5 h-3.5 w-3.5 text-red-500" />
-                                <div className="flex-1">
-                                  <p className="text-xs text-muted-foreground">
-                                    Location
-                                  </p>
-                                  <p className="text-sm font-medium">
-                                    {ipData.city}, {ipData.regionName}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {ipData.country} ({ipData.countryCode})
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* ISP */}
-                              {ipData.isp && (
-                                <div className="flex items-start gap-2">
-                                  <Globe className="mt-0.5 h-3.5 w-3.5 text-green-500" />
-                                  <div className="flex-1">
-                                    <p className="text-xs text-muted-foreground">
-                                      ISP
-                                    </p>
-                                    <p className="text-sm font-medium">
-                                      {ipData.isp}
-                                    </p>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Coordinates */}
-                              <div className="flex items-center gap-2 rounded bg-muted/50 px-2 py-1">
-                                <p className="font-mono text-xs text-muted-foreground">
-                                  {ipData.lat?.toFixed(4)},{' '}
-                                  {ipData.lon?.toFixed(4)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        </MapPopup>
-                      </MapMarker>
-                    </Map>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </BlurFade>
-
-          {/* Network Information */}
-          <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Network className="h-5 w-5 text-green-500" />
-                  Network
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">ISP</Label>
-                    <p className="mt-1 font-medium">{ipData.isp}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      Organization
-                    </Label>
-                    <p className="mt-1 font-medium">{ipData.org}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      AS Number
-                    </Label>
-                    <p className="mt-1 font-mono text-sm">{ipData.as}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">
-                      AS Name
-                    </Label>
-                    <p className="mt-1 font-medium">{ipData.asname}</p>
-                  </div>
-                  {ipData.reverse && (
-                    <div className="sm:col-span-2">
-                      <Label className="text-xs text-muted-foreground">
-                        Reverse DNS
-                      </Label>
-                      <p className="mt-1 font-mono text-sm">{ipData.reverse}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </BlurFade>
-
-          {/* Security Information */}
-          <BlurFade delay={BLUR_FADE_DELAY * 6}>
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Shield className="h-5 w-5 text-yellow-500" />
-                  Security
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={ipData.mobile ? 'default' : 'secondary'}>
-                      {ipData.mobile ? 'Mobile' : 'Not Mobile'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={ipData.proxy ? 'destructive' : 'secondary'}
-                      className={ipData.proxy ? 'bg-orange-500' : ''}
-                    >
-                      {ipData.proxy ? 'Proxy Detected' : 'No Proxy'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={ipData.hosting ? 'default' : 'secondary'}>
-                      {ipData.hosting ? 'Hosting/VPN' : 'Not Hosting'}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <IPSummary data={ipData} own={!isCustomLookup} />
           </BlurFade>
 
           {/* Network Intelligence Accordion — after Security, before API Usage */}
@@ -1390,65 +874,65 @@ export default function IPInfoContent() {
 
       {/* API Usage */}
       <BlurFade delay={BLUR_FADE_DELAY * 8}>
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Server className="h-5 w-5" />
-              API Usage
-            </CardTitle>
-            <CardDescription>
-              Access IP information programmatically
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Get your IP (simple)
-              </Label>
-              <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
-                {baseUrl ? `curl ${baseUrl}/api/ip` : 'curl /api/ip'}
-              </code>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Get detailed info
-              </Label>
-              <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
-                {baseUrl
-                  ? `curl ${baseUrl}/api/ip?details=true`
-                  : 'curl /api/ip?details=true'}
-              </code>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Lookup specific IP or domain
-              </Label>
-              <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
-                {baseUrl
-                  ? `curl ${baseUrl}/api/ip?target=8.8.8.8&details=true`
-                  : 'curl /api/ip?target=8.8.8.8&details=true'}
-              </code>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">
-                Resolve domain to IP
-              </Label>
-              <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
-                {baseUrl
-                  ? `curl ${baseUrl}/api/ip?target=google.com&details=true`
-                  : 'curl /api/ip?target=google.com&details=true'}
-              </code>
-            </div>
-            {ipData?.req_left !== undefined && (
-              <div className="mt-6 flex items-center gap-2 rounded-md border border-muted bg-muted/30 p-3 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
-                <span>
-                  Rate Limit: {ipData.req_left} requests remaining, resets in{' '}
-                  {ipData.resets_in}s
-                </span>
+        <Card className="mt-4 p-4">
+          <details>
+            <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+              <Server className="h-4 w-4" />
+              API usage
+              <span className="font-normal text-muted-foreground">
+                · curl examples for this lookup
+              </span>
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Get your IP (simple)
+                </Label>
+                <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
+                  {baseUrl ? `curl ${baseUrl}/api/ip` : 'curl /api/ip'}
+                </code>
               </div>
-            )}
-          </CardContent>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Get detailed info
+                </Label>
+                <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
+                  {baseUrl
+                    ? `curl ${baseUrl}/api/ip?details=true`
+                    : 'curl /api/ip?details=true'}
+                </code>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Lookup specific IP or domain
+                </Label>
+                <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
+                  {baseUrl
+                    ? `curl ${baseUrl}/api/ip?target=8.8.8.8&details=true`
+                    : 'curl /api/ip?target=8.8.8.8&details=true'}
+                </code>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Resolve domain to IP
+                </Label>
+                <code className="mt-1 block rounded-md bg-muted p-2 text-sm">
+                  {baseUrl
+                    ? `curl ${baseUrl}/api/ip?target=google.com&details=true`
+                    : 'curl /api/ip?target=google.com&details=true'}
+                </code>
+              </div>
+              {ipData?.req_left !== undefined && (
+                <div className="mt-6 flex items-center gap-2 rounded-md border border-muted bg-muted/30 p-3 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    Rate Limit: {ipData.req_left} requests remaining, resets in{' '}
+                    {ipData.resets_in}s
+                  </span>
+                </div>
+              )}
+            </div>
+          </details>
         </Card>
       </BlurFade>
     </div>

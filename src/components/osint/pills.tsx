@@ -332,7 +332,10 @@ function AsnDetails({ asn }: { asn: string }) {
   return (
     <div className="space-y-1">
       <div className="text-sm font-medium">
-        AS{d.asn} <span className="font-normal">{d.name}</span>
+        AS{d.asn}{' '}
+        <span className="font-normal">
+          {d.name?.replace(/^AS\d+\s*-\s*/i, '')}
+        </span>
       </div>
       <Row label="Country">{d.country}</Row>
       <Row label="Registry">{d.rir}</Row>
