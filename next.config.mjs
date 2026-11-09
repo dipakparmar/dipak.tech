@@ -9,7 +9,7 @@ const ContentSecurityPolicy = `
   child-src 'none';
   frame-src 'self' https://www.youtube.com https://youtube.com;
   worker-src 'self' blob:;
-  connect-src 'self' https://www.cloudflare.com https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://*.doubleclick.net https://graph.dipak.io https://api.github.com https://ghcr.io https://registry-1.docker.io https://auth.docker.io https://hub.docker.com https://ct.certkit.io https://*.sentry.io https://stat.ripe.net https://huggingface.co https://*.hf.co;
+  connect-src 'self' https://www.cloudflare.com https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://*.doubleclick.net https://graph.dipak.io https://api.github.com https://ghcr.io https://registry-1.docker.io https://auth.docker.io https://hub.docker.com https://ct.certkit.io https://*.sentry.io https://stat.ripe.net https://huggingface.co https://*.hf.co https://tiles.openfreemap.org;
   img-src 'self' https://github.com https://avatars.githubusercontent.com https://www.google-analytics.com https://*.google.com https://*.google.ca https://*.basemaps.cartocdn.com https://upload.wikimedia.org https://images.unsplash.com https://img.logo.dev data:;
   media-src 'self';
   font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;

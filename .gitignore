@@ -44,3 +44,6 @@ next-env.d.ts
 
 # TypeScript incremental build info
 *.tsbuildinfo
+
+# MapLibre worker, copied from node_modules by scripts/ensure-map-worker.ts
+/public/maplibre/

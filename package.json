@@ -13,8 +13,8 @@
   },
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "bun run scripts/ensure-map-worker.ts && next dev",
+    "build": "bun run scripts/ensure-map-worker.ts && next build",
     "start": "next start",
     "lint": "oxlint",
     "format": "oxfmt src",
@@ -61,6 +61,7 @@
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "lucide-react": "^1.7.0",
+    "maplibre-gl": "6.16.0",
     "motion": "^12.23.26",
     "mp4-muxer": "5.2.2",
     "next": "16.4.3",

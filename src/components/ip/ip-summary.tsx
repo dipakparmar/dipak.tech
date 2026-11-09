@@ -1,9 +1,9 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Check, Copy, MapPin } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Map, MapMarker, MapPopup, MapTileLayer } from '@/components/ui/map';
+import { IPMap } from '@/components/ip/ip-map';
 import { Pill } from '@/components/osint/pills';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { normalizePathname } from '@/lib/host-routing';
@@ -150,28 +150,11 @@ export function IPSummary({
 
         {hasMap && (
           <div className="h-56 self-start overflow-hidden rounded-md border lg:col-span-2">
-            <Map center={[d.lat!, d.lon!]} zoom={9} className="rounded-md">
-              <MapTileLayer />
-              <MapMarker
-                position={[d.lat!, d.lon!]}
-                icon={
-                  <div className="relative flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 shadow-lg">
-                    <MapPin className="h-4 w-4 text-white" />
-                  </div>
-                }
-                iconAnchor={[12, 12]}
-              >
-                <MapPopup>
-                  <div className="space-y-0.5 text-xs">
-                    <div className="font-mono font-semibold">{d.ip}</div>
-                    <div>{place}</div>
-                    {d.isp && (
-                      <div className="text-muted-foreground">{d.isp}</div>
-                    )}
-                  </div>
-                </MapPopup>
-              </MapMarker>
-            </Map>
+            <IPMap
+              lat={d.lat!}
+              lon={d.lon!}
+              label={[d.ip, place].filter(Boolean).join(' · ')}
+            />
           </div>
         )}
       </div>

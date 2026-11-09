@@ -1584,3 +1584,10 @@
   opacity: 0.5;
   user-select: none;
 }
+
+/* The vector basemap has one light style. In dark mode invert only the map
+ * canvas: the marker, controls and attribution are DOM siblings of it and keep
+ * their colours. */
+.dark .maplibregl-canvas {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
