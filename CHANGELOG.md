@@ -1,3 +1,15 @@
+# [2.5.0](https://github.com/dipakparmar/dipak.tech/compare/v2.4.0...v2.5.0) (2026-11-09)
+
+
+### Bug Fixes
+
+* **osint:** keep upstream error messages readable behind the CDN ([9aad107](https://github.com/dipakparmar/dipak.tech/commit/9aad1075b1360730ccaf94fbf72414a9ff9d8cc2))
+
+
+### Features
+
+* **tools:** link back to the tools index from every tool ([bf06403](https://github.com/dipakparmar/dipak.tech/commit/bf064030b4cce0ac0037ecb44b7cef6e440509d7))
+
 # [2.4.0](https://github.com/dipakparmar/dipak.tech/compare/v2.3.3...v2.4.0) (2026-11-09)
 
 
