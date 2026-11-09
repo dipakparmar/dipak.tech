@@ -94,10 +94,13 @@ export async function GET(request: Request) {
       : [`https://${normalized}`, `http://${normalized}`];
 
     const result = await fetchWithChain(startUrls);
+    // 424, not 502: a CDN in front of the app replaces origin 502 bodies.
     if (!result)
       return NextResponse.json(
-        { error: 'Unable to reach target' },
-        { status: 502 }
+        {
+          error: `No web server answered at ${normalized} over HTTPS or HTTP`
+        },
+        { status: 424 }
       );
 
     const { response, chain, allHeaders } = result;

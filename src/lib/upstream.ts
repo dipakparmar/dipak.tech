@@ -4,14 +4,16 @@
  * UpstreamError with a readable message. Safe on server and client (no Node
  * or Next imports).
  *
- * `status` is what an API route should answer with: 504 for a timeout, 502 for
- * anything else. `upstreamStatus` is the HTTP status the source actually sent
- * (0 when there was no response), for callers that special-case e.g. 404.
+ * `status` is what an API route should answer with: 424 (Failed Dependency).
+ * Not 502/504: a CDN in front of the app replaces origin 502/504 bodies with
+ * its own page, which would hide the message. `upstreamStatus` is the HTTP
+ * status the source actually sent (0 when there was no response), for callers
+ * that special-case e.g. 404.
  */
 export class UpstreamError extends Error {
   constructor(
     message: string,
-    readonly status: 502 | 504,
+    readonly status: 424 = 424,
     readonly upstreamStatus = 0
   ) {
     super(message);
@@ -56,10 +58,10 @@ export async function fetchJson<T>(
     if (timeout.aborted) {
       throw new UpstreamError(
         `${source} timed out after ${timeoutMs / 1000}s`,
-        504
+        424
       );
     }
-    throw new UpstreamError(`${source} is unreachable`, 502);
+    throw new UpstreamError(`${source} is unreachable`, 424);
   }
 
   let body: unknown;
@@ -77,13 +79,13 @@ export async function fetchJson<T>(
         : res.status === 429
           ? `${source} is rate limiting requests; try again shortly`
           : `${source} returned HTTP ${res.status}`;
-    throw new UpstreamError(reason, res.status === 504 ? 504 : 502, res.status);
+    throw new UpstreamError(reason, 424, res.status);
   }
 
   if (body === undefined) {
     throw new UpstreamError(
       `${source} returned an unreadable response`,
-      502,
+      424,
       res.status
     );
   }

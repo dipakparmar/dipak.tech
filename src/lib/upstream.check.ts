@@ -38,7 +38,7 @@ assert.deepEqual(await fetchJson(`${base}/ok`), { a: 1 });
 
 let e = await rejects('/html502');
 assert.equal(e.message, 'svc returned HTTP 502');
-assert.equal(e.status, 502);
+assert.equal(e.status, 424, 'never 502: a CDN would mask the body');
 assert.equal(e.upstreamStatus, 502);
 
 e = await rejects('/api-error');
@@ -55,7 +55,7 @@ e = await rejects('/empty');
 assert.equal(e.message, 'svc returned an unreadable response');
 
 e = await rejects('/slow', { timeoutMs: 100 });
-assert.equal(e.status, 504);
+assert.equal(e.status, 424, 'never 504: a CDN would mask the body');
 assert.equal(e.message, 'svc timed out after 0.1s');
 
 e = await rejects('/missing');
