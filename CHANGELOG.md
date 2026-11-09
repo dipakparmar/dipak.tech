@@ -1,3 +1,20 @@
+# [2.4.0](https://github.com/dipakparmar/dipak.tech/compare/v2.3.3...v2.4.0) (2026-11-09)
+
+
+### Bug Fixes
+
+* **certificates:** show the real SHA-256 fingerprint in the decoder ([ac9e17e](https://github.com/dipakparmar/dipak.tech/commit/ac9e17e2760a9001da624e62840a1e92c267ae12))
+* **ip:** draw the IP map on keyless OpenFreeMap vector tiles ([c5f6c40](https://github.com/dipakparmar/dipak.tech/commit/c5f6c40c8a795d19346aad386dc42c9ba0e45b22))
+* **osint:** add timeouts and readable errors to upstream lookups ([f7b20c5](https://github.com/dipakparmar/dipak.tech/commit/f7b20c51a1193befee73a9023d43cd58a302d0e1))
+* **osint:** scan every logged certificate and name upstream rate limits ([f19c7d0](https://github.com/dipakparmar/dipak.tech/commit/f19c7d06050d4c75371be2e92dda2b8581fe75a2))
+
+
+### Features
+
+* **certificates:** compact CT log table and certificate details ([100bc3c](https://github.com/dipakparmar/dipak.tech/commit/100bc3cf3311173df438c1abc1eb9d1a1ab9508b))
+* **ip:** compact IP and ASN views with prefix statistics ([4e1b580](https://github.com/dipakparmar/dipak.tech/commit/4e1b580de18e15d53e239a24d20562ac5ad44826))
+* **osint:** compact tabbed results with subdomain graph and SEO previews ([cb2a99b](https://github.com/dipakparmar/dipak.tech/commit/cb2a99b1caed36445e7d2270566a51f679e23352))
+
 ## [2.3.3](https://github.com/dipakparmar/dipak.tech/compare/v2.3.2...v2.3.3) (2026-10-28)
 
 
