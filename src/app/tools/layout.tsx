@@ -3,12 +3,14 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { HapticsProvider } from '@/components/haptics-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ModeToggle } from '@/components/mode-toggle';
+import { ToolsBackLink } from '@/components/tools-back-link';
 
 export default function ToolsLayout({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <HapticsProvider>
         <TooltipProvider delayDuration={0}>
+          <ToolsBackLink />
           {/* Theme Toggle */}
           <div className="fixed right-4 top-4 z-50">
             <ModeToggle />
