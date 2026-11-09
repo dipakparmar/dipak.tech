@@ -1,17 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import {
-  FileText,
-  Copy,
-  Check,
-  X,
-  AlertCircle,
-  Link,
-  Loader2
-} from 'lucide-react';
+import { FileText, AlertCircle, Link, Loader2 } from 'lucide-react';
 import { useHaptics } from '@/hooks/use-haptics';
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
 import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,6 +18,7 @@ import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
 import { Label } from '@/components/ui/label';
 import { CertificateDetails, CertificateData } from './certificate-details';
+import { fetchJson } from '@/lib/upstream';
 
 interface DecodedCert {
   subject: Record<string, string>;
@@ -451,8 +443,6 @@ export function CertDecoder() {
   const [certData, setCertData] = useState<CertificateData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [fetchedPem, setFetchedPem] = useState<string | null>(null);
-  const fetchedPemCopy = useCopyToClipboard();
 
   const handleDecode = useCallback(async () => {
     if (!pem.trim()) {
@@ -509,24 +499,21 @@ export function CertDecoder() {
 
     setError(null);
     setCertData(null);
-    setFetchedPem(null);
     setLoading(true);
 
     try {
-      const response = await fetch(
-        `/api/fetch-cert?host=${encodeURIComponent(hostname)}&port=${port}`
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch certificate');
-      }
+      const data = await fetchJson<{
+        pem?: string;
+        subjectAltNames?: string[];
+        validationType?: 'DV' | 'OV' | 'EV';
+      }>(`/api/fetch-cert?host=${encodeURIComponent(hostname)}&port=${port}`, {
+        timeoutMs: 20000,
+        label: 'Certificate fetch'
+      });
 
       if (!data.pem) {
         throw new Error('No certificate data received');
       }
-
-      setFetchedPem(data.pem);
 
       // Decode the fetched PEM
       const result = await decodeCertificate(data.pem);
@@ -574,7 +561,6 @@ export function CertDecoder() {
               setMode(v as 'paste' | 'url');
               setError(null);
               setCertData(null);
-              setFetchedPem(null);
             }}
           >
             <TabsList className="grid w-full grid-cols-2">
@@ -642,44 +628,6 @@ export function CertDecoder() {
                   specify a port (default: 443).
                 </p>
               </div>
-
-              {/* Show fetched PEM */}
-              {fetchedPem && (
-                <div className="space-y-2">
-                  <Label>Fetched Certificate (PEM)</Label>
-                  <Textarea
-                    value={fetchedPem}
-                    readOnly
-                    className="min-h-32 font-mono text-xs"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchedPemCopy.copy(fetchedPem)}
-                    className="gap-1"
-                    aria-label={
-                      fetchedPemCopy.status === 'error'
-                        ? 'Copy failed'
-                        : fetchedPemCopy.copied
-                          ? 'Copied'
-                          : 'Copy PEM certificate'
-                    }
-                  >
-                    {fetchedPemCopy.status === 'error' ? (
-                      <X className="h-3 w-3 text-destructive" />
-                    ) : fetchedPemCopy.copied ? (
-                      <Check className="h-3 w-3" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                    {fetchedPemCopy.status === 'error'
-                      ? 'Failed'
-                      : fetchedPemCopy.copied
-                        ? 'Copied'
-                        : 'Copy PEM'}
-                  </Button>
-                </div>
-              )}
             </TabsContent>
           </Tabs>
 

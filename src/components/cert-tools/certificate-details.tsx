@@ -1,25 +1,11 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { HapticButton as Button } from '@/components/haptic-wrappers';
-import {
-  Building,
-  Calendar,
-  Globe,
-  Hash,
-  FileText,
-  Copy,
-  Check,
-  X
-} from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Copy, Check, X, ShieldCheck } from 'lucide-react';
+import { matchProvider, Pill, ProviderPill } from '@/components/osint/pills';
+import { cn } from '@/lib/utils';
 
 // Normalized certificate data interface
 export interface CertificateData {
@@ -47,6 +33,8 @@ interface CertificateDetailsProps {
   className?: string;
 }
 
+const DAY = 86_400_000;
+
 // Parse DN string like "CN=R13,O=Let's Encrypt,C=US" into object
 export function parseDN(dn: string): Record<string, string> {
   const result: Record<string, string> = {};
@@ -60,354 +48,212 @@ export function parseDN(dn: string): Record<string, string> {
   return result;
 }
 
+const toDate = (d: Date | string) => (typeof d === 'string' ? new Date(d) : d);
+
+function fmt(d: Date) {
+  return d.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZoneName: 'short'
+  });
+}
+
 export function CertificateDetails({
-  certificate,
+  certificate: c,
   showPem = true,
   className = ''
 }: CertificateDetailsProps) {
-  const serialCopy = useCopyToClipboard();
-  const fingerprintCopy = useCopyToClipboard();
-  const pemCopy = useCopyToClipboard();
-
-  const formatDate = (date: Date | string) => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZoneName: 'short'
-    });
-  };
-
-  const getExpiryStatus = () => {
-    const now = new Date();
-    const expiry =
-      typeof certificate.validTo === 'string'
-        ? new Date(certificate.validTo)
-        : certificate.validTo;
-    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return {
-      isExpired: expiry < now,
-      isExpiringSoon: expiry >= now && expiry < thirtyDays
-    };
-  };
-
-  const { isExpired, isExpiringSoon } = getExpiryStatus();
-  const isWildcard =
-    certificate.isWildcard ?? certificate.commonName?.startsWith('*.');
+  const from = toDate(c.validFrom);
+  const to = toDate(c.validTo);
+  const now = Date.now();
+  const daysLeft = Math.floor((to.getTime() - now) / DAY);
+  const lifetime = Math.round((to.getTime() - from.getTime()) / DAY);
+  const state =
+    to.getTime() < now ? 'expired' : daysLeft < 30 ? 'expiring' : 'valid';
+  const isWildcard = c.isWildcard ?? c.commonName?.startsWith('*.');
+  const issuerName = c.issuer.O ?? c.issuer.CN ?? 'Unknown issuer';
+  const provider = matchProvider(issuerName);
+  const subjectPlace = [c.subject.L, c.subject.ST, c.subject.C]
+    .filter(Boolean)
+    .join(', ');
+  const fingerprint = c.sha256 || c.fingerprint;
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Status & Badges */}
-      <div className="flex flex-wrap gap-2">
-        {isExpired ? (
-          <Badge variant="destructive">Expired</Badge>
-        ) : isExpiringSoon ? (
-          <Badge variant="outline" className="border-amber-500 text-amber-500">
-            Expiring Soon
-          </Badge>
-        ) : (
-          <Badge variant="default" className="bg-emerald-500">
-            Valid
-          </Badge>
-        )}
-        {certificate.validationType === 'EV' && (
-          <Badge variant="default" className="bg-green-600">
-            EV
-          </Badge>
-        )}
-        {certificate.validationType === 'OV' && (
-          <Badge variant="default" className="bg-blue-600">
-            OV
-          </Badge>
-        )}
-        {certificate.validationType === 'DV' && (
-          <Badge variant="outline">DV</Badge>
-        )}
-        {isWildcard && <Badge variant="outline">Wildcard</Badge>}
-        {certificate.isPrecert && (
-          <Badge variant="secondary">Precertificate</Badge>
-        )}
-        {certificate.isCA && <Badge variant="secondary">CA</Badge>}
-        {certificate.publicKeyAlgorithm && (
-          <Badge variant="secondary">{certificate.publicKeyAlgorithm}</Badge>
-        )}
-        {certificate.signatureAlgorithm && (
-          <Badge variant="outline">{certificate.signatureAlgorithm}</Badge>
-        )}
+    <Card className={cn('gap-4 p-4', className)}>
+      {/* Name and status */}
+      <div className="space-y-2">
+        <h3 className="font-mono text-lg font-semibold break-all">
+          {c.commonName}
+        </h3>
+        <div className="flex flex-wrap gap-1">
+          <Pill
+            tone={
+              state === 'expired'
+                ? 'bad'
+                : state === 'expiring'
+                  ? 'warn'
+                  : 'good'
+            }
+          >
+            {state === 'expired'
+              ? `Expired ${-daysLeft}d ago`
+              : state === 'expiring'
+                ? `Expires in ${daysLeft}d`
+                : `Valid · ${daysLeft}d left`}
+          </Pill>
+          {c.validationType && (
+            <Pill
+              tone={c.validationType === 'DV' ? 'neutral' : 'info'}
+              title={
+                {
+                  DV: 'Domain validated: proves control of the domain only',
+                  OV: 'Organization validated: the CA checked the organization',
+                  EV: 'Extended validation: the strictest organization checks'
+                }[c.validationType]
+              }
+            >
+              {c.validationType}
+            </Pill>
+          )}
+          {isWildcard && <Pill>Wildcard</Pill>}
+          {c.isPrecert && <Pill>Precertificate</Pill>}
+          {c.isCA && <Pill tone="info">CA</Pill>}
+          {c.publicKeyAlgorithm && <Pill mono>{c.publicKeyAlgorithm}</Pill>}
+          {c.signatureAlgorithm && <Pill mono>{c.signatureAlgorithm}</Pill>}
+        </div>
       </div>
 
-      {/* Subject */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Globe className="h-5 w-5 text-cyan-500" />
-            Subject
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <p className="text-xs text-muted-foreground">Common Name (CN)</p>
-            <p className="break-all font-mono text-sm">
-              {certificate.commonName}
-            </p>
-          </div>
-          {certificate.subject.O && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Organization (O)</p>
-              <p className="font-mono text-sm">{certificate.subject.O}</p>
-            </div>
-          )}
-          {certificate.subject.OU && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">
-                Organizational Unit (OU)
-              </p>
-              <p className="font-mono text-sm">{certificate.subject.OU}</p>
-            </div>
-          )}
-          {(certificate.subject.L ||
-            certificate.subject.ST ||
-            certificate.subject.C) && (
-            <div className="grid gap-3 sm:grid-cols-3">
-              {certificate.subject.L && (
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Locality (L)</p>
-                  <p className="font-mono text-sm">{certificate.subject.L}</p>
-                </div>
-              )}
-              {certificate.subject.ST && (
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">State (ST)</p>
-                  <p className="font-mono text-sm">{certificate.subject.ST}</p>
-                </div>
-              )}
-              {certificate.subject.C && (
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Country (C)</p>
-                  <p className="font-mono text-sm">{certificate.subject.C}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="Issuer">
+          <span className="flex flex-wrap items-center gap-1.5">
+            <ProviderPill
+              label={issuerName}
+              domain={provider?.domain ?? null}
+              fallback={<ShieldCheck className="h-3 w-3" />}
+            />
+            {c.issuer.CN && c.issuer.CN !== issuerName && (
+              <span className="text-xs text-muted-foreground">
+                {c.issuer.CN}
+                {c.issuer.C && ` · ${c.issuer.C}`}
+              </span>
+            )}
+          </span>
+        </Field>
+        {c.subject.O && (
+          <Field label="Organization">
+            {c.subject.O}
+            {c.subject.OU && (
+              <span className="text-muted-foreground"> · {c.subject.OU}</span>
+            )}
+          </Field>
+        )}
+        {subjectPlace && <Field label="Location">{subjectPlace}</Field>}
+        <Field label="Valid from">{fmt(from)}</Field>
+        <Field label="Valid until">
+          <span
+            className={cn(
+              state === 'expired' && 'text-red-600 dark:text-red-400',
+              state === 'expiring' && 'text-amber-700 dark:text-amber-400'
+            )}
+          >
+            {fmt(to)}
+          </span>
+        </Field>
+        <Field label="Lifetime">{lifetime} days</Field>
+        <Field label="Serial number" copy={c.serialNumber} wide>
+          <span className="font-mono text-xs break-all">{c.serialNumber}</span>
+        </Field>
+        {fingerprint && (
+          <Field
+            label={c.sha256 ? 'SHA-256 fingerprint' : 'Fingerprint'}
+            copy={fingerprint}
+            wide
+          >
+            <span className="font-mono text-xs break-all">{fingerprint}</span>
+          </Field>
+        )}
+      </dl>
 
-      {/* Subject Alternative Names */}
-      {certificate.sans && certificate.sans.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Globe className="h-5 w-5 text-emerald-500" />
-              Subject Alternative Names ({certificate.sans.length})
-            </CardTitle>
-            <CardDescription>
-              DNS names and IPs covered by this certificate
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {certificate.sans.map((name) => (
-                <Badge
-                  key={name}
-                  variant="secondary"
-                  className="font-mono text-xs"
-                >
-                  {name}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {c.sans && c.sans.length > 0 && (
+        <Field
+          label={`Subject alternative names (${c.sans.length})`}
+          copy={c.sans.join('\n')}
+        >
+          <span className="flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-xs">
+            {c.sans.map((n) => (
+              <span key={n} className="break-all">
+                {n}
+              </span>
+            ))}
+          </span>
+        </Field>
       )}
 
-      {/* Issuer */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Building className="h-5 w-5 text-violet-500" />
-            Issuer
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {certificate.issuer.CN && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Common Name (CN)</p>
-              <p className="font-mono text-sm">{certificate.issuer.CN}</p>
-            </div>
-          )}
-          {certificate.issuer.O && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Organization (O)</p>
-              <p className="font-mono text-sm">{certificate.issuer.O}</p>
-            </div>
-          )}
-          {certificate.issuer.C && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <p className="text-xs text-muted-foreground">Country (C)</p>
-              <p className="font-mono text-sm">{certificate.issuer.C}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Validity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="h-5 w-5 text-amber-500" />
-            Validity Period
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <p className="text-xs text-muted-foreground">Not Before</p>
-              <p className="font-mono text-sm">
-                {formatDate(certificate.validFrom)}
-              </p>
-            </div>
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <p className="text-xs text-muted-foreground">Not After</p>
-              <p className="font-mono text-sm">
-                {formatDate(certificate.validTo)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Identifiers */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Hash className="h-5 w-5 text-rose-500" />
-            Identifiers
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">Serial Number</p>
-                <p className="break-all font-mono text-xs">
-                  {certificate.serialNumber}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => serialCopy.copy(certificate.serialNumber)}
-                aria-label={
-                  serialCopy.status === 'error'
-                    ? 'Copy failed'
-                    : serialCopy.copied
-                      ? 'Copied'
-                      : 'Copy serial number'
-                }
-              >
-                {serialCopy.status === 'error' ? (
-                  <X className="h-3 w-3 text-destructive" />
-                ) : serialCopy.copied ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
-          </div>
-          {(certificate.sha256 || certificate.fingerprint) && (
-            <div className="rounded-lg border bg-muted/30 p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs text-muted-foreground">
-                    {certificate.sha256 ? 'SHA-256 Fingerprint' : 'Fingerprint'}
-                  </p>
-                  <p className="break-all font-mono text-xs">
-                    {certificate.sha256 || certificate.fingerprint}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() =>
-                    fingerprintCopy.copy(
-                      certificate.sha256 || certificate.fingerprint || ''
-                    )
-                  }
-                  aria-label={
-                    fingerprintCopy.status === 'error'
-                      ? 'Copy failed'
-                      : fingerprintCopy.copied
-                        ? 'Copied'
-                        : 'Copy fingerprint'
-                  }
-                >
-                  {fingerprintCopy.status === 'error' ? (
-                    <X className="h-3 w-3 text-destructive" />
-                  ) : fingerprintCopy.copied ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* PEM Certificate */}
-      {showPem && certificate.pem && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5 text-cyan-500" />
-                  PEM Certificate
-                </CardTitle>
-                <CardDescription>Raw certificate in PEM format</CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1"
-                onClick={() => pemCopy.copy(certificate.pem || '')}
-                aria-label={
-                  pemCopy.status === 'error'
-                    ? 'Copy failed'
-                    : pemCopy.copied
-                      ? 'Copied'
-                      : 'Copy PEM certificate'
-                }
-              >
-                {pemCopy.status === 'error' ? (
-                  <X className="h-3 w-3 text-destructive" />
-                ) : pemCopy.copied ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-                {pemCopy.status === 'error'
-                  ? 'Failed'
-                  : pemCopy.copied
-                    ? 'Copied'
-                    : 'Copy'}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <pre className="max-h-64 overflow-auto rounded-lg border bg-muted/30 p-4 font-mono text-xs">
-              {certificate.pem}
-            </pre>
-          </CardContent>
-        </Card>
+      {showPem && c.pem && (
+        <details className="group border-t pt-3">
+          <summary className="flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground">
+            PEM certificate
+            <CopyButton value={c.pem} label="Copy PEM" />
+          </summary>
+          <pre className="mt-2 max-h-64 overflow-auto rounded-md border bg-muted/30 p-3 font-mono text-xs">
+            {c.pem}
+          </pre>
+        </details>
       )}
+    </Card>
+  );
+}
+
+function Field({
+  label,
+  children,
+  copy,
+  wide
+}: {
+  label: string;
+  children: ReactNode;
+  copy?: string;
+  wide?: boolean;
+}) {
+  return (
+    <div className={cn('min-w-0', wide && 'sm:col-span-2 lg:col-span-3')}>
+      <dt className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        {label}
+        {copy && (
+          <CopyButton value={copy} label={`Copy ${label.toLowerCase()}`} />
+        )}
+      </dt>
+      <dd className="text-sm break-words">{children}</dd>
     </div>
+  );
+}
+
+function CopyButton({ value, label }: { value: string; label: string }) {
+  const { status, copied, copy } = useCopyToClipboard();
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        // Inside <summary> the click would also toggle the details.
+        e.preventDefault();
+        copy(value);
+      }}
+      aria-label={
+        status === 'error' ? 'Copy failed' : copied ? 'Copied' : label
+      }
+      title={label}
+      className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+    >
+      {status === 'error' ? (
+        <X className="h-3 w-3 text-destructive" />
+      ) : copied ? (
+        <Check className="h-3 w-3 text-emerald-500" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+    </button>
   );
 }
