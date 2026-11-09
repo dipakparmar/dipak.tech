@@ -1,8 +1,6 @@
 'use client';
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  AlertCircle,
   ArrowRight,
   Check,
   Globe,
@@ -12,474 +10,55 @@ import {
   Share2,
   X
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { HapticButton as Button } from '@/components/haptic-wrappers';
 import { Input } from '@/components/ui/input';
-import type React from 'react';
-import { Spinner } from '@/components/ui/spinner';
 import { OsintResults } from '@/components/osint-results';
-import { StatusAnnouncer } from '@/components/status-announcer';
-import { useHaptics } from '@/hooks/use-haptics';
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
-import type { SecurityData, IdentityData, ThreatData } from '@/lib/osint-types';
-import type { WhoisFallbackResult } from '@/lib/whois';
 
 const EXAMPLE_QUERIES = [
-  { label: 'google.com', icon: Globe, type: 'domain' },
-  { label: '8.8.8.8', icon: Network, type: 'ip' },
-  { label: 'AS15169', icon: Hash, type: 'asn' }
+  { label: 'github.com', icon: Globe },
+  { label: '8.8.8.8', icon: Network },
+  { label: 'AS15169', icon: Hash }
 ];
 
-type QueryType = 'domain' | 'ipv4' | 'ipv6' | 'asn';
-type RdapLookupResponse = Record<string, unknown> | WhoisFallbackResult;
-type DNSLookupResponse = {
-  records?: Record<string, string[]>;
-};
-type HTTPLookupResponse = {
-  ok: boolean;
-  status: number;
-  redirected?: boolean;
-  headers?: Record<string, string>;
-  url: string;
-  title?: string;
-  securityHeaders?: Record<string, string>;
-  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>;
-};
-type CertificateLookupResponse = {
-  uniqueEntries: number;
-  latestExpiry?: string | null;
-  issuers?: string[];
-  names?: string[];
-};
-type IPLookupResponse = Record<string, unknown>;
-type LookupTask = {
-  key: string;
-  promise: Promise<unknown>;
-};
-
-function detectQueryType(query: string): QueryType {
-  if (/^(AS)?(\\d+)$/i.test(query)) {
-    return 'asn';
-  }
-
-  if (query.includes(':')) {
-    return 'ipv6';
-  }
-
-  if (/^(\\d{1,3}\\.){3}\\d{1,3}$/.test(query)) {
-    return 'ipv4';
-  }
-
-  return 'domain';
-}
-
+/** The URL's `?q=` is the source of truth: searching pushes it, back/forward re-scans. */
 export function WhoisLookup() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { trigger: hapticTrigger } = useHaptics();
-  const initialQuery = searchParams.get('q') || '';
+  const submitted = searchParams.get('q')?.trim() ?? '';
+  // Bumped when the same query is submitted again, to force a fresh scan.
+  const [rescan, setRescan] = useState(0);
+  const { status: shareStatus, copied, copy } = useCopyToClipboard();
 
-  const [query, setQuery] = useState(initialQuery);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [rdapData, setRdapData] = useState<RdapLookupResponse | null>(null);
-  const [dnsData, setDnsData] = useState<DNSLookupResponse | null>(null);
-  const [httpData, setHttpData] = useState<HTTPLookupResponse | null>(null);
-  const [certData, setCertData] = useState<CertificateLookupResponse | null>(
-    null
-  );
-  const [ipData, setIpData] = useState<IPLookupResponse | null>(null);
-  const [osintErrors, setOsintErrors] = useState<Record<string, string>>({});
-  const [pending, setPending] = useState<Record<string, boolean>>({});
-  const [certDnsData, setCertDnsData] = useState<Record<
-    string,
-    DNSLookupResponse
-  > | null>(null);
-  const [certDnsPending, setCertDnsPending] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [securityData, setSecurityData] = useState<SecurityData | null>(null);
-  const [identityData, setIdentityData] = useState<IdentityData | null>(null);
-  const [threatData, setThreatData] = useState<ThreatData | null>(null);
-  const {
-    status: shareStatus,
-    copied,
-    copy: copyShareLink
-  } = useCopyToClipboard();
-  const hasAutoSearched = useRef(false);
-  const prevUrlQuery = useRef(initialQuery);
-
-  const handleShare = useCallback(
-    () => copyShareLink(window.location.href),
-    [copyShareLink]
-  );
-
-  const performLookup = useCallback(
-    async (searchQuery: string, updateUrl = true) => {
-      if (!searchQuery.trim()) {
-        setError('Please enter a domain, IP address, or ASN');
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      setRdapData(null);
-      setDnsData(null);
-      setHttpData(null);
-      setCertData(null);
-      setIpData(null);
-      setOsintErrors({});
-      setPending({});
-      setCertDnsData(null);
-      setCertDnsPending({});
-      setSecurityData(null);
-      setIdentityData(null);
-      setThreatData(null);
-
-      // Update URL with query parameter
-      if (updateUrl) {
-        const trimmedQuery = searchQuery.trim();
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('q', trimmedQuery);
-        prevUrlQuery.current = trimmedQuery; // Prevent useEffect from re-triggering
-        router.push(`${pathname}?${params.toString()}`);
-      }
-
-      try {
-        const trimmed = searchQuery.trim();
-        const fetchJson = async (url: string) => {
-          const response = await fetch(url);
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.error || 'Failed to fetch information');
-          }
-
-          return result;
-        };
-
-        const queryType = detectQueryType(trimmed);
-        const tasks: LookupTask[] = [
-          {
-            key: 'rdap',
-            promise: fetchJson(
-              `/api/whois?query=${encodeURIComponent(trimmed)}`
-            )
-          }
-        ];
-
-        if (queryType === 'domain') {
-          tasks.push(
-            {
-              key: 'dns',
-              promise: fetchJson(
-                `/api/osint/dns?target=${encodeURIComponent(trimmed)}`
-              )
-            },
-            {
-              key: 'http',
-              promise: fetchJson(
-                `/api/osint/http?target=${encodeURIComponent(trimmed)}`
-              )
-            },
-            {
-              key: 'certs',
-              promise: fetchJson(
-                `/api/osint/certificates?target=${encodeURIComponent(trimmed)}`
-              )
-            },
-            {
-              key: 'ip',
-              promise: fetchJson(
-                `/api/ip?target=${encodeURIComponent(trimmed)}&details=true`
-              )
-            },
-            {
-              key: 'security',
-              promise: fetchJson(
-                `/api/osint/security?target=${encodeURIComponent(trimmed)}`
-              )
-            },
-            {
-              key: 'identity',
-              promise: fetchJson(
-                `/api/osint/identity?target=${encodeURIComponent(trimmed)}`
-              )
-            },
-            {
-              key: 'threat',
-              promise: fetchJson(
-                `/api/osint/threat?target=${encodeURIComponent(trimmed)}`
-              )
-            }
-          );
-        }
-
-        if (queryType === 'ipv4' || queryType === 'ipv6') {
-          tasks.push(
-            {
-              key: 'http',
-              promise: fetchJson(
-                `/api/osint/http?target=${encodeURIComponent(trimmed)}`
-              )
-            },
-            {
-              key: 'ip',
-              promise: fetchJson(
-                `/api/ip?target=${encodeURIComponent(trimmed)}&details=true`
-              )
-            },
-            {
-              key: 'security',
-              promise: fetchJson(
-                `/api/osint/security?target=${encodeURIComponent(trimmed)}`
-              )
-            },
-            {
-              key: 'threat',
-              promise: fetchJson(
-                `/api/osint/threat?target=${encodeURIComponent(trimmed)}`
-              )
-            }
-          );
-        }
-
-        const requestedKeys = new Set(tasks.map((task) => task.key));
-        setPending(Object.fromEntries(tasks.map((task) => [task.key, true])));
-
-        const baselineErrors: Record<string, string> = {};
-        if (!requestedKeys.has('dns'))
-          baselineErrors.dns = 'Not applicable for this query type';
-        if (!requestedKeys.has('http'))
-          baselineErrors.http = 'Not applicable for this query type';
-        if (!requestedKeys.has('certs'))
-          baselineErrors.certs = 'Not applicable for this query type';
-        if (!requestedKeys.has('ip'))
-          baselineErrors.ip = 'Not applicable for this query type';
-        if (!requestedKeys.has('security'))
-          baselineErrors.security = 'Not applicable for this query type';
-        if (!requestedKeys.has('identity'))
-          baselineErrors.identity = 'Not applicable for this query type';
-        if (!requestedKeys.has('threat'))
-          baselineErrors.threat = 'Not applicable for this query type';
-        setOsintErrors(baselineErrors);
-
-        const taskPromises = tasks.map((task) => task.promise);
-        tasks.forEach((task) => {
-          task.promise
-            .then((value) => {
-              if (task.key === 'rdap') setRdapData(value as RdapLookupResponse);
-              if (task.key === 'dns') setDnsData(value as DNSLookupResponse);
-              if (task.key === 'http') setHttpData(value as HTTPLookupResponse);
-              if (task.key === 'certs')
-                setCertData(value as CertificateLookupResponse);
-              if (task.key === 'ip') setIpData(value as IPLookupResponse);
-              if (task.key === 'security')
-                setSecurityData(value as SecurityData);
-              if (task.key === 'identity')
-                setIdentityData(value as IdentityData);
-              if (task.key === 'threat') setThreatData(value as ThreatData);
-            })
-            .catch((err) => {
-              setOsintErrors((prev) => ({
-                ...prev,
-                [task.key]: err instanceof Error ? err.message : 'Lookup failed'
-              }));
-            })
-            .finally(() => {
-              setPending((prev) => ({ ...prev, [task.key]: false }));
-            });
-        });
-
-        const settled = await Promise.allSettled(taskPromises);
-        if (settled.every((result) => result.status === 'rejected')) {
-          setError('No intelligence data available for this query');
-          hapticTrigger('error');
-        } else {
-          hapticTrigger('success');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
-        hapticTrigger('error');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [pathname, router, searchParams, hapticTrigger]
-  );
-
-  // Sync state with URL search params (only on URL changes, not local edits)
-  useEffect(() => {
-    const urlQuery = searchParams.get('q') || '';
-
-    if (urlQuery && !hasAutoSearched.current) {
-      // Initial load with query param
-      hasAutoSearched.current = true;
-      prevUrlQuery.current = urlQuery;
-      setQuery(urlQuery);
-      performLookup(urlQuery, false);
-    } else if (urlQuery !== prevUrlQuery.current) {
-      // URL actually changed (back/forward navigation)
-      prevUrlQuery.current = urlQuery;
-      setQuery(urlQuery);
-      if (urlQuery) {
-        performLookup(urlQuery, false);
-      } else {
-        setRdapData(null);
-        setDnsData(null);
-        setHttpData(null);
-        setCertData(null);
-        setIpData(null);
-        setOsintErrors({});
-        setPending({});
-        setCertDnsData(null);
-        setCertDnsPending({});
-        setSecurityData(null);
-        setIdentityData(null);
-        setThreatData(null);
-        setError(null);
-      }
+  const search = (raw: string) => {
+    const q = raw.trim();
+    if (!q) return;
+    if (q === submitted) {
+      setRescan((n) => n + 1);
+      return;
     }
-  }, [searchParams, performLookup]);
-
-  // Fetch DNS for certificate domains when certs are loaded
-  useEffect(() => {
-    if (!certData?.names || certData.names.length === 0) return;
-
-    const mainDomain = query.toLowerCase().replace(/^www\./, '');
-
-    // Get unique subdomains from cert names (excluding wildcards and main domain)
-    const subdomains = certData.names
-      .filter((name: string) => {
-        const normalized = name
-          .toLowerCase()
-          .replace(/^\*\./, '')
-          .replace(/^www\./, '');
-        return normalized !== mainDomain && !name.startsWith('*');
-      })
-      .slice(0, 10); // Limit to 10 subdomains to avoid too many requests
-
-    if (subdomains.length === 0) return;
-
-    // Initialize pending state
-    setCertDnsPending(
-      Object.fromEntries(subdomains.map((d: string) => [d, true]))
-    );
-    setCertDnsData({});
-
-    // Fetch DNS for each subdomain
-    const fetchDns = async (domain: string) => {
-      try {
-        const response = await fetch(
-          `/api/osint/dns?target=${encodeURIComponent(domain)}`
-        );
-        const result = await response.json();
-
-        if (!response.ok) {
-          return { error: result.error || 'DNS lookup failed' };
-        }
-        return result;
-      } catch {
-        return { error: 'DNS lookup failed' };
-      }
-    };
-
-    subdomains.forEach((domain: string) => {
-      fetchDns(domain).then((result) => {
-        setCertDnsData((prev) => ({ ...prev, [domain]: result }));
-        setCertDnsPending((prev) => ({ ...prev, [domain]: false }));
-      });
-    });
-  }, [certData, query]);
-
-  const handleLookup = async (e?: React.FormEvent, queryOverride?: string) => {
-    e?.preventDefault();
-    const searchQuery = queryOverride || query;
-    if (queryOverride) {
-      setQuery(queryOverride);
-    }
-    performLookup(searchQuery);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('q', q);
+    router.push(`${pathname}?${params.toString()}`);
   };
-
-  const handleExampleClick = (example: string) => {
-    setQuery(example);
-    performLookup(example);
-  };
-
-  const hasResults = Boolean(
-    rdapData ||
-    dnsData ||
-    httpData ||
-    certData ||
-    ipData ||
-    securityData ||
-    identityData ||
-    threatData
-  );
-
-  const announcement = error
-    ? `WHOIS lookup failed: ${error}`
-    : loading
-      ? 'Loading WHOIS results'
-      : hasResults
-        ? 'WHOIS results ready'
-        : '';
 
   return (
-    <div className="space-y-8">
-      <StatusAnnouncer message={announcement} assertive={Boolean(error)} />
-
-      {/* Search Section */}
-      <div className="mx-auto max-w-3xl space-y-4">
-        {/* Main Search Input */}
-        <form onSubmit={handleLookup}>
-          <div className="group relative">
-            <div className="absolute -inset-0.5 rounded-2xl bg-linear-to-r from-primary/50 via-primary/25 to-primary/50 opacity-0 blur transition-all duration-500 group-focus-within:opacity-100" />
-            <div className="relative flex items-center rounded-xl border-2 bg-background shadow-sm transition-all focus-within:border-primary/50 focus-within:shadow-lg">
-              <Search className="absolute left-4 h-5 w-5 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Enter domain, IP address, or ASN..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="h-14 border-0 bg-transparent pl-12 pr-32 text-base font-mono shadow-none focus-visible:ring-0"
-                disabled={loading}
-              />
-              <Button
-                type="submit"
-                disabled={loading}
-                size="lg"
-                className="absolute right-2 h-10 gap-2 rounded-lg px-5 font-medium"
-              >
-                {loading ? (
-                  <>
-                    <Spinner className="h-4 w-4" />
-                    <span>Searching</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Lookup</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </form>
-
-        {/* Quick Examples */}
-        {!hasResults && !loading && (
+    <div className="space-y-6">
+      <div className="mx-auto max-w-3xl space-y-3">
+        <SearchForm key={submitted} initial={submitted} onSearch={search} />
+        {!submitted && (
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-sm text-muted-foreground">Try:</span>
             {EXAMPLE_QUERIES.map((example) => (
               <button
                 key={example.label}
-                onClick={() => handleExampleClick(example.label)}
-                disabled={loading}
-                className="group inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-sm font-mono transition-all hover:border-primary/50 hover:bg-muted/50 disabled:opacity-50"
+                type="button"
+                onClick={() => search(example.label)}
+                className="group inline-flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 font-mono text-sm transition-all hover:border-primary/50 hover:bg-muted/50"
               >
                 <example.icon className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary" />
                 {example.label}
@@ -487,72 +66,81 @@ export function WhoisLookup() {
             ))}
           </div>
         )}
-
-        {/* Error Display */}
-        {error && (
-          <Alert
-            variant="destructive"
-            className="animate-in fade-in slide-in-from-top-1"
-          >
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
       </div>
 
-      {/* Results Section */}
-      {(rdapData || dnsData || httpData || certData || ipData) && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Share Button */}
-          <div className="mb-6 flex justify-end">
+      {submitted && (
+        <OsintResults
+          key={`${submitted}#${rescan}`}
+          query={submitted}
+          actions={
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={handleShare}
-              className="gap-2"
-              aria-label={
-                shareStatus === 'error'
-                  ? 'Copy failed'
-                  : copied
-                    ? 'Copied'
-                    : 'Copy share link'
-              }
+              onClick={() => copy(window.location.href)}
+              className="h-7 gap-1.5 text-xs"
             >
               {shareStatus === 'error' ? (
                 <>
-                  <X className="h-4 w-4 text-destructive" />
-                  <span>Copy failed</span>
+                  <X className="h-3.5 w-3.5 text-destructive" /> Copy failed
                 </>
               ) : copied ? (
                 <>
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  <span>Link copied!</span>
+                  <Check className="h-3.5 w-3.5 text-emerald-500" /> Link copied
                 </>
               ) : (
                 <>
-                  <Share2 className="h-4 w-4" />
-                  <span>Share</span>
+                  <Share2 className="h-3.5 w-3.5" /> Share
                 </>
               )}
             </Button>
-          </div>
-          <OsintResults
-            rdapData={rdapData}
-            dnsData={dnsData}
-            httpData={httpData}
-            certData={certData}
-            ipData={ipData}
-            securityData={securityData}
-            identityData={identityData}
-            threatData={threatData}
-            query={query}
-            errors={osintErrors}
-            pending={pending}
-            certDnsData={certDnsData}
-            certDnsPending={certDnsPending}
-          />
-        </div>
+          }
+        />
       )}
     </div>
+  );
+}
+
+function SearchForm({
+  initial,
+  onSearch
+}: {
+  initial: string;
+  onSearch: (q: string) => void;
+}) {
+  const [query, setQuery] = useState(initial);
+  const [empty, setEmpty] = useState(false);
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        setEmpty(!query.trim());
+        onSearch(query);
+      }}
+    >
+      <div className="relative flex items-center rounded-xl border-2 bg-background shadow-sm transition-all focus-within:border-primary/50">
+        <Search className="absolute left-4 h-5 w-5 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Domain, IP address, or ASN"
+          aria-label="Domain, IP address, or ASN"
+          aria-invalid={empty}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="h-12 border-0 bg-transparent pl-12 pr-28 font-mono text-base shadow-none focus-visible:ring-0"
+        />
+        <Button
+          type="submit"
+          className="absolute right-2 h-9 gap-2 rounded-lg px-4"
+        >
+          Scan <ArrowRight className="h-4 w-4" />
+        </Button>
+      </div>
+      {empty && (
+        <p className="mt-1.5 text-sm text-destructive">
+          Enter a domain, IP address, or ASN.
+        </p>
+      )}
+    </form>
   );
 }

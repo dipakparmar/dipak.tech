@@ -2,18 +2,15 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Code2, Globe, Cookie, ShieldCheck } from 'lucide-react';
+import { Code2, Cookie, ShieldCheck } from 'lucide-react';
 import type {
   TechStackResult,
-  SocialTagsResult,
   CookieInfo,
   IdentityData
 } from '@/lib/osint-types';
-import Image from 'next/image';
 
 interface SiteIdentityProps {
   techStack: TechStackResult | null;
-  socialTags: SocialTagsResult | null;
   cookies: CookieInfo[] | null;
   identityData: IdentityData | null;
   pending: boolean;
@@ -42,7 +39,6 @@ function FlagBadge({ ok, label }: { ok: boolean; label: string }) {
 
 export function SiteIdentity({
   techStack,
-  socialTags,
   cookies,
   identityData,
   pending,
@@ -71,7 +67,7 @@ export function SiteIdentity({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div>
         {/* Tech Stack */}
         <div className="rounded-2xl border border-border/60 bg-card p-4">
           <div className="mb-3 flex items-center gap-2">
@@ -110,58 +106,6 @@ export function SiteIdentity({
           ) : (
             <div className="text-sm text-muted-foreground">
               No technology detected
-            </div>
-          )}
-        </div>
-
-        {/* Social Tags */}
-        <div className="rounded-2xl border border-border/60 bg-card p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Globe className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Social Tags
-            </span>
-          </div>
-          {socialTags ? (
-            <div className="space-y-2">
-              {socialTags.og.imageProxySrc && (
-                <div className="w-full overflow-hidden rounded-lg bg-muted">
-                  <Image
-                    src={socialTags.og.imageProxySrc}
-                    alt="OG image"
-                    width={1200}
-                    height={630}
-                    className="w-full h-auto"
-                    unoptimized
-                  />
-                </div>
-              )}
-              {socialTags.og.title && (
-                <div className="text-sm font-medium line-clamp-1">
-                  {socialTags.og.title}
-                </div>
-              )}
-              {socialTags.og.description && (
-                <div className="text-xs text-muted-foreground line-clamp-2">
-                  {socialTags.og.description}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-1.5">
-                {socialTags.og.type && (
-                  <Badge variant="outline" className="text-xs">
-                    {socialTags.og.type}
-                  </Badge>
-                )}
-                {socialTags.twitter.card && (
-                  <Badge variant="outline" className="text-xs">
-                    {socialTags.twitter.card}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              No social tags found
             </div>
           )}
         </div>

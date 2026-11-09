@@ -64,7 +64,7 @@ export function ThreatHistory({
                   )}
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {host.ports.slice(0, 8).map((port) => (
+                  {host.ports.map((port) => (
                     <span
                       key={port}
                       className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground border border-border/60"
@@ -72,12 +72,22 @@ export function ThreatHistory({
                       {port}
                     </span>
                   ))}
-                  {host.ports.length > 8 && (
-                    <span className="text-xs text-muted-foreground">
-                      +{host.ports.length - 8}
-                    </span>
-                  )}
                 </div>
+                {host.vulns.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5 font-mono text-xs">
+                    {host.vulns.map((cve) => (
+                      <a
+                        key={cve}
+                        href={`https://nvd.nist.gov/vuln/detail/${encodeURIComponent(cve)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-red-600 hover:underline dark:text-red-400"
+                      >
+                        {cve}
+                      </a>
+                    ))}
+                  </div>
+                )}
                 {host.tags.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {host.tags.map((tag) => (

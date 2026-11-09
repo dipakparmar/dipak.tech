@@ -22,6 +22,20 @@ function getPublicLogoDevToken(): string | null {
   return token ? token : null;
 }
 
+/** logo.dev URL for any domain, or null when no token is configured. */
+export function getDomainLogoSrc(domain: string, size = 32): string | null {
+  const token = getPublicLogoDevToken();
+  if (!token) return null;
+  const params = new URLSearchParams({
+    token,
+    size: String(size),
+    format: 'png',
+    retina: 'true',
+    fallback: '404'
+  });
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?${params.toString()}`;
+}
+
 export function isProviderLogoId(value: string): value is ProviderLogoId {
   return value in PROVIDER_LOGO_DOMAINS;
 }

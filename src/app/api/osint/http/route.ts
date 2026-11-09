@@ -12,6 +12,7 @@ import { detectWAF } from '@/lib/waf-detector';
 import { detectTechStack } from '@/lib/tech-stack';
 import { parseSocialTags } from '@/lib/social-tags';
 import { signImageUrl } from '@/lib/osint-image-sign';
+import { parseSeo, preview } from '@/lib/seo';
 import type { CookieInfo, RedirectHop } from '@/lib/osint-types';
 
 const HEADER_ALLOWLIST = [
@@ -52,7 +53,7 @@ const SECURITY_HEADERS = [
 const RESPONSE_CACHE_TTL = 5 * 60 * 1000;
 const RATE_LIMIT = 40;
 const RATE_WINDOW_MS = 60 * 1000;
-const HTML_CAP = 100_000;
+const HTML_CAP = 512_000;
 const MAX_REDIRECTS = 10;
 const FETCH_TIMEOUT_MS = 8000;
 const IMAGE_PROXY_TTL_MS = 5 * 60 * 1000;
@@ -100,7 +101,8 @@ export async function GET(request: Request) {
       );
 
     const { response, chain, allHeaders } = result;
-    const html = await readLimitedBody(response, HTML_CAP);
+    const { text: html, truncated } = await readLimitedBody(response, HTML_CAP);
+    const seo = parseSeo(html, response.url, truncated);
 
     const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
     const title = titleMatch ? titleMatch[1].trim() : null;
@@ -121,23 +123,37 @@ export async function GET(request: Request) {
     const waf = detectWAF(allHeaders);
     const techStack = detectTechStack(allHeaders, html);
     const socialTags = parseSocialTags(html);
-    if (socialTags.og.image) {
-      const imageSignature = await signImageUrl({
-        url: socialTags.og.image,
+    const proxy = async (url: string | null) => {
+      if (!url) return null;
+      const sig = await signImageUrl({
+        url,
         clientId,
         nonce: crypto.randomUUID(),
         expiresAt: Date.now() + IMAGE_PROXY_TTL_MS
       });
-
-      if (imageSignature) {
-        const params = new URLSearchParams({
-          url: imageSignature.url,
-          token: imageSignature.token,
-          exp: String(imageSignature.expiresAt),
-          nonce: imageSignature.nonce
-        });
-        socialTags.og.imageProxySrc = `/api/osint/image-proxy?${params.toString()}`;
-      }
+      if (!sig) return null;
+      const params = new URLSearchParams({
+        url: sig.url,
+        token: sig.token,
+        exp: String(sig.expiresAt),
+        nonce: sig.nonce
+      });
+      return `/api/osint/image-proxy?${params.toString()}`;
+    };
+    // Images the previews need, fetched through the signed same-origin proxy.
+    const card = preview(seo);
+    seo.proxied = {};
+    for (const url of new Set(
+      [card.image, card.twitterImage, seo.favicon].filter((u): u is string =>
+        Boolean(u)
+      )
+    )) {
+      const src = await proxy(url);
+      if (src) seo.proxied[url] = src;
+    }
+    if (socialTags.og.image) {
+      socialTags.og.imageProxySrc =
+        seo.proxied[card.image ?? ''] ?? (await proxy(socialTags.og.image));
     }
 
     const payload = {
@@ -152,7 +168,8 @@ export async function GET(request: Request) {
       redirectChain: chain,
       waf,
       techStack,
-      socialTags
+      socialTags,
+      seo
     };
 
     setCached(cacheKey, payload, RESPONSE_CACHE_TTL);
@@ -177,8 +194,6 @@ async function fetchWithChain(startUrls: string[]) {
       const allHeaders: Record<string, string> = {};
 
       for (let i = 0; i < MAX_REDIRECTS; i++) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
         const hopStart = Date.now();
 
         if (isSsrfTarget(currentUrl)) break;
@@ -186,13 +201,13 @@ async function fetchWithChain(startUrls: string[]) {
         const response = await fetch(currentUrl, {
           method: 'GET',
           redirect: 'manual',
-          signal: controller.signal,
+          // Also bounds reading the body, not just waiting for headers.
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
           headers: {
             'User-Agent': 'dipak.tech-osint/1.0',
             Accept: 'text/html,application/xhtml+xml,*/*;q=0.8'
           }
         });
-        clearTimeout(timeout);
 
         const latencyMs = Date.now() - hopStart;
         chain.push({ url: currentUrl, status: response.status, latencyMs });
@@ -254,15 +269,23 @@ function parseCookies(headers: Headers): CookieInfo[] {
 
 async function readLimitedBody(response: Response, maxBytes: number) {
   const reader = response.body?.getReader();
-  if (!reader) return '';
+  if (!reader) return { text: '', truncated: false };
   const chunks: Uint8Array[] = [];
   let received = 0;
-  while (received < maxBytes) {
-    const { done, value } = await reader.read();
-    if (done || !value) break;
-    chunks.push(value);
-    received += value.length;
-    if (received >= maxBytes) break;
+  let truncated = false;
+  try {
+    while (received < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done || !value) break;
+      chunks.push(value);
+      received += value.length;
+    }
+    truncated = received >= maxBytes;
+  } catch {
+    // Timed out or dropped mid-body: analyse what arrived.
+    truncated = true;
+  } finally {
+    reader.cancel().catch(() => {});
   }
   const buffer = new Uint8Array(chunks.reduce((a, c) => a + c.length, 0));
   let offset = 0;
@@ -270,5 +293,5 @@ async function readLimitedBody(response: Response, maxBytes: number) {
     buffer.set(chunk, offset);
     offset += chunk.length;
   }
-  return new TextDecoder().decode(buffer);
+  return { text: new TextDecoder().decode(buffer), truncated };
 }

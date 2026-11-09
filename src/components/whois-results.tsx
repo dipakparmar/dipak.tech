@@ -1,91 +1,36 @@
 'use client';
 
-import {
-  Building,
-  Calendar,
-  Check,
-  ChevronDown,
-  Copy,
-  FileText,
-  Globe,
-  Hash,
-  Info,
-  LinkIcon,
-  Lock,
-  Mail,
-  MapPin,
-  Network,
-  Phone,
-  Server,
-  Shield,
-  User,
-  X
-} from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
-import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
-import { useState } from 'react';
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
-import type { ParsedWhoisData, WhoisFallbackResult } from '@/lib/whois';
-
+import type { ReactNode } from 'react';
+import { Check, Copy, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { HapticButton as Button } from '@/components/haptic-wrappers';
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard';
+import type { WhoisFallbackResult } from '@/lib/whois';
 
-type RdapEvent = {
-  eventAction?: string;
-  eventDate?: string;
-};
-
-type RdapLink = {
-  href?: string;
-  rel?: string;
-  type?: string;
-};
-
+type RdapEvent = { eventAction?: string; eventDate?: string };
+type RdapLink = { href?: string; rel?: string; type?: string };
 type RdapNotice = {
   title?: string;
   description?: string[];
   links?: RdapLink[];
 };
-
-type PublicId = {
-  type?: string;
-  identifier?: string;
-};
-
-type SecureDnsDsRecord = {
-  keyTag?: string | number;
-  algorithm?: string | number;
-  digestType?: string | number;
-  digest?: string;
-};
+type PublicId = { type?: string; identifier?: string };
 
 type SecureDnsInfo = {
   zoneSigned?: boolean;
   delegationSigned?: boolean;
-  dsData?: SecureDnsDsRecord[];
-};
-
-type IpAddressInfo = {
-  v4?: string[];
-  v6?: string[];
+  dsData?: {
+    keyTag?: string | number;
+    algorithm?: string | number;
+    digestType?: string | number;
+    digest?: string;
+  }[];
 };
 
 type NameServer = {
   ldhName?: string;
   unicodeName?: string;
-  ipAddresses?: IpAddressInfo;
+  ipAddresses?: { v4?: string[]; v6?: string[] };
 };
 
 type CidrBlock = {
@@ -96,21 +41,22 @@ type CidrBlock = {
 
 type VCardValue = string | string[] | null;
 type VCardEntry = [string, Record<string, unknown>, string, VCardValue];
-type VCardArray = [string, VCardEntry[]];
 
 type RdapEntity = {
   handle?: string;
   roles?: string[];
-  vcardArray?: VCardArray;
+  vcardArray?: [string, VCardEntry[]];
+  publicIds?: PublicId[];
   status?: string[];
   events?: RdapEvent[];
   entities?: RdapEntity[];
 };
 
-type WhoisDisplayData = {
+type QueryType = 'domain' | 'ipv4' | 'ipv6' | 'asn';
+
+type RdapData = {
   _queryType?: QueryType;
   _source?: string;
-  _fallbackReason?: string;
   objectClassName?: string;
   name?: string;
   handle?: string;
@@ -118,11 +64,6 @@ type WhoisDisplayData = {
   type?: string;
   country?: string;
   port43?: string;
-  sourceServer?: string;
-  referralServer?: string | null;
-  referralError?: string | null;
-  sourceChain?: string[];
-  parsedWhois?: ParsedWhoisData | null;
   status?: string[];
   entities?: RdapEntity[];
   events?: RdapEvent[];
@@ -139,32 +80,14 @@ type WhoisDisplayData = {
   links?: RdapLink[];
   publicIds?: PublicId[];
   ipVersion?: string | number;
-  ianaResponse?: string;
-  rawWhois?: string;
 };
 
 interface WhoisResultsProps {
-  data: WhoisDisplayData | WhoisFallbackResult;
+  data: RdapData | WhoisFallbackResult;
   query: string;
 }
 
-type QueryType = 'domain' | 'ipv4' | 'ipv6' | 'asn';
-
-type EppStatusInfo = {
-  label: string;
-  summary: string;
-  action: string;
-};
-
-type StatusTone =
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'clientLock'
-  | 'serverLock'
-  | 'period'
-  | 'inactive'
-  | 'neutral';
+type EppStatusInfo = { label: string; summary: string; action: string };
 
 const EPP_STATUS_INFO: Record<string, EppStatusInfo> = {
   addperiod: {
@@ -311,13 +234,27 @@ const EPP_STATUS_INFO: Record<string, EppStatusInfo> = {
   }
 };
 
-function normalizeStatusKey(status: string): string {
-  return status.toLowerCase().replace(/[\s_-]+/g, '');
-}
+const TONE_CLASSES = {
+  success:
+    'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  warning:
+    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  danger: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  clientLock: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  serverLock:
+    'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  period:
+    'border-stone-500/30 bg-stone-500/10 text-stone-700 dark:text-stone-300',
+  inactive:
+    'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  neutral: 'border-muted-foreground/20 bg-muted/50 text-foreground'
+};
 
-function getStatusTone(status: string): StatusTone {
+const normalizeStatusKey = (status: string) =>
+  status.toLowerCase().replace(/[\s_-]+/g, '');
+
+function getStatusTone(status: string): keyof typeof TONE_CLASSES {
   const key = normalizeStatusKey(status);
-
   if (key === 'ok' || key === 'active') return 'success';
   if (key === 'inactive') return 'inactive';
   if (key.includes('hold')) return 'danger';
@@ -328,1437 +265,648 @@ function getStatusTone(status: string): StatusTone {
   if (key.startsWith('server') && key.endsWith('prohibited'))
     return 'serverLock';
   if (key.endsWith('period')) return 'period';
-
   return 'neutral';
 }
 
-function getStatusBadgeClassName(status: string): string {
-  switch (getStatusTone(status)) {
-    case 'success':
-      return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
-    case 'warning':
-      return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
-    case 'danger':
-      return 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300';
-    case 'clientLock':
-      return 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300';
-    case 'serverLock':
-      return 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300';
-    case 'period':
-      return 'border-stone-500/30 bg-stone-500/10 text-stone-700 dark:text-stone-300';
-    case 'inactive':
-      return 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300';
-    default:
-      return 'border-muted-foreground/20 bg-muted/50 text-foreground';
-  }
-}
-
-function getStatusInfo(status: string): EppStatusInfo | null {
-  return EPP_STATUS_INFO[normalizeStatusKey(status)] || null;
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const info = getStatusInfo(status);
-  const badge = (
-    <Badge
-      variant="outline"
-      className={`font-mono text-xs ${getStatusBadgeClassName(status)}`}
-    >
-      {status}
-    </Badge>
-  );
-
-  if (!info) {
-    return badge;
-  }
-
+function StatusChips({ statuses }: { statuses: string[] }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{badge}</TooltipTrigger>
-      <TooltipContent
-        sideOffset={8}
-        className="max-w-sm rounded-xl border border-border/70 bg-popover/95 p-0 text-sm text-popover-foreground shadow-2xl shadow-black/15 backdrop-blur-md"
-      >
-        <div className="space-y-0">
-          <div className="border-b border-border/70 bg-muted/40 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  getStatusTone(status) === 'success'
-                    ? 'bg-emerald-400'
-                    : getStatusTone(status) === 'warning'
-                      ? 'bg-amber-400'
-                      : getStatusTone(status) === 'danger'
-                        ? 'bg-rose-400'
-                        : getStatusTone(status) === 'clientLock'
-                          ? 'bg-sky-400'
-                          : getStatusTone(status) === 'serverLock'
-                            ? 'bg-violet-400'
-                            : getStatusTone(status) === 'period'
-                              ? 'bg-stone-400'
-                              : getStatusTone(status) === 'inactive'
-                                ? 'bg-slate-400'
-                                : 'bg-zinc-400'
-                }`}
-              />
-              <p className="font-semibold tracking-tight text-popover-foreground">
-                {info.label}
-              </p>
-            </div>
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {status}
-            </p>
-          </div>
-          <div className="space-y-3 px-4 py-3">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Meaning
-              </p>
-              <p className="mt-1 leading-relaxed text-popover-foreground/90">
-                {info.summary}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                What To Do
-              </p>
-              <p className="mt-1 leading-relaxed text-popover-foreground">
-                {info.action}
-              </p>
-            </div>
-          </div>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+    <span className="flex flex-wrap gap-1">
+      {statuses.map((status, idx) => {
+        const info = EPP_STATUS_INFO[normalizeStatusKey(status)];
+        return (
+          <span
+            key={`${status}-${idx}`}
+            title={
+              info
+                ? `${info.label}: ${info.summary}\nWhat to do: ${info.action}`
+                : undefined
+            }
+            className={`rounded border px-1.5 py-px font-mono text-[11px] ${TONE_CLASSES[getStatusTone(status)]} ${info ? 'cursor-help' : ''}`}
+          >
+            {status}
+          </span>
+        );
+      })}
+    </span>
   );
 }
 
-function CopyButton({
-  value,
-  className
-}: {
-  value: string;
-  className?: string;
-}) {
+function CopyButton({ value }: { value: string }) {
   const { status, copied, copy } = useCopyToClipboard();
-
   return (
     <Button
       variant="ghost"
       size="sm"
       onClick={() => copy(value)}
-      className={`h-7 w-7 p-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 ${className}`}
+      className="h-5 w-5 shrink-0 p-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
       aria-label={
-        status === 'error'
-          ? 'Copy failed'
-          : copied
-            ? 'Copied'
-            : 'Copy WHOIS value'
+        status === 'error' ? 'Copy failed' : copied ? 'Copied' : `Copy ${value}`
       }
     >
       {status === 'error' ? (
-        <X className="h-3.5 w-3.5 text-destructive" />
+        <X className="h-3 w-3 text-destructive" />
       ) : copied ? (
-        <Check className="h-3.5 w-3.5 text-emerald-500" />
+        <Check className="h-3 w-3 text-emerald-500" />
       ) : (
-        <Copy className="h-3.5 w-3.5" />
+        <Copy className="h-3 w-3" />
       )}
     </Button>
   );
 }
 
-export function WhoisResults({ data, query }: WhoisResultsProps) {
-  const queryType: QueryType = data._queryType || 'domain';
-  const source = data._source || 'rdap';
-  const isWhoisFallback = source === 'whois';
-  const rdap = data as WhoisDisplayData;
-  const [showRawJson, setShowRawJson] = useState(false);
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const getStatus = () => {
-    if (rdap.status && Array.isArray(rdap.status)) {
-      return rdap.status;
-    }
-    return [];
-  };
-
-  const getEntities = (role?: string) => {
-    if (!rdap.entities) return [];
-    if (role) {
-      return rdap.entities.filter((entity: RdapEntity) =>
-        entity.roles?.includes(role)
-      );
-    }
-    return rdap.entities;
-  };
-
-  const registrant = getEntities('registrant')[0];
-  const admin = getEntities('administrative')[0];
-  const tech = getEntities('technical')[0];
-  const registrar = getEntities('registrar')[0];
-  const allEntities = getEntities();
-
-  const getQueryTypeLabel = () => {
-    switch (queryType) {
-      case 'ipv4':
-      case 'ipv6':
-        return 'IP Address Information';
-      case 'asn':
-        return 'Autonomous System Information';
-      default:
-        return 'Domain Registration Information';
-    }
-  };
-
-  const getQueryTypeIcon = () => {
-    switch (queryType) {
-      case 'ipv4':
-      case 'ipv6':
-        return <Network className="h-5 w-5 text-primary" />;
-      case 'asn':
-        return <Hash className="h-5 w-5 text-primary" />;
-      default:
-        return <Globe className="h-5 w-5 text-primary" />;
-    }
-  };
-
-  const displayName = data.name || rdap.handle || rdap.ldhName || query;
-  const parsedWhois = data.parsedWhois || null;
-
-  if (isWhoisFallback) {
-    return (
-      <div className="space-y-6">
-        <Card className="relative overflow-hidden border-2 shadow-lg">
-          <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent" />
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="group flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Globe className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="truncate text-xl font-bold sm:text-2xl">
-                        {displayName}
-                      </CardTitle>
-                      <CopyButton value={displayName} />
-                    </div>
-                    <CardDescription className="text-sm">
-                      Domain WHOIS fallback response via port 43
-                    </CardDescription>
-                  </div>
-                </div>
-              </div>
-              <Badge
-                variant="secondary"
-                className="shrink-0 font-mono text-xs uppercase"
-              >
-                WHOIS
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <Server className="h-3.5 w-3.5" />
-                  Source Server
-                </div>
-                <p className="mt-1 font-mono text-sm font-semibold">
-                  {data.sourceServer || 'whois.iana.org'}
-                </p>
-              </div>
-              <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <LinkIcon className="h-3.5 w-3.5" />
-                  Referral Server
-                </div>
-                <p className="mt-1 font-mono text-sm font-semibold">
-                  {data.referralServer || 'None'}
-                </p>
-              </div>
-              <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <Info className="h-3.5 w-3.5" />
-                  Fallback Reason
-                </div>
-                <p className="mt-1 text-sm font-semibold">
-                  {data._fallbackReason || 'RDAP unavailable'}
-                </p>
-              </div>
-            </div>
-
-            {data.referralError && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
-                  <Info className="h-3.5 w-3.5" />
-                  Referral WHOIS Degraded
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {data.referralServer
-                    ? `The referred WHOIS server ${data.referralServer} did not return a usable response. Showing IANA registry data instead.`
-                    : 'The referred WHOIS server did not return a usable response.'}
-                </p>
-                <p className="mt-2 font-mono text-xs text-muted-foreground">
-                  {data.referralError}
-                </p>
-              </div>
-            )}
-
-            {Array.isArray(data.sourceChain) && data.sourceChain.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <Network className="h-3.5 w-3.5" />
-                  Lookup Chain
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {data.sourceChain.map((server: string, idx: number) => (
-                    <Badge
-                      key={`${server}-${idx}`}
-                      variant="outline"
-                      className="font-mono text-xs"
-                    >
-                      {server}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {parsedWhois && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="h-5 w-5 text-primary" />
-                Best-Effort Parsed Fields
-              </CardTitle>
-              <CardDescription>
-                Heuristic extraction from raw WHOIS text
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {parsedWhois.registrar && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Building className="h-3.5 w-3.5" />
-                      Registrar
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {parsedWhois.registrar}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.registrarUrl && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <LinkIcon className="h-3.5 w-3.5" />
-                      Registrar URL
-                    </div>
-                    <p className="mt-1 break-all text-sm font-semibold">
-                      {parsedWhois.registrarUrl}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.registrarIanaId && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Hash className="h-3.5 w-3.5" />
-                      Registrar IANA ID
-                    </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">
-                      {parsedWhois.registrarIanaId}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.registrant && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <User className="h-3.5 w-3.5" />
-                      Registrant
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {parsedWhois.registrant}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.registryDomainId && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Hash className="h-3.5 w-3.5" />
-                      Registry Domain ID
-                    </div>
-                    <p className="mt-1 break-all font-mono text-sm font-semibold">
-                      {parsedWhois.registryDomainId}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.registrarWhoisServer && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Server className="h-3.5 w-3.5" />
-                      Registrar WHOIS
-                    </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">
-                      {parsedWhois.registrarWhoisServer}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.creationDate && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Created
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {parsedWhois.creationDate}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.updatedDate && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Updated
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {parsedWhois.updatedDate}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.expirationDate && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Expires
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {parsedWhois.expirationDate}
-                    </p>
-                  </div>
-                )}
-                {parsedWhois.dnssec && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Lock className="h-3.5 w-3.5" />
-                      DNSSEC
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {parsedWhois.dnssec}
-                    </p>
-                  </div>
-                )}
-                {(parsedWhois.registrantCity ||
-                  parsedWhois.registrantState ||
-                  parsedWhois.registrantCountry) && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      Registrant Location
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      {[
-                        parsedWhois.registrantCity,
-                        parsedWhois.registrantState,
-                        parsedWhois.registrantCountry
-                      ]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {parsedWhois.status?.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <Shield className="h-3.5 w-3.5" />
-                    Parsed Status
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {parsedWhois.status.map((status: string, idx: number) => (
-                      <StatusBadge key={`${status}-${idx}`} status={status} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {parsedWhois.nameservers?.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <Server className="h-3.5 w-3.5" />
-                    Parsed Nameservers
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {parsedWhois.nameservers.map((nameserver: string) => (
-                      <div
-                        key={nameserver}
-                        className="group flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:border-primary/30"
-                      >
-                        <p className="truncate font-mono text-sm font-medium">
-                          {nameserver}
-                        </p>
-                        <CopyButton value={nameserver} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(parsedWhois.abuseEmail || parsedWhois.abusePhone) && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {parsedWhois.abuseEmail && (
-                    <div className="rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5" />
-                        Abuse Email
-                      </div>
-                      <p className="mt-1 break-all text-sm font-semibold">
-                        {parsedWhois.abuseEmail}
-                      </p>
-                    </div>
-                  )}
-                  {parsedWhois.abusePhone && (
-                    <div className="rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5" />
-                        Abuse Phone
-                      </div>
-                      <p className="mt-1 text-sm font-semibold">
-                        {parsedWhois.abusePhone}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {(parsedWhois.registrantId ||
-                parsedWhois.adminId ||
-                parsedWhois.techId) && (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {parsedWhois.registrantId && (
-                    <div className="rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <Hash className="h-3.5 w-3.5" />
-                        Registrant ID
-                      </div>
-                      <p className="mt-1 break-all font-mono text-sm font-semibold">
-                        {parsedWhois.registrantId}
-                      </p>
-                    </div>
-                  )}
-                  {parsedWhois.adminId && (
-                    <div className="rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <Hash className="h-3.5 w-3.5" />
-                        Admin ID
-                      </div>
-                      <p className="mt-1 break-all font-mono text-sm font-semibold">
-                        {parsedWhois.adminId}
-                      </p>
-                    </div>
-                  )}
-                  {parsedWhois.techId && (
-                    <div className="rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <Hash className="h-3.5 w-3.5" />
-                        Tech ID
-                      </div>
-                      <p className="mt-1 break-all font-mono text-sm font-semibold">
-                        {parsedWhois.techId}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {parsedWhois.contacts && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <User className="h-3.5 w-3.5" />
-                    Parsed Contacts
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {(
-                      [
-                        { key: 'registrant', label: 'Registrant' },
-                        { key: 'admin', label: 'Admin' },
-                        { key: 'tech', label: 'Tech' }
-                      ] as const
-                    ).map(({ key, label }) => {
-                      const contact = parsedWhois.contacts[key];
-                      const hasData =
-                        contact && Object.values(contact).some(Boolean);
-                      if (!hasData) return null;
-
-                      return (
-                        <div
-                          key={key}
-                          className="space-y-3 rounded-lg border bg-card p-4"
-                        >
-                          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            <User className="h-3.5 w-3.5" />
-                            {label}
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            {contact.name && (
-                              <p className="font-semibold">{contact.name}</p>
-                            )}
-                            {contact.organization && (
-                              <p className="text-muted-foreground">
-                                {contact.organization}
-                              </p>
-                            )}
-                            {contact.email && (
-                              <p className="break-all">{contact.email}</p>
-                            )}
-                            {contact.phone && <p>{contact.phone}</p>}
-                            {(contact.city ||
-                              contact.state ||
-                              contact.country) && (
-                              <p>
-                                {[contact.city, contact.state, contact.country]
-                                  .filter(Boolean)
-                                  .join(', ')}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {data.referralServer && data.ianaResponse && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Info className="h-5 w-5 text-primary" />
-                IANA Referral Response
-              </CardTitle>
-              <CardDescription>
-                Raw response used to locate the authoritative WHOIS server
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <pre className="max-h-72 overflow-auto rounded-lg border bg-muted/50 p-4 font-mono text-xs whitespace-pre-wrap break-words">
-                {data.ianaResponse}
-              </pre>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5 text-primary" />
-              Raw WHOIS Response
-            </CardTitle>
-            <CardDescription>
-              Unstructured text returned by the WHOIS server
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <pre className="max-h-[32rem] overflow-auto rounded-lg border bg-muted/50 p-4 font-mono text-xs whitespace-pre-wrap break-words">
-              {data.rawWhois}
-            </pre>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader
-            className="cursor-pointer select-none"
-            onClick={() => setShowRawJson(!showRawJson)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && setShowRawJson(!showRawJson)}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base">Raw API Response</CardTitle>
-                <CardDescription>
-                  Complete fallback payload returned by the server
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${showRawJson ? 'rotate-180' : ''}`}
-                />
-              </Button>
-            </div>
-          </CardHeader>
-          {showRawJson && (
-            <CardContent>
-              <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/50 p-4 font-mono text-xs">
-                {JSON.stringify(data, null, 2)}
-              </pre>
-            </CardContent>
-          )}
-        </Card>
-      </div>
-    );
-  }
-
+/** A key/value cell; renders nothing when the value is empty. */
+function Field({
+  label,
+  children,
+  copy,
+  wide,
+  mono
+}: {
+  label: string;
+  children: ReactNode;
+  copy?: string;
+  wide?: boolean;
+  mono?: boolean;
+}) {
+  if (children == null || children === '' || children === false) return null;
   return (
-    <div className="space-y-6">
-      {/* Hero Card */}
-      <Card className="relative overflow-hidden border-2 shadow-lg">
-        <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/50 to-transparent" />
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="group flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  {getQueryTypeIcon()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="truncate text-xl font-bold sm:text-2xl">
-                      {displayName}
-                    </CardTitle>
-                    <CopyButton value={displayName} />
-                  </div>
-                  <CardDescription className="text-sm">
-                    {getQueryTypeLabel()}
-                  </CardDescription>
-                </div>
-              </div>
-            </div>
-            {rdap.objectClassName && (
-              <Badge
-                variant="secondary"
-                className="shrink-0 font-mono text-xs uppercase"
-              >
-                {rdap.objectClassName}
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Key Dates */}
-          {rdap.events && rdap.events.length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {rdap.events.slice(0, 4).map((event: RdapEvent, idx: number) => (
-                <div
-                  key={idx}
-                  className="group relative overflow-hidden rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4 transition-colors hover:border-primary/30"
-                >
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {event.eventAction?.replace(/([A-Z])/g, ' $1').trim()}
-                  </div>
-                  <p className="mt-1 text-sm font-semibold">
-                    {formatDate(event.eventDate || '')}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Status Badges */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <Shield className="h-3.5 w-3.5" />
-              Status
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {getStatus().length > 0 ? (
-                getStatus().map((status: string, idx: number) => (
-                  <StatusBadge key={idx} status={status} />
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No status available
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Nameservers (Domain only) */}
-          {queryType === 'domain' &&
-            rdap.nameservers &&
-            rdap.nameservers.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <Server className="h-3.5 w-3.5" />
-                  Nameservers ({rdap.nameservers.length})
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {rdap.nameservers.map((ns: NameServer, idx: number) => (
-                    <div
-                      key={idx}
-                      className="group flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:border-primary/30"
-                    >
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <p className="truncate font-mono text-sm font-medium">
-                          {ns.ldhName || ns.unicodeName}
-                        </p>
-                        {ns.ipAddresses && (
-                          <div className="flex flex-wrap gap-1">
-                            {ns.ipAddresses.v4?.map((ip: string, i: number) => (
-                              <Badge
-                                key={`v4-${i}`}
-                                variant="secondary"
-                                className="font-mono text-xs"
-                              >
-                                {ip}
-                              </Badge>
-                            ))}
-                            {ns.ipAddresses.v6?.map((ip: string, i: number) => (
-                              <Badge
-                                key={`v6-${i}`}
-                                variant="secondary"
-                                className="font-mono text-xs"
-                              >
-                                {ip}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <CopyButton
-                        value={ns.ldhName || ns.unicodeName || query}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-          {/* IP Network Information */}
-          {(queryType === 'ipv4' || queryType === 'ipv6') && (
-            <div className="space-y-4">
-              {/* IP Version & Handle */}
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {rdap.ipVersion && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Network className="h-3.5 w-3.5" />
-                      IP Version
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">
-                      IPv{rdap.ipVersion}
-                    </p>
-                  </div>
-                )}
-                {rdap.handle && (
-                  <div className="group rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <Hash className="h-3.5 w-3.5" />
-                        Handle
-                      </div>
-                      <CopyButton value={rdap.handle} />
-                    </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">
-                      {rdap.handle}
-                    </p>
-                  </div>
-                )}
-                {rdap.type && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <FileText className="h-3.5 w-3.5" />
-                      Type
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">{rdap.type}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* CIDR Blocks */}
-              {rdap.cidr0_cidrs && rdap.cidr0_cidrs.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <Network className="h-3.5 w-3.5" />
-                    CIDR Blocks
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {rdap.cidr0_cidrs.map((cidr: CidrBlock, idx: number) => (
-                      <Badge
-                        key={idx}
-                        variant="outline"
-                        className="font-mono text-xs"
-                      >
-                        {cidr.v4prefix || cidr.v6prefix}/{cidr.length}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Start/End Address */}
-              {(rdap.startAddress || rdap.endAddress) && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {rdap.startAddress && (
-                    <div className="group rounded-lg border bg-card p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Start Address
-                        </div>
-                        <CopyButton value={rdap.startAddress} />
-                      </div>
-                      <p className="mt-1 font-mono text-sm font-medium">
-                        {rdap.startAddress}
-                      </p>
-                    </div>
-                  )}
-                  {rdap.endAddress && (
-                    <div className="group rounded-lg border bg-card p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          End Address
-                        </div>
-                        <CopyButton value={rdap.endAddress} />
-                      </div>
-                      <p className="mt-1 font-mono text-sm font-medium">
-                        {rdap.endAddress}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Parent Handle */}
-              {rdap.parentHandle && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <LinkIcon className="h-3.5 w-3.5" />
-                    Parent Network
-                  </div>
-                  <p className="font-mono text-sm">{rdap.parentHandle}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ASN Information */}
-          {queryType === 'asn' && (
-            <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {rdap.startAutnum !== undefined && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Hash className="h-3.5 w-3.5" />
-                      ASN Range Start
-                    </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">
-                      AS{rdap.startAutnum}
-                    </p>
-                  </div>
-                )}
-                {rdap.endAutnum !== undefined && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Hash className="h-3.5 w-3.5" />
-                      ASN Range End
-                    </div>
-                    <p className="mt-1 font-mono text-sm font-semibold">
-                      AS{rdap.endAutnum}
-                    </p>
-                  </div>
-                )}
-                {rdap.type && (
-                  <div className="rounded-lg border bg-linear-to-br from-muted/30 to-muted/10 p-4">
-                    <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <FileText className="h-3.5 w-3.5" />
-                      Type
-                    </div>
-                    <p className="mt-1 text-sm font-semibold">{rdap.type}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Country */}
-              {rdap.country && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <Globe className="h-3.5 w-3.5" />
-                    Country
-                  </div>
-                  <p className="text-sm font-medium">{rdap.country}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* DNSSEC */}
-          {rdap.secureDNS && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <Lock className="h-3.5 w-3.5" />
-                DNSSEC
-              </div>
-              <div className="rounded-lg border bg-card p-4 space-y-3">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Zone Signed:
-                    </span>
-                    <Badge
-                      variant={
-                        rdap.secureDNS.zoneSigned ? 'default' : 'secondary'
-                      }
-                      className="text-xs"
-                    >
-                      {rdap.secureDNS.zoneSigned ? 'Yes' : 'No'}
-                    </Badge>
-                  </div>
-                  {rdap.secureDNS.delegationSigned !== undefined && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Delegation:
-                      </span>
-                      <Badge
-                        variant={
-                          rdap.secureDNS.delegationSigned
-                            ? 'default'
-                            : 'secondary'
-                        }
-                        className="text-xs"
-                      >
-                        {rdap.secureDNS.delegationSigned ? 'Yes' : 'No'}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-                {rdap.secureDNS.dsData && rdap.secureDNS.dsData.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      DS Records
-                    </p>
-                    {rdap.secureDNS.dsData.map(
-                      (ds: SecureDnsDsRecord, idx: number) => (
-                        <div
-                          key={idx}
-                          className="space-y-0.5 rounded-md bg-muted/50 p-3 font-mono text-xs"
-                        >
-                          <div>
-                            Key: {ds.keyTag} | Algo: {ds.algorithm} | Type:{' '}
-                            {ds.digestType}
-                          </div>
-                          <div className="break-all text-muted-foreground">
-                            {ds.digest}
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {rdap.port43 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <Globe className="h-3.5 w-3.5" />
-                Legacy WHOIS
-              </div>
-              <p className="font-mono text-sm">{rdap.port43}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Entities Section */}
-      {allEntities.length > 0 && (
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5 text-primary" />
-              Contacts & Organizations
-            </CardTitle>
-            <CardDescription>Entity information and roles</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="detailed">All Entities</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview" className="mt-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {registrant && (
-                    <div className="space-y-3 rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <User className="h-3.5 w-3.5" />
-                        Registrant
-                      </div>
-                      <EntityInfo entity={registrant} compact />
-                    </div>
-                  )}
-
-                  {registrar && (
-                    <div className="space-y-3 rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <Building className="h-3.5 w-3.5" />
-                        Registrar
-                      </div>
-                      <EntityInfo entity={registrar} compact />
-                    </div>
-                  )}
-
-                  {admin && (
-                    <div className="space-y-3 rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <User className="h-3.5 w-3.5" />
-                        Administrative
-                      </div>
-                      <EntityInfo entity={admin} compact />
-                    </div>
-                  )}
-
-                  {tech && (
-                    <div className="space-y-3 rounded-lg border bg-card p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        <User className="h-3.5 w-3.5" />
-                        Technical
-                      </div>
-                      <EntityInfo entity={tech} compact />
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="detailed" className="mt-6 space-y-4">
-                {allEntities.map((entity, idx: number) => (
-                  <div
-                    key={idx}
-                    className="space-y-4 rounded-lg border bg-card p-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <p className="font-mono text-sm font-medium">
-                          {entity.handle || `Entity ${idx + 1}`}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {entity.roles?.map((role: string, i: number) => (
-                            <Badge
-                              key={i}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {role}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <EntityInfo entity={entity} detailed />
-                  </div>
-                ))}
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Notices & Remarks */}
-      {((rdap.notices && rdap.notices.length > 0) ||
-        (rdap.remarks && rdap.remarks.length > 0)) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Info className="h-5 w-5 text-primary" />
-              Notices & Remarks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {rdap.notices?.map((notice: RdapNotice, idx: number) => (
-              <div
-                key={`notice-${idx}`}
-                className="space-y-2 rounded-lg border bg-card p-4"
-              >
-                {notice.title && (
-                  <p className="text-sm font-medium">{notice.title}</p>
-                )}
-                {notice.description?.map((desc: string, i: number) => (
-                  <p key={i} className="text-sm text-muted-foreground">
-                    {desc}
-                  </p>
-                ))}
-                {notice.links && notice.links.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {notice.links.map((link: RdapLink, i: number) => (
-                      <a
-                        key={i}
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-primary hover:underline"
-                      >
-                        <LinkIcon className="h-3 w-3" />
-                        {link.rel || 'Link'}
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {rdap.remarks?.map((remark: RdapNotice, idx: number) => (
-              <div
-                key={`remark-${idx}`}
-                className="space-y-2 rounded-lg border bg-muted/30 p-4"
-              >
-                {remark.title && (
-                  <p className="text-sm font-medium">{remark.title}</p>
-                )}
-                {remark.description?.map((desc: string, i: number) => (
-                  <p key={i} className="text-sm text-muted-foreground">
-                    {desc}
-                  </p>
-                ))}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Links */}
-      {rdap.links && rdap.links.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <LinkIcon className="h-5 w-5 text-primary" />
-              Related Links
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {rdap.links.map((link: RdapLink, idx: number) => (
-                <a
-                  key={idx}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:border-primary/50 hover:bg-accent/50"
-                >
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-sm font-medium transition-colors group-hover:text-primary">
-                      {link.rel || 'Link'}
-                    </p>
-                    {link.type && (
-                      <Badge variant="secondary" className="text-xs">
-                        {link.type}
-                      </Badge>
-                    )}
-                  </div>
-                  <LinkIcon className="ml-2 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
-                </a>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Public IDs */}
-      {rdap.publicIds && rdap.publicIds.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5 text-primary" />
-              Public Identifiers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {rdap.publicIds.map((id: PublicId, idx: number) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between rounded-lg border bg-card p-3"
-                >
-                  <span className="text-sm font-medium">{id.type}</span>
-                  <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
-                    {id.identifier}
-                  </code>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Raw JSON - Collapsible */}
-      <Card>
-        <CardHeader
-          className="cursor-pointer select-none"
-          onClick={() => setShowRawJson(!showRawJson)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => e.key === 'Enter' && setShowRawJson(!showRawJson)}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">Raw RDAP Response</CardTitle>
-              <CardDescription>
-                Complete JSON data from the RDAP server
-              </CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${showRawJson ? 'rotate-180' : ''}`}
-              />
-            </Button>
-          </div>
-        </CardHeader>
-        {showRawJson && (
-          <CardContent>
-            <pre className="max-h-96 overflow-auto rounded-lg border bg-muted/50 p-4 font-mono text-xs">
-              {JSON.stringify(data, null, 2)}
-            </pre>
-          </CardContent>
-        )}
-      </Card>
+    <div
+      className={`min-w-0 ${wide ? 'col-span-full' : ''} ${copy ? 'group' : ''}`}
+    >
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd
+        className={`flex items-center gap-1 text-sm ${mono ? 'font-mono break-all' : 'break-words'}`}
+      >
+        <span className="min-w-0">{children}</span>
+        {copy && <CopyButton value={copy} />}
+      </dd>
     </div>
   );
 }
 
-function EntityInfo({
-  entity,
-  compact = false,
-  detailed = false
+const FIELD_GRID =
+  'grid grid-cols-2 gap-x-6 gap-y-2 px-4 py-3 sm:grid-cols-3 lg:grid-cols-4';
+
+const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+/** Date with a relative hint; `expiry` adds expired wording and amber/red tones. */
+function DateValue({
+  value,
+  expiry
 }: {
-  entity: RdapEntity;
-  compact?: boolean;
-  detailed?: boolean;
+  value?: string | null;
+  expiry?: boolean;
 }) {
-  const vcard = entity.vcardArray?.[1];
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return <>{value}</>;
+  const days = Math.round((date.getTime() - Date.now()) / 86_400_000);
+  const abs = Math.abs(days);
+  const relative =
+    abs < 45
+      ? rtf.format(days, 'day')
+      : abs < 730
+        ? rtf.format(Math.round(days / 30.44), 'month')
+        : rtf.format(Math.round(days / 365.25), 'year');
+  const tone = !expiry
+    ? 'text-muted-foreground'
+    : days < 30
+      ? 'text-rose-600 dark:text-rose-400'
+      : days < 90
+        ? 'text-amber-600 dark:text-amber-400'
+        : 'text-muted-foreground';
+  return (
+    <span title={value}>
+      {date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })}{' '}
+      <span className={`text-xs ${tone}`}>
+        ({expiry && days < 0 ? `expired ${relative}` : relative})
+      </span>
+    </span>
+  );
+}
 
-  const getVcardValue = (type: string) => {
-    const item = vcard?.find((vcardEntry) => vcardEntry[0] === type);
-    if (Array.isArray(item?.[3])) {
-      return item[3].filter(Boolean).join(', ');
-    }
-    return item?.[3] || null;
-  };
+type ContactRow = {
+  role: string;
+  handle?: string | null;
+  name?: string | null;
+  org?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  other?: string | null;
+};
 
-  const getAllVcardValues = (type: string) => {
-    return vcard?.filter((vcardEntry) => vcardEntry[0] === type) || [];
-  };
+const CONTACT_COLUMNS: [keyof ContactRow, string][] = [
+  ['role', 'Role'],
+  ['name', 'Name'],
+  ['org', 'Organization'],
+  ['email', 'Email'],
+  ['phone', 'Phone'],
+  ['location', 'Location'],
+  ['handle', 'Handle / ID'],
+  ['other', 'Other']
+];
 
-  const name = getVcardValue('fn');
-  const org = getVcardValue('org');
-  const emails = getAllVcardValues('email');
-  const phones = getAllVcardValues('tel');
-  const addresses = getAllVcardValues('adr');
+const REDACTED = /redact|data protected|not disclosed|withheld/i;
+
+function ContactTable({ rows }: { rows: ContactRow[] }) {
+  const columns = CONTACT_COLUMNS.filter(([key]) =>
+    rows.some((row) => row[key])
+  );
+  if (rows.length === 0) return null;
+  return (
+    <div className="overflow-x-auto border-t">
+      <table className="w-full text-left text-xs">
+        <thead className="text-[11px] text-muted-foreground">
+          <tr>
+            {columns.map(([key, label]) => (
+              <th key={key} className="px-4 py-1.5 font-normal">
+                {label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, idx) => (
+            <tr key={idx} className="border-t align-top">
+              {columns.map(([key]) => {
+                const value = row[key];
+                return (
+                  <td
+                    key={key}
+                    className={`px-4 py-1.5 ${key === 'role' ? 'font-medium' : ''} ${key === 'email' || key === 'handle' ? 'font-mono' : ''} ${key === 'email' || key === 'handle' || key === 'phone' ? 'whitespace-nowrap' : ''}`}
+                  >
+                    {value && REDACTED.test(value) ? (
+                      <span
+                        className="text-muted-foreground italic"
+                        title={value}
+                      >
+                        redacted
+                      </span>
+                    ) : (
+                      value
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function vcardValues(entity: RdapEntity, type: string): string[] {
+  return (entity.vcardArray?.[1] ?? [])
+    .filter((entry) => entry[0] === type)
+    .map((entry) => {
+      const value = entry[3];
+      if (Array.isArray(value)) {
+        const parts = value.flat().filter(Boolean);
+        if (parts.length) return parts.join(', ');
+        return typeof entry[1]?.label === 'string' ? entry[1].label : '';
+      }
+      return value ?? '';
+    })
+    .filter(Boolean);
+}
+
+const join = (values: (string | null | undefined)[], sep = ', ') =>
+  values.filter(Boolean).join(sep) || null;
+
+const humanize = (action?: string) =>
+  action ? action.charAt(0).toUpperCase() + action.slice(1) : '';
+
+/** Flattens RDAP entities (and nested ones, e.g. a registrar's abuse contact) into table rows. */
+function entityRows(
+  entities: RdapEntity[] = [],
+  parent?: string
+): ContactRow[] {
+  return entities.flatMap((entity) => {
+    const role = entity.roles?.join(', ') || 'entity';
+    const fullRole = parent ? `${parent} › ${role}` : role;
+    const row: ContactRow = {
+      role: fullRole,
+      handle: entity.handle,
+      name: join(vcardValues(entity, 'fn')),
+      org: join(vcardValues(entity, 'org')),
+      email: join(vcardValues(entity, 'email')),
+      phone: join(vcardValues(entity, 'tel')),
+      location: join(vcardValues(entity, 'adr'), '; '),
+      other: join(
+        [
+          ...(entity.publicIds ?? []).map(
+            (id) => `${id.type}: ${id.identifier}`
+          ),
+          entity.status?.length ? `status: ${entity.status.join(', ')}` : null,
+          ...(entity.events ?? []).map(
+            (event) =>
+              `${event.eventAction}: ${event.eventDate ? new Date(event.eventDate).toLocaleDateString() : 'N/A'}`
+          )
+        ],
+        '; '
+      )
+    };
+    return [row, ...entityRows(entity.entities, fullRole)];
+  });
+}
+
+function NoticeList({
+  notices = [],
+  remarks = [],
+  links = []
+}: {
+  notices?: RdapNotice[];
+  remarks?: RdapNotice[];
+  links?: RdapLink[];
+}) {
+  const count = notices.length + remarks.length + links.length;
+  if (count === 0) return null;
+  return (
+    <details className="border-t px-4 py-2 text-xs">
+      <summary className="cursor-pointer text-muted-foreground select-none">
+        Registry notices & links ({count})
+      </summary>
+      <ul className="mt-2 space-y-1.5">
+        {[...notices, ...remarks].map((notice, idx) => (
+          <li key={`n-${idx}`}>
+            {notice.title && (
+              <span className="font-medium">{notice.title}: </span>
+            )}
+            <span className="text-muted-foreground">
+              {notice.description?.join(' ')}
+            </span>
+            {notice.links?.map((link, i) => (
+              <a
+                key={i}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 text-primary hover:underline"
+              >
+                {link.rel || 'link'}
+              </a>
+            ))}
+          </li>
+        ))}
+        {links.map((link, idx) => (
+          <li key={`l-${idx}`} className="break-all">
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              {link.rel || 'link'}
+            </a>
+            {link.type && (
+              <span className="text-muted-foreground"> ({link.type})</span>
+            )}{' '}
+            <span className="font-mono text-muted-foreground">{link.href}</span>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+function RawDetails({ label, text }: { label: string; text?: string }) {
+  if (!text) return null;
+  return (
+    <details className="border-t px-4 py-2 text-xs">
+      <summary className="cursor-pointer text-muted-foreground select-none">
+        {label}
+      </summary>
+      <pre className="mt-2 max-h-96 overflow-auto rounded bg-muted/50 p-3 font-mono text-xs whitespace-pre-wrap break-words">
+        {text}
+      </pre>
+    </details>
+  );
+}
+
+function Header({
+  name,
+  type,
+  source
+}: {
+  name: string;
+  type: string;
+  source: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b px-4 py-2.5">
+      <span className="group inline-flex min-w-0 items-center gap-1 font-mono text-base font-semibold break-all">
+        {name}
+        <CopyButton value={name} />
+      </span>
+      <Badge variant="secondary" className="font-mono text-[10px] uppercase">
+        {type}
+      </Badge>
+      <span className="ml-auto text-xs text-muted-foreground">{source}</span>
+    </div>
+  );
+}
+
+const CARD = 'rounded-lg border bg-card text-card-foreground';
+
+function WhoisFallback({ data }: { data: WhoisFallbackResult }) {
+  const p = data.parsedWhois;
+  const contactRows: ContactRow[] = p
+    ? (['registrant', 'admin', 'tech'] as const)
+        .map((key) => {
+          const c = p.contacts?.[key];
+          return {
+            role: key,
+            handle: p[`${key}Id`],
+            name: c?.name,
+            org: c?.organization,
+            email: c?.email,
+            phone: c?.phone,
+            location: join([c?.city, c?.state, c?.country])
+          };
+        })
+        .filter((row) =>
+          Object.entries(row).some(([k, v]) => k !== 'role' && v)
+        )
+    : [];
 
   return (
-    <div className="space-y-2">
-      {name && <p className="text-sm font-semibold">{name}</p>}
-
-      {org && (
-        <div className="flex items-start gap-2 text-sm">
-          <Building className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-          <span>{org}</span>
-        </div>
+    <div className={CARD}>
+      <Header
+        name={data.name}
+        type="domain"
+        source={`WHOIS · ${data.sourceServer || 'whois.iana.org'}`}
+      />
+      {data.referralError && (
+        <p className="border-b bg-amber-500/5 px-4 py-2 text-xs text-amber-700 dark:text-amber-400">
+          {data.referralServer
+            ? `The referred WHOIS server ${data.referralServer} did not return a usable response. Showing IANA registry data instead.`
+            : 'The referred WHOIS server did not return a usable response.'}{' '}
+          <span className="font-mono text-muted-foreground">
+            {data.referralError}
+          </span>
+        </p>
       )}
+      <dl className={FIELD_GRID}>
+        <Field label="Fallback reason">
+          {data._fallbackReason || 'RDAP unavailable'}
+        </Field>
+        <Field label="Referral server" mono>
+          {data.referralServer || 'None'}
+        </Field>
+        <Field label="Lookup chain">
+          {data.sourceChain?.length > 0 && (
+            <span className="font-mono">{data.sourceChain.join(' → ')}</span>
+          )}
+        </Field>
+        {p && (
+          <>
+            <Field label="Registrar">
+              {join([
+                p.registrar,
+                p.registrarIanaId && `IANA ${p.registrarIanaId}`
+              ])}
+            </Field>
+            <Field label="Registrar URL">{p.registrarUrl}</Field>
+            <Field label="Registrar WHOIS" mono>
+              {p.registrarWhoisServer}
+            </Field>
+            <Field label="Registrant">{p.registrant}</Field>
+            <Field label="Registrant location">
+              {join([p.registrantCity, p.registrantState, p.registrantCountry])}
+            </Field>
+            <Field label="Registered">
+              {p.creationDate && <DateValue value={p.creationDate} />}
+            </Field>
+            <Field label="Expires">
+              {p.expirationDate && (
+                <DateValue value={p.expirationDate} expiry />
+              )}
+            </Field>
+            <Field label="Last changed">
+              {p.updatedDate && <DateValue value={p.updatedDate} />}
+            </Field>
+            <Field label="DNSSEC">{p.dnssec}</Field>
+            <Field label="Registry domain ID" mono>
+              {p.registryDomainId}
+            </Field>
+            <Field label="Abuse email">{p.abuseEmail}</Field>
+            <Field label="Abuse phone">{p.abusePhone}</Field>
+            <Field label="Status (parsed)" wide>
+              {p.status?.length > 0 && <StatusChips statuses={p.status} />}
+            </Field>
+            <Field label={`Nameservers (${p.nameservers?.length})`} wide>
+              {p.nameservers?.length > 0 && (
+                <Nameservers names={p.nameservers.map((name) => ({ name }))} />
+              )}
+            </Field>
+          </>
+        )}
+      </dl>
+      <ContactTable rows={contactRows} />
+      {p && (
+        <p className="border-t px-4 py-1.5 text-[11px] text-muted-foreground">
+          Fields above are a best-effort parse of the raw WHOIS text.
+        </p>
+      )}
+      {data.referralServer && (
+        <RawDetails label="IANA referral response" text={data.ianaResponse} />
+      )}
+      <RawDetails label="Raw WHOIS response" text={data.rawWhois} />
+      <RawDetails
+        label="Raw API response"
+        text={JSON.stringify(data, null, 2)}
+      />
+    </div>
+  );
+}
 
-      {emails.length > 0 && (
-        <div className="space-y-1">
-          {emails
-            .slice(0, compact ? 1 : emails.length)
-            .map((email, idx: number) => (
-              <div key={idx} className="flex items-start gap-2 text-sm">
-                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="font-mono text-xs">{email[3]}</span>
-              </div>
+function Nameservers({ names }: { names: { name: string; ips?: string[] }[] }) {
+  return (
+    <span className="flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[13px]">
+      {names.map(({ name, ips }, idx) => (
+        <span
+          key={`${name}-${idx}`}
+          className="group inline-flex items-center gap-0.5"
+        >
+          {name}
+          {ips && ips.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              ({ips.join(', ')})
+            </span>
+          )}
+          <CopyButton value={name} />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  registration: 'Registered',
+  expiration: 'Expires',
+  'last changed': 'Last changed',
+  'last update of rdap database': 'RDAP updated'
+};
+
+function dnssecSummary(s: SecureDnsInfo): string {
+  if (s.zoneSigned && s.delegationSigned) return 'Signed';
+  if (!s.zoneSigned && !s.delegationSigned) return 'Unsigned';
+  return s.delegationSigned
+    ? 'Delegation signed, zone unsigned'
+    : 'Zone signed, delegation unsigned';
+}
+
+export function WhoisResults({ data, query }: WhoisResultsProps) {
+  if (data._source === 'whois') {
+    return <WhoisFallback data={data as WhoisFallbackResult} />;
+  }
+
+  const rdap = data as RdapData;
+  const queryType: QueryType = rdap._queryType || 'domain';
+  const isIp = queryType === 'ipv4' || queryType === 'ipv6';
+  const displayName =
+    (queryType === 'domain' && rdap.ldhName) ||
+    rdap.name ||
+    rdap.handle ||
+    rdap.ldhName ||
+    query;
+  const registrar = rdap.entities?.find((e) => e.roles?.includes('registrar'));
+  const registrarIana = registrar?.publicIds?.find((id) =>
+    /iana/i.test(id.type ?? '')
+  )?.identifier;
+  const statuses = rdap.status ?? [];
+  const ds = rdap.secureDNS?.dsData ?? [];
+
+  return (
+    <div className={CARD}>
+      <Header
+        name={displayName}
+        type={rdap.objectClassName || queryType}
+        source="RDAP"
+      />
+      <dl className={FIELD_GRID}>
+        {queryType === 'domain' && (
+          <Field label="Registrar">
+            {registrar &&
+              join([
+                vcardValues(registrar, 'fn')[0] || registrar.handle,
+                registrarIana && `IANA ${registrarIana}`
+              ])}
+          </Field>
+        )}
+        {rdap.events?.map((event, idx) => {
+          const action = event.eventAction?.toLowerCase() ?? '';
+          return (
+            <Field
+              key={idx}
+              label={EVENT_LABELS[action] || humanize(event.eventAction)}
+            >
+              {event.eventDate ? (
+                <DateValue
+                  value={event.eventDate}
+                  expiry={action === 'expiration'}
+                />
+              ) : (
+                'N/A'
+              )}
+            </Field>
+          );
+        })}
+        {rdap.secureDNS && (
+          <Field label="DNSSEC">{dnssecSummary(rdap.secureDNS)}</Field>
+        )}
+        <Field label="Handle" mono copy={rdap.handle}>
+          {rdap.handle}
+        </Field>
+        {isIp && (
+          <>
+            <Field label="CIDR" mono>
+              {rdap.cidr0_cidrs
+                ?.map((c) => `${c.v4prefix || c.v6prefix}/${c.length}`)
+                .join(', ')}
+            </Field>
+            <Field label="Start address" mono copy={rdap.startAddress}>
+              {rdap.startAddress}
+            </Field>
+            <Field label="End address" mono copy={rdap.endAddress}>
+              {rdap.endAddress}
+            </Field>
+            <Field label="IP version">
+              {rdap.ipVersion &&
+                `IPv${String(rdap.ipVersion).replace(/^v/i, '')}`}
+            </Field>
+            <Field label="Parent network" mono>
+              {rdap.parentHandle}
+            </Field>
+          </>
+        )}
+        {queryType === 'asn' && (
+          <Field label="AS number" mono>
+            {rdap.startAutnum !== undefined &&
+              (rdap.endAutnum === undefined ||
+              rdap.endAutnum === rdap.startAutnum
+                ? `AS${rdap.startAutnum}`
+                : `AS${rdap.startAutnum} – AS${rdap.endAutnum}`)}
+          </Field>
+        )}
+        <Field label="Type">{rdap.type}</Field>
+        <Field label="Country">{rdap.country}</Field>
+        <Field label="WHOIS server" mono>
+          {rdap.port43}
+        </Field>
+        {rdap.publicIds?.map((id, idx) => (
+          <Field key={idx} label={id.type || 'Public ID'} mono>
+            {id.identifier}
+          </Field>
+        ))}
+        <Field label="Status" wide>
+          {statuses.length > 0 ? (
+            <StatusChips statuses={statuses} />
+          ) : (
+            <span className="text-muted-foreground">No status available</span>
+          )}
+        </Field>
+        {queryType === 'domain' && (
+          <Field label={`Nameservers (${rdap.nameservers?.length ?? 0})`} wide>
+            {(rdap.nameservers?.length ?? 0) > 0 && (
+              <Nameservers
+                names={rdap.nameservers!.map((ns) => ({
+                  name: ns.ldhName || ns.unicodeName || query,
+                  ips: [
+                    ...(ns.ipAddresses?.v4 ?? []),
+                    ...(ns.ipAddresses?.v6 ?? [])
+                  ]
+                }))}
+              />
+            )}
+          </Field>
+        )}
+        <Field label="DS records" wide mono>
+          {ds.length > 0 &&
+            ds.map((d, idx) => (
+              <span key={idx} className="block text-xs">
+                key {d.keyTag} · alg {d.algorithm} · digest type {d.digestType}{' '}
+                · <span className="text-muted-foreground">{d.digest}</span>
+              </span>
             ))}
-        </div>
-      )}
-
-      {phones.length > 0 && detailed && (
-        <div className="space-y-1">
-          {phones.map((phone, idx: number) => (
-            <div key={idx} className="flex items-start gap-2 text-sm">
-              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="font-mono text-xs">{phone[3]}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {addresses.length > 0 && detailed && (
-        <div className="space-y-1">
-          {addresses.map((addr, idx: number) => {
-            const parts = Array.isArray(addr[3]) ? addr[3].filter(Boolean) : [];
-            if (parts.length === 0) return null;
-            return (
-              <div key={idx} className="flex items-start gap-2 text-sm">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="text-xs">{parts.join(', ')}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {detailed && entity.status && entity.status.length > 0 && (
-        <div className="flex flex-wrap gap-1 pt-2">
-          {entity.status.map((status: string, idx: number) => (
-            <Badge key={idx} variant="secondary" className="font-mono text-xs">
-              {status}
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {detailed && entity.events && entity.events.length > 0 && (
-        <div className="space-y-1 pt-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Events
-          </p>
-          {entity.events.map((event, idx: number) => (
-            <div key={idx} className="text-xs text-muted-foreground">
-              {event.eventAction}:{' '}
-              {event.eventDate
-                ? new Date(event.eventDate).toLocaleDateString()
-                : 'N/A'}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {detailed && entity.entities && entity.entities.length > 0 && (
-        <div className="space-y-2 border-t pt-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Sub-Entities
-          </p>
-          {entity.entities.map((subEntity, idx: number) => (
-            <div key={idx} className="space-y-1 border-l-2 pl-4">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs">{subEntity.handle}</span>
-                {subEntity.roles && (
-                  <div className="flex gap-1">
-                    {subEntity.roles.map((role: string, i: number) => (
-                      <Badge key={i} variant="outline" className="text-xs">
-                        {role}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        </Field>
+      </dl>
+      <ContactTable rows={entityRows(rdap.entities)} />
+      <NoticeList
+        notices={rdap.notices}
+        remarks={rdap.remarks}
+        links={rdap.links}
+      />
+      <RawDetails
+        label="Raw RDAP response"
+        text={JSON.stringify(data, null, 2)}
+      />
     </div>
   );
 }

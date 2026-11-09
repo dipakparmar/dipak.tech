@@ -90,6 +90,38 @@ export interface IdentityData {
   };
 }
 
+export interface SubdomainDns {
+  /** `skipped`: beyond the per-scan resolve limit. `error`: resolver failed, state unknown. */
+  status: 'resolved' | 'nxdomain' | 'noanswer' | 'error' | 'skipped';
+  ips: string[];
+  cname: string | null;
+}
+
+export interface SubdomainEntry {
+  host: string;
+  /** Seen as `*.host` in a certificate. */
+  wildcard: boolean;
+  certs: number;
+  firstSeen: string | null;
+  lastExpiry: string | null;
+  /** Has a certificate that has not expired yet. */
+  active: boolean;
+  dns: SubdomainDns;
+}
+
+export interface CertificateData {
+  target: string;
+  source: 'certkit' | 'crt.sh';
+  /** Certificates the CT source knows about. */
+  totalCerts: number;
+  /** Certificates actually fetched and analysed (capped). */
+  scannedCerts: number;
+  issuers: Array<{ name: string; count: number }>;
+  latestExpiry: string | null;
+  subdomains: SubdomainEntry[];
+  resolveLimit: number;
+}
+
 export interface ShodanHostInfo {
   ip: string;
   ports: number[];

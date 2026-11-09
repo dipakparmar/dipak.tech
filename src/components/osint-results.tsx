@@ -1,1009 +1,915 @@
 'use client';
 
+import { useEffect, useState, type ReactNode } from 'react';
 import {
-  Activity,
   AlertTriangle,
-  Globe,
+  Check,
+  CircleAlert,
   Info,
-  Network,
-  ShieldCheck
+  Landmark,
+  RotateCw,
+  ShieldCheck,
+  X
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import { HapticTabsTrigger as TabsTrigger } from '@/components/haptic-wrappers';
-
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { StatusAnnouncer } from '@/components/status-announcer';
 import { WhoisResults } from '@/components/whois-results';
 import { SecurityPosture } from '@/components/osint/security-posture';
 import { SiteIdentity } from '@/components/osint/site-identity';
 import { ThreatHistory } from '@/components/osint/threat-history';
 import { RedirectChain } from '@/components/osint/redirect-chain';
+import { SubdomainTable, isDangling } from '@/components/osint/subdomain-table';
+import { useSource, type Source } from '@/components/osint/use-source';
+import {
+  AsnChip,
+  IpChip,
+  matchProvider,
+  Pill,
+  ProviderPill,
+  StatusPill,
+  uniqueProviders
+} from '@/components/osint/pills';
+import { SeoPanel } from '@/components/osint/seo-panel';
+import type { SeoData } from '@/lib/seo';
+import { useHaptics } from '@/hooks/use-haptics';
+import { detectQueryType } from '@/lib/rdap';
+import { isSensitiveHost } from '@/lib/subdomains';
+import { cn } from '@/lib/utils';
 import type {
+  CertificateData,
   CookieInfo,
   EmailSecurityResult,
   IdentityData,
+  RedirectHop,
   SecurityData,
   SocialTagsResult,
   TechStackResult,
   ThreatData,
   WAFResult
 } from '@/lib/osint-types';
+import type { IPResponse } from '@/types/ip';
 import type { WhoisFallbackResult } from '@/lib/whois';
 
-// Known security headers to filter out from regular headers
-const SECURITY_HEADER_KEYS = new Set([
-  'content-security-policy',
-  'strict-transport-security',
-  'x-content-type-options',
-  'x-frame-options',
-  'x-xss-protection',
-  'referrer-policy',
-  'permissions-policy',
-  'cross-origin-opener-policy',
-  'cross-origin-embedder-policy',
-  'cross-origin-resource-policy'
-]);
+type Tab =
+  | 'subdomains'
+  | 'dns'
+  | 'web'
+  | 'seo'
+  | 'security'
+  | 'identity'
+  | 'threat'
+  | 'whois';
 
-interface OsintResultsProps {
-  rdapData: (Record<string, unknown> | WhoisFallbackResult) | null;
-  dnsData: DNSData | null;
-  httpData: HTTPData | null;
-  certData: CertificateData | null;
-  ipData: IPIntelData | null;
-  query: string;
-  errors: {
-    rdap?: string;
-    dns?: string;
-    http?: string;
-    certs?: string;
-    ip?: string;
-    security?: string;
-    identity?: string;
-    threat?: string;
-  };
-  pending: Record<string, boolean>;
-  certDnsData?: Record<string, CertificateDNSData> | null;
-  certDnsPending?: Record<string, boolean>;
-  securityData?: SecurityData | null;
-  identityData?: IdentityData | null;
-  threatData?: ThreatData | null;
-}
-
-interface DNSData {
+interface DnsData {
   records?: Record<string, string[]>;
   emailSecurity?: EmailSecurityResult | null;
 }
 
-interface HTTPData {
+interface HttpData {
   ok: boolean;
   status: number;
-  redirected?: boolean;
-  headers?: Record<string, string>;
   url: string;
+  redirected?: boolean;
   title?: string;
+  headers?: Record<string, string>;
   securityHeaders?: Record<string, string>;
-  redirectChain?: Array<{ url: string; status: number; latencyMs: number }>;
+  redirectChain?: RedirectHop[];
   waf?: WAFResult | null;
   techStack?: TechStackResult | null;
   socialTags?: SocialTagsResult | null;
   cookies?: CookieInfo[] | null;
+  seo?: SeoData | null;
 }
 
-interface CertificateData {
-  uniqueEntries: number;
-  latestExpiry?: string | null;
-  issuers?: string[];
-  names?: string[];
+interface RdapLike {
+  _source?: string;
+  name?: string;
+  handle?: string;
+  events?: Array<{ eventAction?: string; eventDate?: string }>;
+  entities?: Array<{
+    roles?: string[];
+    vcardArray?: [string, Array<[string, unknown, string, unknown]>];
+  }>;
 }
+type RdapData = RdapLike | WhoisFallbackResult;
 
-interface IPIntelData {
-  ip?: string;
-  proxy?: boolean;
-  tor?: boolean;
-  hosting?: boolean;
-  city?: string;
-  region?: string;
-  country?: string;
-  continent?: string;
-  reverse?: string;
-  timezone?: string;
-  connection?: {
-    asn?: string | number;
-    org?: string;
-    isp?: string;
-  };
-}
+const DAY = 86_400_000;
 
-interface CertificateDNSData {
-  error?: string;
-  records?: {
-    A?: string[];
-    AAAA?: string[];
-  };
-}
+const SECURITY_HEADERS = [
+  ['strict-transport-security', 'HSTS'],
+  ['content-security-policy', 'CSP'],
+  ['x-frame-options', 'X-Frame-Options'],
+  ['x-content-type-options', 'X-Content-Type-Options'],
+  ['referrer-policy', 'Referrer-Policy'],
+  ['permissions-policy', 'Permissions-Policy']
+] as const;
 
 export function OsintResults({
-  rdapData,
-  dnsData,
-  httpData,
-  certData,
-  ipData,
   query,
-  errors,
-  pending,
-  certDnsData,
-  certDnsPending,
-  securityData,
-  identityData,
-  threatData
-}: OsintResultsProps) {
-  // Determine which cards have content to show
-  const hasHttp = httpData || pending.http;
-  const hasDns = dnsData || pending.dns;
-  const hasCerts = certData || pending.certs;
-  const hasIp = ipData || pending.ip;
-  const showNotApplicable = (key: string) =>
-    errors[key as keyof typeof errors] === 'Not applicable for this query type';
+  actions
+}: {
+  query: string;
+  actions?: ReactNode;
+}) {
+  const type = detectQueryType(query);
+  const isDomain = type === 'domain';
+  const isHost = isDomain || type === 'ipv4' || type === 'ipv6';
+  const q = encodeURIComponent(query);
 
-  // Filter regular headers (exclude security headers to avoid duplication)
-  const getRegularHeaders = (headers: Record<string, string> | undefined) => {
-    if (!headers) return {};
-    return Object.fromEntries(
-      Object.entries(headers).filter(
-        ([key]) => !SECURITY_HEADER_KEYS.has(key.toLowerCase())
-      )
-    );
-  };
-
-  // Build DNS map data from certDnsData
-  const buildDnsMap = () => {
-    if (!certDnsData || Object.keys(certDnsData).length === 0) return null;
-
-    const ipToDomains: Record<string, string[]> = {};
-    const domainToIps: Record<string, string[]> = {};
-    const unresolved: string[] = [];
-
-    Object.entries(certDnsData).forEach(([domain, dns]) => {
-      if (
-        dns?.error ||
-        (!dns?.records?.A?.length && !dns?.records?.AAAA?.length)
-      ) {
-        unresolved.push(domain);
-        return;
-      }
-      const ips = [...(dns?.records?.A || []), ...(dns?.records?.AAAA || [])];
-      domainToIps[domain] = ips;
-      ips.forEach((ip: string) => {
-        if (!ipToDomains[ip]) ipToDomains[ip] = [];
-        if (!ipToDomains[ip].includes(domain)) {
-          ipToDomains[ip].push(domain);
-        }
-      });
-    });
-
-    return { ipToDomains, domainToIps, unresolved };
-  };
-
-  const dnsMap = buildDnsMap();
-
-  const anyPending = Object.values(pending).some(Boolean);
-  const anyError = Object.entries(errors).some(
-    ([, message]) => message && message !== 'Not applicable for this query type'
+  const tabs: Tab[] = isDomain
+    ? [
+        'subdomains',
+        'dns',
+        'web',
+        'seo',
+        'security',
+        'identity',
+        'threat',
+        'whois'
+      ]
+    : isHost
+      ? ['web', 'seo', 'security', 'threat', 'whois']
+      : ['whois'];
+  const [tab, setTab] = useState<Tab>(tabs[0]);
+  const [opened, setOpened] = useState<ReadonlySet<Tab>>(
+    () => new Set([tabs[0]])
   );
-  const announcement = anyPending
-    ? 'Loading OSINT scan results'
-    : anyError
-      ? 'OSINT scan completed with errors'
-      : 'OSINT scan complete';
+  const open = (t: Tab) => {
+    setTab(t);
+    setOpened((prev) => (prev.has(t) ? prev : new Set(prev).add(t)));
+  };
+
+  // Eager: these feed the summary.
+  const rdap = useSource<RdapData>(`/api/whois?query=${q}`, 'WHOIS lookup');
+  const ip = useSource<IPResponse>(
+    isHost ? `/api/ip?target=${q}&details=true` : null,
+    'IP lookup'
+  );
+  const dns = useSource<DnsData>(
+    isDomain ? `/api/osint/dns?target=${q}` : null,
+    'DNS lookup'
+  );
+  const http = useSource<HttpData>(
+    isHost ? `/api/osint/http?target=${q}` : null,
+    'HTTP probe'
+  );
+  const certs = useSource<CertificateData>(
+    isDomain ? `/api/osint/certificates?target=${q}` : null,
+    'Subdomain scan',
+    45000
+  );
+  const security = useSource<SecurityData>(
+    isHost ? `/api/osint/security?target=${q}` : null,
+    'Security checks'
+  );
+  // Lazy: fetched the first time their tab is opened.
+  const identity = useSource<IdentityData>(
+    isDomain && opened.has('identity')
+      ? `/api/osint/identity?target=${q}`
+      : null,
+    'security.txt lookup'
+  );
+  const threat = useSource<ThreatData>(
+    isHost && opened.has('threat') ? `/api/osint/threat?target=${q}` : null,
+    'Threat lookup'
+  );
+
+  const busy = [rdap, ip, dns, http, certs, security].some((s) => s.loading);
+  const { trigger } = useHaptics();
+  useEffect(() => {
+    if (!busy) trigger('success');
+  }, [busy, trigger]);
+
+  const reg = rdapFacts(rdap.data);
+  const insights = buildInsights({
+    reg,
+    ip: ip.data,
+    http: http.data,
+    dns: dns.data,
+    security: security.data,
+    certs: certs.data,
+    threat: threat.data
+  });
+
+  const tabState: Record<Tab, Source<unknown>> = {
+    subdomains: certs,
+    dns,
+    web: http,
+    seo: http,
+    security,
+    identity,
+    threat,
+    whois: rdap
+  };
 
   return (
-    <div className="space-y-8">
-      <StatusAnnouncer message={announcement} />
+    <div className="space-y-4">
+      <StatusAnnouncer
+        message={busy ? `Scanning ${query}` : `Scan of ${query} complete`}
+      />
 
-      {/* RDAP Section - Always full width */}
-      <section>
-        {rdapData ? (
-          <WhoisResults data={rdapData} query={query} />
-        ) : pending.rdap ? (
-          <Card className="border-dashed">
-            <CardHeader>
-              <Skeleton className="h-5 w-48" />
-              <Skeleton className="h-4 w-72" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-12 w-3/4" />
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-dashed border-amber-500/30 bg-amber-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-amber-500" />
-                RDAP Unavailable
-              </CardTitle>
-              <CardDescription>
-                {errors.rdap || 'Unable to retrieve RDAP data for this target.'}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-      </section>
+      <Card className="gap-0 p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="font-mono text-lg font-semibold break-all">{query}</h2>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+            {type}
+          </span>
+          {busy && (
+            <span className="text-xs text-muted-foreground">scanning…</span>
+          )}
+          <div className="ml-auto">{actions}</div>
+        </div>
 
-      {/* OSINT Grid - Bento layout */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {/* DNS Footprint - spans 2 cols on xl */}
-        {(hasDns || !showNotApplicable('dns')) && (
-          <Card className="md:col-span-2 xl:col-span-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Network className="h-4 w-4 text-blue-500" />
-                DNS Footprint
-              </CardTitle>
-              <CardDescription>
-                Core DNS records discovered via DoH
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Main domain DNS */}
-              {dnsData ? (
-                <Tabs defaultValue="A" className="w-full">
-                  <TabsList className="mb-4 flex h-auto flex-wrap gap-1 bg-transparent p-0">
-                    {['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA'].map(
-                      (type) => (
-                        <TabsTrigger
-                          key={type}
-                          value={type}
-                          className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-blue-500/50 data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                        >
-                          {type}
-                        </TabsTrigger>
-                      )
-                    )}
-                  </TabsList>
-                  {Object.entries(dnsData.records || {}).map(
-                    ([type, values]) => (
-                      <TabsContent key={type} value={type} className="mt-0">
-                        {Array.isArray(values) && values.length > 0 ? (
-                          <div className="space-y-1.5">
-                            {values.map((value: string, idx: number) => (
-                              <div
-                                key={`${type}-${idx}`}
-                                className="rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs"
-                              >
-                                {value}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="py-4 text-center text-sm text-muted-foreground">
-                            No {type} records found
-                          </p>
-                        )}
-                      </TabsContent>
-                    )
-                  )}
-                </Tabs>
-              ) : pending.dns ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-8 w-64" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-              ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.dns || 'DNS results not available'}
-                </p>
-              )}
-
-              {/* DNS Map Diagram - Visual relationship between domains and IPs */}
-              {dnsMap && Object.keys(dnsMap.domainToIps).length > 0 && (
-                <div className="border-t pt-4">
-                  <p className="mb-4 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    DNS Map · Infrastructure Diagram
-                  </p>
-
-                  {/* Visual Diagram */}
-                  <div className="relative rounded-lg border bg-muted/10 p-4">
-                    <div className="flex items-stretch justify-between gap-4">
-                      {/* Domains Column */}
-                      <div className="flex flex-1 flex-col gap-2">
-                        <div className="mb-2 text-center text-xs font-medium text-muted-foreground">
-                          DOMAINS
-                        </div>
-                        {Object.keys(dnsMap.domainToIps).map((domain) => (
-                          <div
-                            key={domain}
-                            className="group relative flex items-center justify-between rounded-md border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs transition-colors hover:border-blue-500/50 hover:bg-blue-500/10"
-                          >
-                            <code className="font-mono text-blue-600 dark:text-blue-400">
-                              {domain}
-                            </code>
-                            <div className="absolute -right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-blue-500" />
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Connection Lines - SVG */}
-                      <div className="relative w-16 md:w-24">
-                        <svg
-                          className="absolute inset-0 h-full w-full"
-                          preserveAspectRatio="none"
-                        >
-                          {(() => {
-                            const domains = Object.keys(dnsMap.domainToIps);
-                            const ips = Object.keys(dnsMap.ipToDomains);
-                            const lines: Array<{
-                              d1: number;
-                              i1: number;
-                              ip: string;
-                            }> = [];
-
-                            // Color palette for different IPs - distinct, accessible colors
-                            const ipColors = [
-                              { stroke: 'rgb(16, 185, 129)', name: 'emerald' }, // emerald-500
-                              { stroke: 'rgb(59, 130, 246)', name: 'blue' }, // blue-500
-                              { stroke: 'rgb(168, 85, 247)', name: 'purple' }, // purple-500
-                              { stroke: 'rgb(249, 115, 22)', name: 'orange' }, // orange-500
-                              { stroke: 'rgb(236, 72, 153)', name: 'pink' }, // pink-500
-                              { stroke: 'rgb(234, 179, 8)', name: 'yellow' }, // yellow-500
-                              { stroke: 'rgb(20, 184, 166)', name: 'teal' }, // teal-500
-                              { stroke: 'rgb(239, 68, 68)', name: 'red' }, // red-500
-                              { stroke: 'rgb(99, 102, 241)', name: 'indigo' }, // indigo-500
-                              { stroke: 'rgb(34, 197, 94)', name: 'green' } // green-500
-                            ];
-
-                            // Map each IP to a color
-                            const ipColorMap: Record<string, string> = {};
-                            ips.forEach((ip, idx) => {
-                              ipColorMap[ip] =
-                                ipColors[idx % ipColors.length].stroke;
-                            });
-
-                            domains.forEach((domain, di) => {
-                              dnsMap.domainToIps[domain].forEach((ip) => {
-                                const ii = ips.indexOf(ip);
-                                if (ii !== -1) {
-                                  lines.push({ d1: di, i1: ii, ip });
-                                }
-                              });
-                            });
-
-                            return lines.map((line, idx) => {
-                              const y1Percent =
-                                domains.length === 1
-                                  ? 50
-                                  : (line.d1 / (domains.length - 1)) * 100;
-                              const y2Percent =
-                                ips.length === 1
-                                  ? 50
-                                  : (line.i1 / (ips.length - 1)) * 100;
-                              const color = ipColorMap[line.ip];
-                              return (
-                                <line
-                                  key={idx}
-                                  x1="0%"
-                                  y1={`${Math.max(10, Math.min(90, y1Percent))}%`}
-                                  x2="100%"
-                                  y2={`${Math.max(10, Math.min(90, y2Percent))}%`}
-                                  stroke={color}
-                                  strokeWidth="2"
-                                  strokeOpacity="0.7"
-                                  className="transition-all hover:stroke-[3] hover:opacity-100"
-                                />
-                              );
-                            });
-                          })()}
-                        </svg>
-                      </div>
-
-                      {/* IPs Column */}
-                      <div className="flex flex-1 flex-col gap-2">
-                        <div className="mb-2 text-center text-xs font-medium text-muted-foreground">
-                          IP ADDRESSES
-                        </div>
-                        {(() => {
-                          const sortedIps = Object.entries(
-                            dnsMap.ipToDomains
-                          ).sort((a, b) => b[1].length - a[1].length);
-                          const allIps = Object.keys(dnsMap.ipToDomains);
-
-                          // Same color palette as lines
-                          const ipColors = [
-                            {
-                              bg: 'bg-emerald-500',
-                              border: 'border-emerald-500/30',
-                              hoverBorder: 'hover:border-emerald-500/50',
-                              hoverBg: 'hover:bg-emerald-500/10',
-                              text: 'text-emerald-600 dark:text-emerald-400',
-                              fill: 'rgb(16, 185, 129)'
-                            },
-                            {
-                              bg: 'bg-blue-500',
-                              border: 'border-blue-500/30',
-                              hoverBorder: 'hover:border-blue-500/50',
-                              hoverBg: 'hover:bg-blue-500/10',
-                              text: 'text-blue-600 dark:text-blue-400',
-                              fill: 'rgb(59, 130, 246)'
-                            },
-                            {
-                              bg: 'bg-purple-500',
-                              border: 'border-purple-500/30',
-                              hoverBorder: 'hover:border-purple-500/50',
-                              hoverBg: 'hover:bg-purple-500/10',
-                              text: 'text-purple-600 dark:text-purple-400',
-                              fill: 'rgb(168, 85, 247)'
-                            },
-                            {
-                              bg: 'bg-orange-500',
-                              border: 'border-orange-500/30',
-                              hoverBorder: 'hover:border-orange-500/50',
-                              hoverBg: 'hover:bg-orange-500/10',
-                              text: 'text-orange-600 dark:text-orange-400',
-                              fill: 'rgb(249, 115, 22)'
-                            },
-                            {
-                              bg: 'bg-pink-500',
-                              border: 'border-pink-500/30',
-                              hoverBorder: 'hover:border-pink-500/50',
-                              hoverBg: 'hover:bg-pink-500/10',
-                              text: 'text-pink-600 dark:text-pink-400',
-                              fill: 'rgb(236, 72, 153)'
-                            },
-                            {
-                              bg: 'bg-yellow-500',
-                              border: 'border-yellow-500/30',
-                              hoverBorder: 'hover:border-yellow-500/50',
-                              hoverBg: 'hover:bg-yellow-500/10',
-                              text: 'text-yellow-600 dark:text-yellow-400',
-                              fill: 'rgb(234, 179, 8)'
-                            },
-                            {
-                              bg: 'bg-teal-500',
-                              border: 'border-teal-500/30',
-                              hoverBorder: 'hover:border-teal-500/50',
-                              hoverBg: 'hover:bg-teal-500/10',
-                              text: 'text-teal-600 dark:text-teal-400',
-                              fill: 'rgb(20, 184, 166)'
-                            },
-                            {
-                              bg: 'bg-red-500',
-                              border: 'border-red-500/30',
-                              hoverBorder: 'hover:border-red-500/50',
-                              hoverBg: 'hover:bg-red-500/10',
-                              text: 'text-red-600 dark:text-red-400',
-                              fill: 'rgb(239, 68, 68)'
-                            },
-                            {
-                              bg: 'bg-indigo-500',
-                              border: 'border-indigo-500/30',
-                              hoverBorder: 'hover:border-indigo-500/50',
-                              hoverBg: 'hover:bg-indigo-500/10',
-                              text: 'text-indigo-600 dark:text-indigo-400',
-                              fill: 'rgb(99, 102, 241)'
-                            },
-                            {
-                              bg: 'bg-green-500',
-                              border: 'border-green-500/30',
-                              hoverBorder: 'hover:border-green-500/50',
-                              hoverBg: 'hover:bg-green-500/10',
-                              text: 'text-green-600 dark:text-green-400',
-                              fill: 'rgb(34, 197, 94)'
-                            }
-                          ];
-
-                          return sortedIps.map(([ip, domains]) => {
-                            const colorIdx =
-                              allIps.indexOf(ip) % ipColors.length;
-                            const colors = ipColors[colorIdx];
-                            return (
-                              <div
-                                key={ip}
-                                className={`group relative flex items-center justify-between rounded-md border bg-opacity-5 px-3 py-2 text-xs transition-colors ${colors.border} ${colors.hoverBorder} ${colors.hoverBg}`}
-                                style={{ backgroundColor: `${colors.fill}10` }}
-                              >
-                                <div
-                                  className={`absolute -left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${colors.bg}`}
-                                />
-                                <code className={`font-mono ${colors.text}`}>
-                                  {ip}
-                                </code>
-                                <Badge
-                                  variant="secondary"
-                                  className="ml-2 text-xs"
-                                >
-                                  {domains.length}
-                                </Badge>
-                              </div>
-                            );
-                          });
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Unresolved domains */}
-                    {dnsMap.unresolved.length > 0 && (
-                      <div className="mt-4 border-t border-dashed pt-4">
-                        <p className="mb-2 text-xs text-muted-foreground">
-                          Unresolved ({dnsMap.unresolved.length})
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {dnsMap.unresolved.map((domain) => (
-                            <code
-                              key={domain}
-                              className="rounded border border-dashed px-2 py-1 font-mono text-xs text-muted-foreground"
-                            >
-                              {domain}
-                            </code>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    <span>
-                      {Object.keys(dnsMap.domainToIps).length} domains
-                    </span>
-                    <span>→</span>
-                    <span>
-                      {Object.keys(dnsMap.ipToDomains).length} unique IPs
-                    </span>
-                    {dnsMap.unresolved.length > 0 && (
-                      <>
-                        <span>·</span>
-                        <span>{dnsMap.unresolved.length} unresolved</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Show pending cert DNS lookups */}
-              {certDnsPending &&
-                Object.values(certDnsPending).some(Boolean) && (
-                  <div className="border-t pt-4">
-                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Resolving Certificate Domains...
-                    </p>
-                    <div className="space-y-2">
-                      {Object.entries(certDnsPending)
-                        .filter(([, isPending]) => isPending)
-                        .slice(0, 3)
-                        .map(([domain]) => (
-                          <div key={domain} className="flex items-center gap-2">
-                            <Skeleton className="h-6 w-24" />
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {domain}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* IP Intelligence */}
-        {(hasIp || !showNotApplicable('ip')) && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="h-4 w-4 text-emerald-500" />
-                IP Intelligence
-              </CardTitle>
-              <CardDescription>Geo, ASN & network context</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {ipData ? (
-                <div className="space-y-4">
-                  {/* IP with flags */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <code className="rounded-md border bg-muted/50 px-2 py-1 font-mono text-sm">
-                      {ipData.ip}
-                    </code>
-                    {ipData.proxy && (
-                      <Badge variant="destructive" className="text-xs">
-                        Proxy
-                      </Badge>
-                    )}
-                    {ipData.tor && (
-                      <Badge variant="destructive" className="text-xs">
-                        Tor
-                      </Badge>
-                    )}
-                    {ipData.hosting && (
-                      <Badge variant="secondary" className="text-xs">
-                        Hosting
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Location */}
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Location
-                    </p>
-                    <p className="text-sm font-medium">
-                      {[ipData.city, ipData.region, ipData.country]
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-4">
+          {isDomain ? (
+            <>
+              <Fact
+                label="Registrar"
+                src={rdap}
+                value={
+                  reg.registrar && (
+                    <ProviderPill
+                      label={reg.registrar}
+                      domain={matchProvider(reg.registrar)?.domain ?? null}
+                      fallback={<Landmark className="h-3 w-3" />}
+                    />
+                  )
+                }
+              />
+              <Fact
+                label="Registered"
+                src={rdap}
+                value={fmtDate(reg.created)}
+              />
+              <Fact label="Expires" src={rdap} value={fmtDate(reg.expires)} />
+            </>
+          ) : (
+            <Fact label="Network" src={rdap} value={reg.registrar} />
+          )}
+          {isHost && (
+            <>
+              <Fact
+                label="Address"
+                src={ip}
+                value={ip.data?.ip && <IpChip ip={ip.data.ip} />}
+              />
+              <Fact
+                label="ASN"
+                src={ip}
+                value={ip.data?.as && <AsnChip as={ip.data.as} />}
+              />
+              <Fact
+                label="Location"
+                src={ip}
+                value={
+                  ip.data?.country && (
+                    <Pill icon={<span>{flag(ip.data.countryCode)}</span>}>
+                      {[ip.data.city, ip.data.country]
                         .filter(Boolean)
                         .join(', ')}
-                    </p>
-                    {ipData.continent && (
-                      <p className="text-xs text-muted-foreground">
-                        {ipData.continent}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* ASN */}
-                  {ipData.connection && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Network
-                      </p>
-                      <p className="text-sm font-medium">
-                        {ipData.connection.asn} · {ipData.connection.org}
-                      </p>
-                      {ipData.connection.isp && (
-                        <p className="text-xs text-muted-foreground">
-                          {ipData.connection.isp}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Reverse DNS */}
-                  {ipData.reverse && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Reverse DNS
-                      </p>
-                      <p className="break-all font-mono text-xs">
-                        {ipData.reverse}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Timezone */}
-                  {ipData.timezone && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Info className="h-3 w-3" />
-                      {ipData.timezone}
-                    </div>
-                  )}
-                </div>
-              ) : pending.ip ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.ip || 'IP intelligence not available'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Web Fingerprint */}
-        {(hasHttp || !showNotApplicable('http')) && (
-          <Card className="md:col-span-2 xl:col-span-1">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Globe className="h-4 w-4 text-violet-500" />
-                Web Fingerprint
-              </CardTitle>
-              <CardDescription>
-                HTTP metadata & security headers
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {httpData ? (
-                <div className="space-y-4">
-                  {/* Status line */}
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant={httpData.ok ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {httpData.status}
-                      </Badge>
-                      {httpData.redirected && (
-                        <Badge variant="outline" className="text-xs">
-                          Redirected
-                        </Badge>
-                      )}
-                      {httpData.headers?.server && (
-                        <Badge variant="secondary" className="text-xs">
-                          {httpData.headers.server}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="break-all text-xs text-muted-foreground">
-                      {httpData.url}
-                    </p>
-                  </div>
-
-                  {/* Title */}
-                  {httpData.title && (
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Page Title
-                      </p>
-                      <p className="text-sm font-medium">{httpData.title}</p>
-                    </div>
-                  )}
-
-                  <Tabs defaultValue="headers" className="w-full">
-                    <TabsList className="mb-4 flex h-auto flex-wrap gap-1 bg-transparent p-0">
-                      <TabsTrigger
-                        value="headers"
-                        className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400"
-                      >
-                        Headers
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="security-headers"
-                        className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400"
-                      >
-                        Security Headers
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="redirect-chain"
-                        className="rounded-md border bg-muted/50 px-3 py-1.5 text-xs font-medium data-[state=active]:border-violet-500/50 data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-600 dark:data-[state=active]:text-violet-400"
-                      >
-                        Redirect Chain
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="headers" className="mt-0">
-                      {(() => {
-                        const regularHeaders = getRegularHeaders(
-                          httpData.headers
+                    </Pill>
+                  )
+                }
+              />
+              <Fact
+                label="Reverse DNS"
+                src={ip}
+                value={ip.data?.reverse}
+                mono
+              />
+              <Fact
+                label="Web"
+                wide
+                src={http}
+                value={
+                  http.data && (
+                    <span className="flex flex-wrap gap-1">
+                      <StatusPill status={http.data.status} />
+                      {uniqueProviders([
+                        http.data.headers?.server,
+                        http.data.waf?.name,
+                        ...(http.data.techStack?.cdn ?? []),
+                        ...(http.data.techStack?.server ?? []),
+                        ...(http.data.techStack?.framework ?? []),
+                        ...(http.data.techStack?.cms ?? [])
+                      ]).map((p) => (
+                        <ProviderPill key={p.label} {...p} />
+                      ))}
+                    </span>
+                  )
+                }
+              />
+            </>
+          )}
+          {isDomain && (
+            <>
+              <Fact
+                label="TLS issuers"
+                wide
+                src={certs}
+                value={
+                  certs.data && (
+                    <span className="flex flex-wrap gap-1">
+                      {certs.data.issuers.map((i) => {
+                        const p = matchProvider(i.name);
+                        return (
+                          <ProviderPill
+                            key={i.name}
+                            label={`${p?.label ?? i.name} · ${i.count}`}
+                            domain={p?.domain ?? null}
+                            fallback={<ShieldCheck className="h-3 w-3" />}
+                          />
                         );
-                        return Object.keys(regularHeaders).length > 0 ? (
-                          <div className="space-y-1">
-                            {Object.entries(regularHeaders).map(
-                              ([key, value]) => (
-                                <div
-                                  key={key}
-                                  className="rounded-md border bg-muted/30 px-2 py-1.5 text-xs"
-                                >
-                                  <span className="text-muted-foreground">
-                                    {key}:
-                                  </span>{' '}
-                                  <span className="break-all font-mono">
-                                    {value as string}
-                                  </span>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        ) : (
-                          <p className="py-4 text-center text-sm text-muted-foreground">
-                            No headers found
-                          </p>
-                        );
-                      })()}
-                    </TabsContent>
-                    <TabsContent value="security-headers" className="mt-0">
-                      {Object.keys(httpData.securityHeaders || {}).length >
-                      0 ? (
-                        <div className="space-y-1">
-                          {Object.entries(httpData.securityHeaders || {}).map(
-                            ([key, value]) => (
-                              <div
-                                key={key}
-                                className="rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1.5 text-xs"
-                              >
-                                <span className="text-emerald-600 dark:text-emerald-400">
-                                  {key}:
-                                </span>{' '}
-                                <span className="break-all font-mono">
-                                  {value as string}
-                                </span>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-amber-600 dark:text-amber-400">
-                          No security headers detected
-                        </p>
-                      )}
-                    </TabsContent>
-                    <TabsContent value="redirect-chain" className="mt-4">
-                      <RedirectChain chain={httpData.redirectChain ?? []} />
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              ) : pending.http ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.http || 'HTTP metadata not available'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                      })}
+                    </span>
+                  )
+                }
+              />
+              <Fact
+                label="Subdomains"
+                src={certs}
+                value={
+                  certs.data &&
+                  `${certs.data.subdomains.length} found · ${certs.data.subdomains.filter((s) => s.dns.status === 'resolved').length} live`
+                }
+              />
+            </>
+          )}
+        </dl>
+
+        {insights.length > 0 && (
+          <ul
+            className="mt-3 flex flex-wrap gap-1.5 border-t pt-3"
+            aria-label="Findings"
+          >
+            {insights.map((i) => (
+              <li key={i.text}>
+                <button
+                  type="button"
+                  disabled={!i.tab || !tabs.includes(i.tab)}
+                  onClick={() => i.tab && open(i.tab)}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs enabled:hover:brightness-95',
+                    TONE[i.tone]
+                  )}
+                >
+                  <ToneIcon tone={i.tone} />
+                  {i.text}
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
+      </Card>
 
-        {/* TLS Certificates */}
-        {(hasCerts || !showNotApplicable('certs')) && (
-          <Card className="md:col-span-2 xl:col-span-2">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ShieldCheck className="h-4 w-4 text-cyan-500" />
-                TLS Certificates
-              </CardTitle>
-              <CardDescription>
-                Certificate transparency snapshot
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {certData ? (
-                <div className="space-y-4">
-                  {/* Stats */}
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="text-xs">
-                      {certData.uniqueEntries} unique certs
-                    </Badge>
-                    {certData.latestExpiry && (
-                      <Badge variant="secondary" className="text-xs">
-                        Expires{' '}
-                        {new Date(certData.latestExpiry).toLocaleDateString()}
-                      </Badge>
-                    )}
-                  </div>
+      <Tabs value={tab} onValueChange={(v) => open(v as Tab)}>
+        <div className="overflow-x-auto">
+          <TabsList className="h-9">
+            {tabs.map((t) => (
+              <TabsTrigger
+                key={t}
+                value={t}
+                className="gap-1.5 px-3 text-xs capitalize"
+              >
+                {t === 'whois'
+                  ? 'WHOIS'
+                  : t === 'dns' || t === 'seo'
+                    ? t.toUpperCase()
+                    : t}
+                <TabStatus
+                  source={tabState[t]}
+                  count={
+                    t === 'subdomains'
+                      ? certs.data?.subdomains.length
+                      : undefined
+                  }
+                />
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
-                  {/* Issuers */}
-                  {Array.isArray(certData.issuers) &&
-                    certData.issuers.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Issuers
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {certData.issuers.map((issuer: string) => (
-                            <Badge
-                              key={issuer}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {issuer}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  {/* All Names - no limit */}
-                  {Array.isArray(certData.names) &&
-                    certData.names.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Observed Names ({certData.names.length})
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {certData.names.map((name: string) => (
-                            <Badge
-                              key={name}
-                              variant="secondary"
-                              className="font-mono text-xs"
-                            >
-                              {name}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                </div>
-              ) : pending.certs ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-3/4" />
-                </div>
-              ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  {errors.certs || 'Certificate data not available'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </section>
-
-      {/* Security Posture */}
-      {(securityData || pending.security || errors.security) && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <ShieldCheck className="h-4 w-4 text-primary" />
-              Security Posture
-            </CardTitle>
-            <CardDescription>
-              WAF, DNSSEC, email authentication, and blocklist status
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <TabsContent value="subdomains">
+          <Panel src={certs} rows={8}>
+            {(d) => <SubdomainTable data={d} />}
+          </Panel>
+        </TabsContent>
+        <TabsContent value="dns">
+          <Panel src={dns}>
+            {(d) => <DnsTable records={d.records ?? {}} />}
+          </Panel>
+        </TabsContent>
+        <TabsContent value="web">
+          <Panel src={http}>{(d) => <WebPanel data={d} />}</Panel>
+        </TabsContent>
+        <TabsContent value="security">
+          <Card className="p-4">
             <SecurityPosture
-              securityData={securityData ?? null}
-              emailSecurity={dnsData?.emailSecurity ?? null}
-              waf={httpData?.waf ?? null}
-              pending={Boolean(pending.security)}
-              error={errors.security}
+              securityData={security.data}
+              emailSecurity={dns.data?.emailSecurity ?? null}
+              waf={http.data?.waf ?? null}
+              pending={security.loading}
+              error={security.error ?? undefined}
             />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Site Identity */}
-      {(identityData ||
-        httpData?.techStack ||
-        pending.identity ||
-        pending.http) && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Globe className="h-4 w-4 text-primary" />
-              Site Identity
-            </CardTitle>
-            <CardDescription>
-              Technology stack, social tags, cookies, and security disclosure
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            {security.error && <RetryButton onClick={security.retry} />}
+          </Card>
+        </TabsContent>
+        <TabsContent value="seo">
+          <Panel src={http}>
+            {(d) =>
+              d.seo ? (
+                <SeoPanel seo={d.seo} />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No HTML page to analyse.
+                </p>
+              )
+            }
+          </Panel>
+        </TabsContent>
+        <TabsContent value="identity">
+          <Card className="p-4">
             <SiteIdentity
-              techStack={httpData?.techStack ?? null}
-              socialTags={httpData?.socialTags ?? null}
-              cookies={httpData?.cookies ?? null}
-              identityData={identityData ?? null}
-              pending={Boolean(pending.identity)}
-              error={errors.identity}
+              techStack={http.data?.techStack ?? null}
+              cookies={http.data?.cookies ?? null}
+              identityData={identity.data}
+              pending={identity.loading}
+              error={identity.error ?? undefined}
             />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Threat & History */}
-      {(threatData || pending.threat) && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <Activity className="h-4 w-4 text-primary" />
-              Threat & History
-            </CardTitle>
-            <CardDescription>
-              Open ports, CVEs, archive history, and crawl rules
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            {identity.error && <RetryButton onClick={identity.retry} />}
+          </Card>
+        </TabsContent>
+        <TabsContent value="threat">
+          <Card className="p-4">
             <ThreatHistory
-              threatData={threatData ?? null}
-              pending={Boolean(pending.threat)}
-              error={errors.threat}
+              threatData={threat.data}
+              pending={threat.loading}
+              error={threat.error ?? undefined}
             />
-          </CardContent>
-        </Card>
+            {threat.error && <RetryButton onClick={threat.retry} />}
+          </Card>
+        </TabsContent>
+        <TabsContent value="whois">
+          {rdap.data ? (
+            <WhoisResults
+              data={rdap.data as Record<string, unknown>}
+              query={query}
+            />
+          ) : (
+            <Panel src={rdap}>{() => null}</Panel>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+/* ---------- summary pieces ---------- */
+
+function Fact({
+  label,
+  src,
+  value,
+  mono,
+  wide
+}: {
+  label: string;
+  src: Source<unknown>;
+  value: ReactNode;
+  mono?: boolean;
+  wide?: boolean;
+}) {
+  return (
+    <div className={cn('min-w-0', wide && 'col-span-2')}>
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd
+        className={cn(
+          'text-sm break-words',
+          mono && 'font-mono text-xs leading-5 break-all'
+        )}
+      >
+        {src.loading ? (
+          <Skeleton className="mt-1 h-4 w-24" />
+        ) : src.error ? (
+          <span className="text-xs text-amber-700 dark:text-amber-400">
+            {src.error}
+          </span>
+        ) : (
+          value || <span className="text-muted-foreground">—</span>
+        )}
+      </dd>
+    </div>
+  );
+}
+
+type Tone = 'good' | 'info' | 'warn' | 'bad';
+interface Insight {
+  tone: Tone;
+  text: string;
+  tab?: Tab;
+}
+
+const TONE: Record<Tone, string> = {
+  good: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  info: 'border-border bg-muted/50 text-muted-foreground',
+  warn: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  bad: 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
+};
+
+function ToneIcon({ tone }: { tone: Tone }) {
+  const cls = 'h-3 w-3';
+  if (tone === 'good') return <Check className={cls} />;
+  if (tone === 'bad') return <CircleAlert className={cls} />;
+  if (tone === 'warn') return <AlertTriangle className={cls} />;
+  return <Info className={cls} />;
+}
+
+function buildInsights(d: {
+  reg: ReturnType<typeof rdapFacts>;
+  ip: IPResponse | null;
+  http: HttpData | null;
+  dns: DnsData | null;
+  security: SecurityData | null;
+  certs: CertificateData | null;
+  threat: ThreatData | null;
+}): Insight[] {
+  const out: Insight[] = [];
+  const now = Date.now();
+
+  const expires = Date.parse(d.reg.expires ?? '');
+  if (!isNaN(expires)) {
+    const days = Math.round((expires - now) / DAY);
+    if (days < 0)
+      out.push({
+        tone: 'bad',
+        text: 'Domain registration expired',
+        tab: 'whois'
+      });
+    else if (days < 30)
+      out.push({
+        tone: 'bad',
+        text: `Domain expires in ${days}d`,
+        tab: 'whois'
+      });
+    else if (days < 90)
+      out.push({
+        tone: 'warn',
+        text: `Domain expires in ${days}d`,
+        tab: 'whois'
+      });
+  }
+  const created = Date.parse(d.reg.created ?? '');
+  if (!isNaN(created) && now - created < 180 * DAY) {
+    out.push({
+      tone: 'warn',
+      text: `Registered ${Math.round((now - created) / DAY)}d ago`,
+      tab: 'whois'
+    });
+  }
+
+  if (d.certs) {
+    const target = d.certs.target;
+    const dangling = d.certs.subdomains.filter(isDangling).length;
+    const sensitive = d.certs.subdomains.filter(
+      (s) => s.dns.status === 'resolved' && isSensitiveHost(s.host, target)
+    ).length;
+    if (dangling)
+      out.push({
+        tone: 'bad',
+        text: `${dangling} dangling CNAME${dangling > 1 ? 's' : ''}`,
+        tab: 'subdomains'
+      });
+    if (sensitive)
+      out.push({
+        tone: 'warn',
+        text: `${sensitive} sensitive-looking host${sensitive > 1 ? 's' : ''} live`,
+        tab: 'subdomains'
+      });
+  }
+
+  if (d.http) {
+    if (d.http.url.startsWith('http:'))
+      out.push({ tone: 'bad', text: 'No HTTPS', tab: 'web' });
+    else if (!d.http.ok)
+      out.push({
+        tone: 'warn',
+        text: `Site answers HTTP ${d.http.status}`,
+        tab: 'web'
+      });
+    const sec = lowerKeys(d.http.securityHeaders);
+    if (d.http.ok) {
+      out.push(
+        sec['strict-transport-security']
+          ? { tone: 'good', text: 'HSTS', tab: 'web' }
+          : { tone: 'warn', text: 'No HSTS', tab: 'web' }
+      );
+      if (!sec['content-security-policy'])
+        out.push({ tone: 'info', text: 'No CSP', tab: 'web' });
+    }
+    if (d.http.waf?.detected && d.http.waf.name)
+      out.push({
+        tone: 'info',
+        text: `Behind ${d.http.waf.name}`,
+        tab: 'security'
+      });
+  }
+
+  const email = d.dns?.emailSecurity;
+  if (email) {
+    if (!email.spf.record)
+      out.push({ tone: 'warn', text: 'No SPF', tab: 'security' });
+    else if (email.spf.policy === 'pass')
+      out.push({
+        tone: 'bad',
+        text: 'SPF +all allows anyone',
+        tab: 'security'
+      });
+    if (!email.dmarc.record)
+      out.push({ tone: 'warn', text: 'No DMARC', tab: 'security' });
+    else if (email.dmarc.policy === 'none')
+      out.push({ tone: 'warn', text: 'DMARC p=none', tab: 'security' });
+    else
+      out.push({
+        tone: 'good',
+        text: `DMARC ${email.dmarc.policy}`,
+        tab: 'security'
+      });
+  }
+
+  if (d.security) {
+    const listed = d.security.blocklist.results.filter((r) => r.listed);
+    if (listed.length)
+      out.push({
+        tone: 'bad',
+        text: `Listed on ${listed.map((r) => r.name).join(', ')}`,
+        tab: 'security'
+      });
+    if (d.security.dnssec.enabled)
+      out.push({ tone: 'good', text: 'DNSSEC', tab: 'security' });
+  }
+
+  if (d.ip?.proxy)
+    out.push({ tone: 'warn', text: 'Proxy / VPN address', tab: 'web' });
+
+  if (d.threat) {
+    const vulns = d.threat.shodan.reduce((n, h) => n + h.vulns.length, 0);
+    if (vulns)
+      out.push({
+        tone: 'bad',
+        text: `${vulns} known CVE${vulns > 1 ? 's' : ''} on exposed services`,
+        tab: 'threat'
+      });
+  }
+
+  const order: Record<Tone, number> = { bad: 0, warn: 1, info: 2, good: 3 };
+  return out.sort((a, b) => order[a.tone] - order[b.tone]);
+}
+
+function rdapFacts(d: RdapData | null): {
+  registrar: string | null;
+  created: string | null;
+  expires: string | null;
+} {
+  if (!d) return { registrar: null, created: null, expires: null };
+  if ('parsedWhois' in d) {
+    const p = d.parsedWhois;
+    return {
+      registrar: p.registrar,
+      created: p.creationDate,
+      expires: p.expirationDate
+    };
+  }
+  const event = (action: string) =>
+    d.events?.find((e) => e.eventAction === action)?.eventDate ?? null;
+  const registrar = d.entities
+    ?.find((e) => e.roles?.includes('registrar'))
+    ?.vcardArray?.[1]?.find((f) => f[0] === 'fn')?.[3];
+  return {
+    registrar:
+      typeof registrar === 'string' ? registrar : (d.name ?? d.handle ?? null),
+    created: event('registration'),
+    expires: event('expiration')
+  };
+}
+
+/* ---------- tab pieces ---------- */
+
+function TabStatus({
+  source,
+  count
+}: {
+  source: Source<unknown>;
+  count?: number;
+}) {
+  if (source.loading)
+    return (
+      <span
+        className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground"
+        aria-label="loading"
+      />
+    );
+  if (source.error)
+    return <X className="h-3 w-3 text-red-500" aria-label="failed" />;
+  if (count !== undefined)
+    return <span className="tabular-nums text-muted-foreground">{count}</span>;
+  return null;
+}
+
+function Panel<T>({
+  src,
+  rows = 4,
+  children
+}: {
+  src: Source<T>;
+  rows?: number;
+  children: (d: T) => ReactNode;
+}) {
+  return (
+    <Card className="p-4">
+      {src.data ? (
+        children(src.data)
+      ) : src.error ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <span>{src.error}</span>
+          <RetryButton onClick={src.retry} />
+        </div>
+      ) : src.loading ? (
+        <div className="space-y-2">
+          {Array.from({ length: rows }, (_, i) => (
+            <Skeleton key={i} className="h-5 w-full" />
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Not available for this query.
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function RetryButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="ml-auto h-7 gap-1.5 text-xs"
+      onClick={onClick}
+    >
+      <RotateCw className="h-3 w-3" /> Retry
+    </Button>
+  );
+}
+
+const DNS_ORDER = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA'];
+
+function DnsTable({ records }: { records: Record<string, string[]> }) {
+  const present = DNS_ORDER.filter((t) => records[t]?.length);
+  const missing = DNS_ORDER.filter((t) => !records[t]?.length);
+  return (
+    <div className="space-y-2">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <tbody className="divide-y">
+            {present.map((t) => (
+              <tr key={t} className="align-top">
+                <th
+                  scope="row"
+                  className="w-16 py-1.5 pr-3 text-left font-medium text-muted-foreground"
+                >
+                  {t}
+                </th>
+                <td className="py-1.5 font-mono">
+                  {records[t].map((v) => (
+                    <div key={v} className="break-all">
+                      {v}
+                    </div>
+                  ))}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {missing.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          No {missing.join(', ')} records.
+        </p>
       )}
     </div>
   );
+}
+
+function WebPanel({ data }: { data: HttpData }) {
+  const sec = lowerKeys(data.securityHeaders);
+  const headers = Object.entries(data.headers ?? {});
+  return (
+    <div className="space-y-4 text-sm">
+      <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={cn(
+              'rounded px-1.5 py-0.5 font-mono text-xs',
+              data.ok
+                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+            )}
+          >
+            {data.status}
+          </span>
+          <span className="break-all font-mono text-xs">{data.url}</span>
+        </div>
+        {data.title && <p className="text-muted-foreground">{data.title}</p>}
+      </div>
+
+      <div>
+        <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+          Security headers
+        </p>
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+          {SECURITY_HEADERS.map(([key, label]) => (
+            <li
+              key={key}
+              className="flex items-center gap-1.5"
+              title={sec[key] ?? 'Not set'}
+            >
+              {sec[key] ? (
+                <Check className="h-3 w-3 text-emerald-500" />
+              ) : (
+                <X className="h-3 w-3 text-red-500" />
+              )}
+              <span className={cn(!sec[key] && 'text-muted-foreground')}>
+                {label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {(data.redirectChain?.length ?? 0) > 1 && (
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+            Redirects
+          </p>
+          <RedirectChain chain={data.redirectChain ?? []} />
+        </div>
+      )}
+
+      {headers.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+            Response headers ({headers.length})
+          </summary>
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full text-xs">
+              <tbody className="divide-y">
+                {headers.map(([k, v]) => (
+                  <tr key={k} className="align-top">
+                    <th
+                      scope="row"
+                      className="py-1 pr-3 text-left font-normal whitespace-nowrap text-muted-foreground"
+                    >
+                      {k}
+                    </th>
+                    <td className="py-1 font-mono break-all">{v}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+/* ---------- utils ---------- */
+
+/** ISO 3166 alpha-2 code to its flag emoji. */
+function flag(cc: string | undefined) {
+  return cc && /^[a-z]{2}$/i.test(cc)
+    ? cc
+        .toUpperCase()
+        .replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)))
+    : '';
+}
+
+function lowerKeys(
+  o: Record<string, string> | undefined
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(o ?? {}).map(([k, v]) => [k.toLowerCase(), v])
+  );
+}
+
+function fmtDate(s: string | null): string | null {
+  if (!s) return null;
+  const t = Date.parse(s);
+  return isNaN(t) ? s : new Date(t).toISOString().slice(0, 10);
 }
