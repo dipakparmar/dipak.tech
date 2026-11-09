@@ -58,6 +58,12 @@ async function decodeCertificate(pem: string): Promise<DecodedCert> {
   // Parse ASN.1 structure manually (simplified parser for common fields)
   const parsed = parseX509(binaryDer);
 
+  // The SHA-256 fingerprint is the hash of the whole DER encoding.
+  const digest = await crypto.subtle.digest('SHA-256', binaryDer);
+  parsed.fingerprint = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
+    .join(':');
+
   return parsed;
 }
 
@@ -389,11 +395,6 @@ function parseX509(der: Uint8Array): DecodedCert {
     validationType = 'OV';
   }
 
-  // Calculate fingerprint
-  const fingerprint = Array.from(new Uint8Array(der.slice(0, 20)))
-    .map((b) => b.toString(16).padStart(2, '0').toUpperCase())
-    .join(':');
-
   // Get public key algorithm from SPKI (simplified - just report what we found earlier)
   const pkAlgorithm = signatureAlgorithm.includes('RSA')
     ? 'RSA'
@@ -413,7 +414,8 @@ function parseX509(der: Uint8Array): DecodedCert {
     keyUsage: [],
     extKeyUsage: [],
     signatureAlgorithm,
-    fingerprint,
+    // Filled in by decodeCertificate, which can await the SHA-256 digest.
+    fingerprint: '',
     validationType,
     policyOIDs
   };
@@ -434,7 +436,7 @@ function toCertificateData(
     publicKeyAlgorithm: decoded.publicKey.algorithm,
     signatureAlgorithm: decoded.signatureAlgorithm,
     sans: decoded.sans,
-    fingerprint: decoded.fingerprint,
+    sha256: decoded.fingerprint,
     pem: pem,
     isCA: decoded.isCA,
     validationType: decoded.validationType
