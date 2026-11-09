@@ -9,6 +9,7 @@ import {
 import { captureAPIError } from '@/lib/sentry-utils';
 import { isSsrfTarget } from '@/lib/ssrf-guard';
 import type { ThreatData, ShodanHostInfo } from '@/lib/osint-types';
+import { fetchJson } from '@/lib/upstream';
 
 const RESPONSE_CACHE_TTL = 30 * 60 * 1000;
 const RATE_LIMIT = 20;
@@ -21,11 +22,10 @@ function isIPv4(s: string) {
 async function resolveIPs(domain: string): Promise<string[]> {
   try {
     const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=A`;
-    const res = await fetch(url, {
-      headers: { Accept: 'application/dns-json' }
+    const data = await fetchJson<{ Answer?: Array<{ data: string }> }>(url, {
+      headers: { Accept: 'application/dns-json' },
+      timeoutMs: 4000
     });
-    if (!res.ok) return [];
-    const data = await res.json();
     return (data.Answer ?? [])
       .map((r: { data: string }) => r.data)
       .filter(isIPv4);

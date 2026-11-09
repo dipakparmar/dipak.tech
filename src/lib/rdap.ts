@@ -1,3 +1,5 @@
+import { fetchJson } from '@/lib/upstream';
+
 // RDAP Bootstrap URLs for different resource types
 export const RDAP_BOOTSTRAP_URLS = {
   dns: 'https://data.iana.org/rdap/dns.json',
@@ -34,12 +36,20 @@ export async function getRDAPBootstrap(
   }
 
   try {
-    const response = await fetch(RDAP_BOOTSTRAP_URLS[type]);
-    const data = await response.json();
+    // Only a good response is cached; a bad one must not stick for 24h.
+    const data = await fetchJson<RDAPService>(RDAP_BOOTSTRAP_URLS[type], {
+      timeoutMs: 6000,
+      label: 'IANA RDAP registry'
+    });
+    if (!Array.isArray(data?.services)) {
+      throw new Error('IANA RDAP registry returned an unexpected shape');
+    }
     rdapCache[type] = { data, timestamp: now };
     return data;
   } catch (error) {
     console.error(`Failed to fetch RDAP bootstrap for ${type}:`, error);
+    // The registry changes rarely: an expired copy beats failing the lookup.
+    if (cached?.data) return cached.data;
     throw new Error(`Unable to load RDAP service registry for ${type}`);
   }
 }

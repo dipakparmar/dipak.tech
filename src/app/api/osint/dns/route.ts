@@ -9,6 +9,7 @@ import {
 import { captureAPIError } from '@/lib/sentry-utils';
 import { parseEmailSecurity } from '@/lib/email-security';
 import { answersOfType } from '@/lib/doh';
+import { fetchJson, upstreamErrorResponse } from '@/lib/upstream';
 
 const RECORD_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT', 'SOA'] as const;
 const RESPONSE_CACHE_TTL = 5 * 60 * 1000;
@@ -79,6 +80,13 @@ export async function GET(request: Request) {
       SOA: []
     };
 
+    // Every lookup failing means the resolver is down, not that the domain has
+    // no records — report that instead of an empty answer.
+    const firstFailure = mainResults.find((r) => r.status === 'rejected');
+    if (firstFailure && mainResults.every((r) => r.status === 'rejected')) {
+      throw firstFailure.reason;
+    }
+
     mainResults.forEach((result, index) => {
       const type = RECORD_TYPES[index];
       if (result.status === 'fulfilled' && result.value.Answer) {
@@ -104,22 +112,20 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    return captureAPIError(error, request, 500, { operation: 'dns_lookup' });
+    return (
+      upstreamErrorResponse(error) ??
+      captureAPIError(error, request, 500, { operation: 'dns_lookup' })
+    );
   }
 }
 
-async function queryDNS(name: string, type: RecordType): Promise<DNSResponse> {
-  const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`;
-
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'application/dns-json'
+function queryDNS(name: string, type: RecordType): Promise<DNSResponse> {
+  return fetchJson<DNSResponse>(
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`,
+    {
+      headers: { Accept: 'application/dns-json' },
+      timeoutMs: 5000,
+      label: 'DNS resolver'
     }
-  });
-
-  if (!response.ok) {
-    throw new Error(`DNS query failed: ${response.status}`);
-  }
-
-  return await response.json();
+  );
 }

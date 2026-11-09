@@ -10,6 +10,7 @@ import {
 } from '@/lib/osint-cache';
 import { parseNetworkInput } from '@/lib/network-input-parser';
 import { answersOfType } from '@/lib/doh';
+import { fetchJson, upstreamErrorResponse } from '@/lib/upstream';
 
 const RESPONSE_CACHE_TTL = 30 * 60 * 1000;
 const RATE_LIMIT = 40;
@@ -151,15 +152,23 @@ export async function GET(request: NextRequest) {
       ? `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=${ipFields}`
       : `http://ip-api.com/json?fields=${ipFields}`;
 
-    const response = await fetch(apiUrl, {
+    let res_headers = new Headers();
+    const data = await fetchJson<IPResponse & { message?: string }>(apiUrl, {
       headers: {
         accept: '*/*',
         'user-agent': 'curl/7.79.1'
-      }
+      },
+      timeoutMs: 6000,
+      label: 'IP geolocation service',
+      onResponse: (res) => (res_headers = res.headers)
     });
 
-    const res_headers = response.headers;
-    const data: IPResponse = await response.json();
+    if (data.status === 'fail') {
+      return NextResponse.json(
+        { error: `IP lookup failed: ${data.message ?? 'unknown reason'}` },
+        { status: 422 }
+      );
+    }
 
     // Use the IP from the response if we didn't have one
     const finalIp = ip || data.query || '';
@@ -183,7 +192,10 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    return captureAPIError(error, request, 500, { operation: 'ip_info' });
+    return (
+      upstreamErrorResponse(error) ??
+      captureAPIError(error, request, 500, { operation: 'ip_info' })
+    );
   }
 }
 
@@ -228,23 +240,11 @@ async function queryDNS(
   const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`;
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'application/dns-json'
-      }
+    return await fetchJson<DNSResponse>(url, {
+      headers: { Accept: 'application/dns-json' },
+      timeoutMs: 5000,
+      label: 'DNS resolver'
     });
-
-    if (!response.ok) {
-      const error = new Error(`DNS query failed: HTTP ${response.status}`);
-      console.error('DNS query failed:', {
-        name,
-        type,
-        status: response.status
-      });
-      throw error;
-    }
-
-    return await response.json();
   } catch (error) {
     console.error('DNS query error:', { name, type }, error);
     throw error;

@@ -19,6 +19,7 @@ import {
   queryDomainWhoisFallback,
   type WhoisFallbackResult
 } from '@/lib/whois';
+import { fetchJson, UpstreamError } from '@/lib/upstream';
 
 export const runtime = 'nodejs';
 
@@ -95,14 +96,15 @@ async function fetchRdapPayload(
 
   console.log('Querying RDAP server:', rdapUrl);
 
-  const response = await fetch(rdapUrl, {
-    headers: {
-      Accept: 'application/rdap+json'
-    }
-  });
-
-  if (!response.ok) {
-    if (response.status === 404) {
+  let data: Record<string, unknown>;
+  try {
+    data = await fetchJson<Record<string, unknown>>(rdapUrl, {
+      headers: { Accept: 'application/rdap+json' },
+      timeoutMs: 8000,
+      label: 'RDAP server'
+    });
+  } catch (error) {
+    if (error instanceof UpstreamError && error.upstreamStatus === 404) {
       const typeLabel =
         queryType === 'domain'
           ? 'Domain'
@@ -111,10 +113,8 @@ async function fetchRdapPayload(
             : 'IP address';
       throw new Error(`${typeLabel} not found`);
     }
-    throw new Error(`RDAP server returned ${response.status}`);
+    throw error;
   }
-
-  const data = await response.json();
 
   return {
     ...data,
@@ -171,7 +171,9 @@ export async function GET(request: NextRequest) {
           message.includes('not found') ||
           message.includes('No RDAP server found')
             ? 404
-            : 500;
+            : rdapError instanceof UpstreamError
+              ? rdapError.status
+              : 500;
         return NextResponse.json({ error: message }, { status });
       }
 

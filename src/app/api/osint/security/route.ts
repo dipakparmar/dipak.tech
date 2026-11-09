@@ -9,6 +9,7 @@ import {
 import { captureAPIError } from '@/lib/sentry-utils';
 import type { SecurityData } from '@/lib/osint-types';
 import { answersOfType, type DnsTypeName } from '@/lib/doh';
+import { fetchJson, upstreamErrorResponse } from '@/lib/upstream';
 
 const RESPONSE_CACHE_TTL = 10 * 60 * 1000;
 const RATE_LIMIT = 30;
@@ -48,21 +49,27 @@ function reverseIP(ip: string) {
   return ip.split('.').reverse().join('.');
 }
 
+/** Rejects when the resolver fails, so callers can tell "no record" from "couldn't check". */
 async function dohQuery(
   name: string,
   type: DnsTypeName = 'A'
 ): Promise<string[]> {
-  try {
-    const url = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`;
-    const res = await fetch(url, {
-      headers: { Accept: 'application/dns-json' }
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return answersOfType(data.Answer, type);
-  } catch {
-    return [];
+  const data = await fetchJson<{
+    Status: number;
+    Answer?: Array<{ type: number; data: string }>;
+  }>(
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`,
+    {
+      headers: { Accept: 'application/dns-json' },
+      timeoutMs: 4000,
+      label: 'DNS resolver'
+    }
+  );
+  // 0 NOERROR and 3 NXDOMAIN are answers; SERVFAIL/REFUSED etc. are not.
+  if (data.Status !== 0 && data.Status !== 3) {
+    throw new Error(`DNS lookup for ${name} failed (rcode ${data.Status})`);
   }
+  return answersOfType(data.Answer, type);
 }
 
 function isValidDKIMRecord(raw: string): boolean {
@@ -72,9 +79,17 @@ function isValidDKIMRecord(raw: string): boolean {
   return pMatch !== null && pMatch[1].trim().length > 0;
 }
 
+/**
+ * Listed = a 127.0.0.0/8 answer. 127.255.255.x means the list refused the
+ * query, so this rejects: the result is unknown, not "listed" or "clean".
+ * Rejected checks drop out of the totals.
+ */
 async function checkDNSBL(query: string): Promise<boolean> {
   const answers = await dohQuery(query, 'A');
-  return answers.length > 0;
+  if (answers.some((a) => a.startsWith('127.255.255.'))) {
+    throw new Error('Blocklist refused the query');
+  }
+  return answers.some((a) => a.startsWith('127.'));
 }
 
 export async function GET(request: Request) {
@@ -112,6 +127,7 @@ export async function GET(request: Request) {
 
     let dnssec: SecurityData['dnssec'] = { enabled: false, algorithm: null };
     if (!isIP) {
+      // A DS lookup failure is the whole report's failure: guessing "disabled" would be wrong.
       const dsRecords = await dohQuery(normalized, 'DS');
       if (dsRecords.length > 0) {
         const tokens = dsRecords[0].trim().split(/\s+/);
@@ -141,7 +157,7 @@ export async function GET(request: Request) {
       const wildcardCheck = await dohQuery(
         `_wildcard-probe-osint._domainkey.${normalized}`,
         'TXT'
-      );
+      ).catch(() => []);
       dkimWildcard = wildcardCheck.some((r) => isValidDKIMRecord(r));
 
       if (!dkimWildcard) {
@@ -202,8 +218,9 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    return captureAPIError(error, request, 500, {
-      operation: 'security_check'
-    });
+    return (
+      upstreamErrorResponse(error) ??
+      captureAPIError(error, request, 500, { operation: 'security_check' })
+    );
   }
 }
