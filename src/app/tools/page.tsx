@@ -286,14 +286,12 @@ const toolsListSchema: WithContext<ItemList> = {
   '@type': 'ItemList',
   '@id': 'https://tools.dipak.io#tools',
   name: 'Developer Tools',
-  itemListElement: tools.map(
-    (tool, index): ListItem => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: tool.title,
-      url: `https://tools.dipak.io/${tool.path}`
-    })
-  )
+  itemListElement: tools.map((tool, index): ListItem => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: tool.title,
+    url: `https://tools.dipak.io/${tool.path}`
+  }))
 };
 
 const toolsPageSchema: WithContext<CollectionPage> = {
