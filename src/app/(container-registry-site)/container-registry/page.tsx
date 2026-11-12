@@ -134,15 +134,13 @@ export default async function ContainerRegistryHome() {
     '@type': 'ItemList',
     '@id': 'https://cr.dipak.io#images',
     name: 'Container Images',
-    itemListElement: allImages.map(
-      (image, index): ListItem => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: image.name,
-        description: image.description,
-        url: `https://cr.dipak.io/${image.registry}/${image.name}`
-      })
-    )
+    itemListElement: allImages.map((image, index): ListItem => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: image.name,
+      description: image.description,
+      url: `https://cr.dipak.io/${image.registry}/${image.name}`
+    }))
   };
 
   return (

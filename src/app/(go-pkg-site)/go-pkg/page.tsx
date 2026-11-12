@@ -94,14 +94,12 @@ export default async function GoPackagesHome() {
     '@type': 'ItemList',
     '@id': 'https://go.pkg.dipak.io#packages',
     name: 'Go Packages',
-    itemListElement: repositories.map(
-      (repo, index): ListItem => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        name: repo.name,
-        url: `https://go.pkg.dipak.io/${repo.name}`
-      })
-    )
+    itemListElement: repositories.map((repo, index): ListItem => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: repo.name,
+      url: `https://go.pkg.dipak.io/${repo.name}`
+    }))
   };
 
   return (

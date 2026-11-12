@@ -113,23 +113,22 @@ export function SeoPanel({ seo }: { seo: SeoData }) {
       </div>
 
       {/* Hidden loader: measures the real og:image so size checks use pixels, not declarations. */}
-      {ogSrc &&
-        img.state === 'loading' && (
-          // oxlint-disable-next-line nextjs/no-img-element -- proxied third-party image, measured only
-          <img
-            src={ogSrc}
-            alt=""
-            hidden
-            onLoad={(e) =>
-              setImg({
-                state: 'ok',
-                width: e.currentTarget.naturalWidth,
-                height: e.currentTarget.naturalHeight
-              })
-            }
-            onError={() => setImg({ state: 'error' })}
-          />
-        )}
+      {ogSrc && img.state === 'loading' && (
+        // oxlint-disable-next-line nextjs/no-img-element -- proxied third-party image, measured only
+        <img
+          src={ogSrc}
+          alt=""
+          hidden
+          onLoad={(e) =>
+            setImg({
+              state: 'ok',
+              width: e.currentTarget.naturalWidth,
+              height: e.currentTarget.naturalHeight
+            })
+          }
+          onError={() => setImg({ state: 'error' })}
+        />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Preview platform="Google">
